@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const APP_ICON_VERSION = '20260511'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -13,7 +15,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: ['naughtylist.png'],
+      includeAssets: ['naughtylist.png', 'naughtylist-180.png', 'naughtylist-192.png', 'naughtylist-512.png'],
       manifest: {
         name: 'The Naughty List',
         short_name: 'Naughty List',
@@ -27,10 +29,22 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/naughtylist.png',
-            sizes: '400x400',
+            src: `/naughtylist-192.png?v=${APP_ICON_VERSION}`,
+            sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
+          },
+          {
+            src: `/naughtylist-512.png?v=${APP_ICON_VERSION}`,
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: `/naughtylist-512.png?v=${APP_ICON_VERSION}`,
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },

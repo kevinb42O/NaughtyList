@@ -4,7 +4,16 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.jsx'
 
-registerSW({ immediate: true })
+const updateSW = registerSW({
+  immediate: true,
+  onRegisteredSW(_swUrl, registration) {
+    registration?.update()
+  },
+})
+
+window.addEventListener('focus', () => {
+  updateSW(true)
+})
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

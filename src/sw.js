@@ -1,4 +1,8 @@
+import { clientsClaim } from 'workbox-core'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+
+self.skipWaiting()
+clientsClaim()
 
 // Precache all Vite-built assets
 precacheAndRoute(self.__WB_MANIFEST)
@@ -10,8 +14,8 @@ self.addEventListener('push', (event) => {
   const title = data.title ?? 'The Naughty List'
   const options = {
     body: data.body ?? '',
-    icon: '/naughtylist.png',
-    badge: '/naughtylist.png',
+    icon: '/naughtylist-192.png?v=20260511',
+    badge: '/naughtylist-192.png?v=20260511',
     tag: data.tag ?? 'naughty-list-alert',
     renotify: true,
     vibrate: [100, 50, 100],
