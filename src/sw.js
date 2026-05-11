@@ -10,8 +10,8 @@ self.addEventListener('push', (event) => {
   const title = data.title ?? 'The Naughty List'
   const options = {
     body: data.body ?? '',
-    icon: '/naughty-list-icon.svg',
-    badge: '/naughty-list-icon.svg',
+    icon: '/naughtylist.png',
+    badge: '/naughtylist.png',
     tag: data.tag ?? 'naughty-list-alert',
     renotify: true,
     vibrate: [100, 50, 100],

@@ -13,7 +13,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: ['naughty-list-icon.svg'],
+      includeAssets: ['naughtylist.png'],
       manifest: {
         name: 'The Naughty List',
         short_name: 'Naughty List',
@@ -27,10 +27,10 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/naughty-list-icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            src: '/naughtylist.png',
+            sizes: '400x400',
+            type: 'image/png',
+            purpose: 'any',
           },
         ],
       },
