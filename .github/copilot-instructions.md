@@ -1,0 +1,4 @@
+- Use Vite, React, Tailwind CSS, React Router, Lucide icons, and vite-plugin-pwa for this project.
+- Keep UI changes mobile-first, dark, tactical, and scannable.
+- Prefer Context API mock data until a real backend such as Supabase or Firebase is introduced.
+- Run `npm run build` after implementation changes when practical.
