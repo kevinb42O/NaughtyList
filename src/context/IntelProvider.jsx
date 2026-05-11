@@ -30,6 +30,12 @@ function IntelProvider({ children }) {
   const [publicMessages, setPublicMessages] = useState([])
   const [directMessages, setDirectMessages] = useState([])
   const [onlineUserIds, setOnlineUserIds] = useState([])
+  const [pushSummary, setPushSummary] = useState({
+    subscribed_users: 0,
+    active_subscriptions: 0,
+    sent_notifications: 0,
+  })
+  const [pushEvents, setPushEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(true)
   const [error, setError] = useState('')
@@ -555,6 +561,61 @@ function IntelProvider({ children }) {
     return subscribeToPush(user.id)
   }
 
+  const fetchPushConsole = useCallback(async () => {
+    if (!isAdmin) {
+      setPushSummary({ subscribed_users: 0, active_subscriptions: 0, sent_notifications: 0 })
+      setPushEvents([])
+      return null
+    }
+
+    const { data, error: pushError } = await withTimeout(
+      supabase.functions.invoke('send-push', {
+        body: { type: 'push-stats' },
+      }),
+      12000,
+      'Push console request timed out.',
+    )
+
+    if (pushError) {
+      throw pushError
+    }
+
+    const nextSummary = data?.summary ?? {
+      subscribed_users: 0,
+      active_subscriptions: 0,
+      sent_notifications: 0,
+    }
+    setPushSummary(nextSummary)
+    setPushEvents(data?.events ?? [])
+    return data
+  }, [isAdmin])
+
+  const sendCustomPush = useCallback(async ({ title, body, url }) => {
+    if (!isAdmin) {
+      throw new Error('Only admins can send custom notifications.')
+    }
+
+    const { data, error: pushError } = await withTimeout(
+      supabase.functions.invoke('send-push', {
+        body: {
+          type: 'custom-notification',
+          title: title.trim(),
+          body: body.trim(),
+          url: url.trim() || '/',
+        },
+      }),
+      12000,
+      'Custom notification request timed out.',
+    )
+
+    if (pushError) {
+      throw pushError
+    }
+
+    await fetchPushConsole()
+    return data
+  }, [fetchPushConsole, isAdmin])
+
   const value = {
     session,
     user,
@@ -563,6 +624,8 @@ function IntelProvider({ children }) {
     players,
     publicMessages,
     directMessages,
+    pushSummary,
+    pushEvents,
     unreadDirectMessageCount,
     onlineUserIds,
     clans,
@@ -589,6 +652,8 @@ function IntelProvider({ children }) {
     reorderPlayers,
     broadcastOnline,
     enablePushNotifications,
+    fetchPushConsole,
+    sendCustomPush,
   }
 
   return <IntelContext.Provider value={value}>{children}</IntelContext.Provider>

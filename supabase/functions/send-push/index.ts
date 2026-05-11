@@ -23,6 +23,39 @@ function trimMessage(value: unknown) {
   return value.trim().replace(/\s+/g, ' ').slice(0, 120)
 }
 
+function trimCustomText(value: unknown, maxLength: number) {
+  if (typeof value !== 'string') return ''
+  return value.trim().replace(/\s+/g, ' ').slice(0, maxLength)
+}
+
+function normalizeUrl(value: unknown) {
+  if (typeof value !== 'string') return '/'
+  const trimmed = value.trim()
+  if (!trimmed) return '/'
+  return trimmed.startsWith('/') && !trimmed.startsWith('//') ? trimmed.slice(0, 120) : '/'
+}
+
+async function getRequestUser(supabase: ReturnType<typeof createClient>, req: Request) {
+  const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
+  if (!token) throw new Error('You must be logged in to send push notifications')
+
+  const { data, error } = await supabase.auth.getUser(token)
+  if (error || !data.user) throw new Error('Invalid push notification session')
+
+  return data.user
+}
+
+async function requireAdmin(supabase: ReturnType<typeof createClient>, userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (data?.role !== 'admin') throw new Error('Only admins can send custom notifications')
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -36,9 +69,57 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type, displayName, clanTag, senderUserId, recipientUserId, message } = await req.json()
+    const {
+      type,
+      displayName,
+      clanTag,
+      senderUserId,
+      recipientUserId,
+      message,
+      title: customTitle,
+      body: customBody,
+      url: customUrl,
+    } = await req.json()
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    const requestUser = await getRequestUser(supabase, req)
+
+    if (type === 'push-stats' || type === 'push-history') {
+      await requireAdmin(supabase, requestUser.id)
+
+      const [
+        { data: subscriptions, error: subscriptionError },
+        { data: events, error: eventsError },
+        { data: eventTotals, error: eventTotalError },
+      ] = await Promise.all([
+        supabase.from('push_subscriptions').select('user_id'),
+        supabase
+          .from('push_notification_events')
+          .select('id, sender_id, title, body, target_url, sent_count, failed_count, created_at')
+          .order('created_at', { ascending: false })
+          .limit(8),
+        supabase.from('push_notification_events').select('sent_count'),
+      ])
+
+      if (subscriptionError) throw subscriptionError
+      if (eventsError) throw eventsError
+      if (eventTotalError) throw eventTotalError
+
+      const summary = {
+        subscribed_users: new Set((subscriptions ?? []).map((row) => row.user_id)).size,
+        active_subscriptions: subscriptions?.length ?? 0,
+        sent_notifications: (eventTotals ?? []).reduce((total, event) => total + (event.sent_count ?? 0), 0),
+      }
+
+      return new Response(JSON.stringify({ summary, events: events ?? [] }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
+    const isCustom = type === 'custom-notification'
+    if (isCustom) {
+      await requireAdmin(supabase, requestUser.id)
+    }
 
     const query = supabase.from('push_subscriptions').select('id, subscription, user_id')
     if (type === 'direct-message') {
@@ -52,6 +133,13 @@ Deno.serve(async (req) => {
 
     const tag = clanTag ? `[${clanTag}] ` : ''
     const name = `${tag}${displayName || 'Someone'}`
+    const title = trimCustomText(customTitle, 120)
+    const body = trimCustomText(customBody, 400)
+    const url = normalizeUrl(customUrl)
+
+    if (isCustom && (!title || !body)) {
+      throw new Error('Custom notifications need a title and message')
+    }
 
     const payload = JSON.stringify(
       type === 'direct-message'
@@ -61,7 +149,14 @@ Deno.serve(async (req) => {
             url: senderUserId ? `/messages?to=${senderUserId}` : '/messages',
             tag: `dm-${senderUserId ?? 'new'}`,
           }
-        : {
+        : isCustom
+          ? {
+              title,
+              body,
+              url,
+              tag: `admin-${Date.now()}`,
+            }
+          : {
             title: 'OPERATOR ONLINE',
             body: `${name} is online. Squad up.`,
             url: '/',
@@ -89,6 +184,17 @@ Deno.serve(async (req) => {
 
     const sent = results.filter((r) => r.status === 'fulfilled').length
     const failed = results.filter((r) => r.status === 'rejected').length
+
+    if (isCustom) {
+      await supabase.from('push_notification_events').insert({
+        sender_id: requestUser.id,
+        title,
+        body,
+        target_url: url,
+        sent_count: sent,
+        failed_count: failed,
+      })
+    }
 
     return new Response(JSON.stringify({ sent, failed }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },

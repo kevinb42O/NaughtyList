@@ -1,6 +1,7 @@
 import { Crown, Search, Shield } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import AdminPushConsole from '../components/AdminPushConsole.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
@@ -140,9 +141,11 @@ function Admin() {
 
   return (
     <div>
-      <PageHeader eyebrow="Admin Screen" title="Role Control">
-        You are the only admin. Promote trusted people to moderator or demote them back to user.
+      <PageHeader eyebrow="Admin Screen" title="Command Center">
+        Send tactical push alerts, watch subscriber coverage, and control moderator access.
       </PageHeader>
+
+      <AdminPushConsole />
 
       <section className="panel rounded-[1.8rem] p-5">
         <div className="mb-4 flex items-center gap-3">
