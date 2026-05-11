@@ -14,8 +14,7 @@ self.addEventListener('push', (event) => {
   const title = data.title ?? '21rats'
   const options = {
     body: data.body ?? '',
-    icon: '/21rats-192.png?v=20260511',
-    badge: '/notification-badge.svg?v=20260511b',
+    icon: '/ratslogo.png?v=20260511-ratslogo',
     tag: data.tag ?? '21rats-alert',
     renotify: true,
     vibrate: [100, 50, 100],

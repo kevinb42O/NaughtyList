@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const APP_ICON_VERSION = '20260511'
+const APP_ICON_VERSION = '20260511-ratslogo'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -15,13 +15,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: [
-        '21rats.png',
-        '21rats-180.png',
-        '21rats-192.png',
-        '21rats-512.png',
-        'notification-badge.svg',
-      ],
+      includeAssets: ['ratslogo.png'],
       manifest: {
         name: '21rats',
         short_name: '21rats',
@@ -35,22 +29,10 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: `/21rats-192.png?v=${APP_ICON_VERSION}`,
-            sizes: '192x192',
+            src: `/ratslogo.png?v=${APP_ICON_VERSION}`,
+            sizes: '400x400',
             type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: `/21rats-512.png?v=${APP_ICON_VERSION}`,
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: `/21rats-512.png?v=${APP_ICON_VERSION}`,
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
+            purpose: 'any maskable',
           },
         ],
       },

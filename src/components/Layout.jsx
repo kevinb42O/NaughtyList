@@ -65,7 +65,13 @@ function Layout() {
       <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-28 pt-5 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between rounded-full border border-white/10 bg-black/30 px-4 py-2.5 backdrop-blur">
           <div className="flex items-center gap-3">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_16px_rgba(239,68,68,0.8)]" />
+            <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-red-500/20 bg-white/5 shadow-[0_0_24px_rgba(239,68,68,0.14)]">
+              <img
+                src="/ratslogo.png?v=20260511-ratslogo"
+                alt="21rats logo"
+                className="h-10 w-10 object-contain"
+              />
+            </div>
             <div>
               <p className="text-[0.62rem] font-black uppercase tracking-[0.28em] text-red-100">
                 21rats
