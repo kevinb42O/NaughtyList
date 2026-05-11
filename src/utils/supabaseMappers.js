@@ -14,6 +14,7 @@ export function mapPlayerFromSupabase(row, profileById = new Map()) {
     notes: row.notes ?? '',
     createdBy: row.created_by,
     createdByProfile,
+    sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     moderatedAt: row.moderated_at,

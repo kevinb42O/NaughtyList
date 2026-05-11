@@ -8,7 +8,9 @@ import {
   Settings,
   ShieldAlert,
   UsersRound,
+  Zap,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
 import RoleBadge from './RoleBadge.jsx'
 
@@ -22,7 +24,25 @@ const navItems = [
 ]
 
 function Layout() {
-  const { isAuthenticated, isAdmin, isModerator, profileDisplayName, role, signOut } = useIntel()
+  const { isAuthenticated, isAdmin, isModerator, profileDisplayName, role, signOut, broadcastOnline } = useIntel()
+  const [dropping, setDropping] = useState(false)
+  const [dropStatus, setDropStatus] = useState('') // 'sent' | 'error' | ''
+
+  async function handleDropIn() {
+    if (dropping) return
+    setDropping(true)
+    setDropStatus('')
+    try {
+      await broadcastOnline()
+      setDropStatus('sent')
+      setTimeout(() => setDropStatus(''), 4000)
+    } catch {
+      setDropStatus('error')
+      setTimeout(() => setDropStatus(''), 4000)
+    } finally {
+      setDropping(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-gray-100">
@@ -40,6 +60,25 @@ function Layout() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={handleDropIn}
+                disabled={dropping || dropStatus === 'sent'}
+                title="Ping everyone — you just dropped in"
+                className={[
+                  'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] transition',
+                  dropStatus === 'sent'
+                    ? 'border-green-500/50 bg-green-500/12 text-green-200'
+                    : dropping
+                      ? 'border-white/10 bg-white/5 text-gray-500 opacity-60'
+                      : 'border-yellow-400/40 bg-yellow-400/10 text-yellow-100 hover:bg-yellow-400/20',
+                ].join(' ')}
+              >
+                <Zap className="h-3.5 w-3.5" aria-hidden="true" />
+                {dropStatus === 'sent' ? 'Pinged!' : dropping ? 'Sending…' : 'Drop In'}
+              </button>
+            ) : null}
             {isModerator ? (
               <Link
                 to="/moderator"

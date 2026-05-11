@@ -1,6 +1,22 @@
 import { Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical } from 'lucide-react'
 import PlayerRow from '../components/PlayerRow.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { comparePlayersByPriority } from '../utils/threat.js'
@@ -12,14 +28,45 @@ const threatFilters = [
   ['friendly', 'Friendly'],
 ]
 
+function SortablePlayerRow({ player, isDragging }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: player.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  const handle = (
+    <span
+      {...listeners}
+      {...attributes}
+      className="mr-1 cursor-grab touch-none text-gray-600 hover:text-gray-400 active:cursor-grabbing"
+      aria-label="Drag to reorder"
+    >
+      <GripVertical className="h-5 w-5" />
+    </span>
+  )
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <PlayerRow player={player} dragHandle={handle} />
+    </div>
+  )
+}
+
 function Home() {
-  const { players } = useIntel()
+  const { players, isAdmin, reorderPlayers } = useIntel()
   const [query, setQuery] = useState('')
   const [threatFilter, setThreatFilter] = useState('all')
+  const [localPlayers, setLocalPlayers] = useState(null)
+
+  const isFiltering = query.trim() !== '' || threatFilter !== 'all'
 
   const filteredPlayers = useMemo(() => {
+    const source = localPlayers ?? players
     const normalizedQuery = query.trim().toLowerCase()
-    return [...players]
+    return [...source]
       .filter((player) => {
         const matchesName =
           !normalizedQuery ||
@@ -28,8 +75,32 @@ function Home() {
         const matchesThreat = threatFilter === 'all' || player.threatLevel === threatFilter
         return matchesName && matchesThreat
       })
-      .sort(comparePlayersByPriority)
-  }, [players, query, threatFilter])
+      .sort(isFiltering ? comparePlayersByPriority : (a, b) => a.sortOrder - b.sortOrder)
+  }, [localPlayers, players, query, threatFilter, isFiltering])
+
+  // Keep localPlayers in sync when remote players change (but not during an active drag session)
+  const orderedPlayers = useMemo(() => {
+    if (!isAdmin || isFiltering) return null
+    return localPlayers ?? [...players].sort((a, b) => a.sortOrder - b.sortOrder)
+  }, [isAdmin, isFiltering, localPlayers, players])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+  )
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const current = orderedPlayers ?? filteredPlayers
+    const oldIndex = current.findIndex((p) => p.id === active.id)
+    const newIndex = current.findIndex((p) => p.id === over.id)
+    const reordered = arrayMove(current, oldIndex, newIndex).map((p, i) => ({ ...p, sortOrder: i + 1 }))
+
+    setLocalPlayers(reordered)
+    reorderPlayers(reordered.map((p) => p.id)).catch(() => setLocalPlayers(null))
+  }
 
   const stats = useMemo(
     () => [
@@ -81,6 +152,11 @@ function Home() {
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
               {filteredPlayers.length} shown
             </span>
+            {isAdmin && !isFiltering ? (
+              <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-yellow-300">
+                Drag to reorder
+              </span>
+            ) : null}
           </div>
 
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
@@ -120,7 +196,17 @@ function Home() {
 
         <div className="mt-4 grid gap-3">
           {filteredPlayers.length ? (
-            filteredPlayers.map((player) => <PlayerRow key={player.id} player={player} />)
+            isAdmin && !isFiltering ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={filteredPlayers.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  {filteredPlayers.map((player) => (
+                    <SortablePlayerRow key={player.id} player={player} />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              filteredPlayers.map((player) => <PlayerRow key={player.id} player={player} />)
+            )
           ) : (
             <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-black/25 p-6 text-center">
               <p className="intel-label mb-3">No entries yet</p>

@@ -1,7 +1,7 @@
-import { ExternalLink, Users } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import { getThreatStyle } from '../utils/threat.js'
 
-function PlayerRow({ player }) {
+function PlayerRow({ player, dragHandle }) {
   const threat = getThreatStyle(player.threatLevel)
 
   return (
@@ -10,18 +10,16 @@ function PlayerRow({ player }) {
 
       <div className="pl-3">
         <div className="flex flex-wrap items-center gap-2">
+          {dragHandle}
           <h2 className="truncate text-xl font-black uppercase tracking-[0.03em] text-white">
+            {player.clan ? (
+              <span className="text-gray-400">[{player.clan}]&nbsp;</span>
+            ) : null}
             {player.name}
           </h2>
           <span className={`rounded-full border px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.2em] ${threat.badge}`}>
             {threat.label}
           </span>
-          {player.clan ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-200">
-              <Users className="h-3.5 w-3.5" aria-hidden="true" />
-              {player.clan}
-            </span>
-          ) : null}
           {player.evidenceUrl ? (
             <a
               href={player.evidenceUrl}

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { buildClanIntel } from '../utils/clans.js'
 import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMappers.js'
+import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
 function profileDisplayName(user) {
@@ -146,13 +147,16 @@ function IntelProvider({ children }) {
       const { data, error: playersError } = await supabase
         .from('players_with_scores')
         .select('*')
+        .order('sort_order', { ascending: true })
         .order('created_at', { ascending: false })
 
       if (playersError) {
         throw playersError
       }
 
-      const nextPlayers = (data ?? []).map((row) => mapPlayerFromSupabase(row, profileById))
+      const nextPlayers = (data ?? [])
+        .map((row) => mapPlayerFromSupabase(row, profileById))
+        .sort((a, b) => a.sortOrder - b.sortOrder)
       setPlayers(nextPlayers)
 
       await Promise.all([
@@ -281,6 +285,9 @@ function IntelProvider({ children }) {
       .update({ last_seen: new Date().toISOString() })
       .eq('id', user.id)
       .then(() => {})
+
+    // Auto-subscribe to push notifications when signed in
+    subscribeToPush(user.id).catch(() => {})
 
     return () => {
       supabase.removeChannel(presenceChannel)
@@ -480,6 +487,24 @@ function IntelProvider({ children }) {
     await refresh()
   }
 
+  async function reorderPlayers(orderedIds) {
+    if (!isAdmin) {
+      throw new Error('Only admins can reorder the list.')
+    }
+
+    // Optimistically update local state immediately
+    setPlayers((current) => {
+      const byId = new Map(current.map((p) => [p.id, p]))
+      return orderedIds.map((id, index) => ({ ...byId.get(id), sortOrder: index + 1 })).filter(Boolean)
+    })
+
+    // Persist each updated sort_order to Supabase
+    const updates = orderedIds.map((id, index) =>
+      supabase.from('players').update({ sort_order: index + 1 }).eq('id', id),
+    )
+    await Promise.all(updates)
+  }
+
   async function claimAdmin() {
     const { data, error: claimError } = await supabase.rpc('claim_admin_role')
 
@@ -517,6 +542,16 @@ function IntelProvider({ children }) {
 
   const clans = useMemo(() => buildClanIntel(players), [players])
 
+  async function broadcastOnline() {
+    if (!user) throw new Error('You must be logged in.')
+    const displayName = profile?.display_name || profileDisplayName(user)
+    const clanTag = profile?.clan_tag || ''
+    const { error: fnError } = await supabase.functions.invoke('send-push', {
+      body: { displayName, clanTag, senderUserId: user.id },
+    })
+    if (fnError) throw fnError
+  }
+
   const value = {
     session,
     user,
@@ -551,6 +586,8 @@ function IntelProvider({ children }) {
     sendDirectMessage,
     markDirectMessageRead,
     deletePublicMessage,
+    reorderPlayers,
+    broadcastOnline,
   }
 
   return <IntelContext.Provider value={value}>{children}</IntelContext.Provider>
