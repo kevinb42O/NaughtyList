@@ -15,7 +15,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body ?? '',
     icon: '/naughtylist-192.png?v=20260511',
-    badge: '/naughtylist-192.png?v=20260511',
+    badge: '/notification-badge.svg?v=20260511b',
     tag: data.tag ?? 'naughty-list-alert',
     renotify: true,
     vibrate: [100, 50, 100],

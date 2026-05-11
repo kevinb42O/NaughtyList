@@ -15,7 +15,13 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: ['naughtylist.png', 'naughtylist-180.png', 'naughtylist-192.png', 'naughtylist-512.png'],
+      includeAssets: [
+        'naughtylist.png',
+        'naughtylist-180.png',
+        'naughtylist-192.png',
+        'naughtylist-512.png',
+        'notification-badge.svg',
+      ],
       manifest: {
         name: 'The Naughty List',
         short_name: 'Naughty List',
