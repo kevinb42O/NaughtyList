@@ -1,5 +1,5 @@
 import { Send } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -14,6 +14,7 @@ function Messages() {
     directMessages,
     onlineUserIds,
     sendDirectMessage,
+    markDirectMessageRead,
   } = useIntel()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedId = searchParams.get('to')
@@ -34,6 +35,17 @@ function Messages() {
 
   const selectedProfile = profiles.find((profile) => profile.id === selectedId) ?? contacts[0]
 
+  const unreadCountsBySender = useMemo(() => {
+    return directMessages.reduce((counts, directMessage) => {
+      if (directMessage.recipient_id !== user?.id || directMessage.read_at) {
+        return counts
+      }
+
+      counts[directMessage.sender_id] = (counts[directMessage.sender_id] ?? 0) + 1
+      return counts
+    }, {})
+  }, [directMessages, user?.id])
+
   const thread = useMemo(() => {
     if (!selectedProfile || !user) {
       return []
@@ -46,6 +58,24 @@ function Messages() {
       )
     })
   }, [directMessages, selectedProfile, user])
+
+  useEffect(() => {
+    if (!selectedProfile || !user) {
+      return
+    }
+
+    const unreadThreadMessages = thread.filter(
+      (directMessage) => directMessage.recipient_id === user.id && !directMessage.read_at,
+    )
+
+    if (!unreadThreadMessages.length) {
+      return
+    }
+
+    Promise.allSettled(
+      unreadThreadMessages.map((directMessage) => markDirectMessageRead(directMessage.id)),
+    ).catch(() => {})
+  }, [markDirectMessageRead, selectedProfile, thread, user])
 
   async function handleSend(event) {
     event.preventDefault()
@@ -113,7 +143,14 @@ function Messages() {
                       <p className="truncate text-sm font-black uppercase tracking-[0.08em] text-white">
                         {clanPrefix(contact)} {displayProfileName(contact)}
                       </p>
-                      <OnlineDot online={online} label={false} />
+                      <div className="flex items-center gap-2">
+                        {unreadCountsBySender[contact.id] ? (
+                          <span className="rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-red-100">
+                            {unreadCountsBySender[contact.id]}
+                          </span>
+                        ) : null}
+                        <OnlineDot online={online} label={false} />
+                      </div>
                     </div>
                     <p className="mt-1 truncate text-xs font-bold text-gray-500">
                       {contact.activision_ids?.[0] || 'No Activision ID'}

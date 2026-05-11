@@ -30,6 +30,9 @@ function IntelProvider({ children }) {
   const isAuthenticated = Boolean(user)
   const isAdmin = role === 'admin'
   const isModerator = role === 'moderator' || role === 'admin'
+  const unreadDirectMessageCount = directMessages.filter(
+    (message) => message.recipient_id === user?.id && !message.read_at,
+  ).length
 
   const fetchProfiles = useCallback(async () => {
     const { data, error: profilesError } = await supabase
@@ -593,6 +596,7 @@ function IntelProvider({ children }) {
     trustVotes,
     publicMessages,
     directMessages,
+    unreadDirectMessageCount,
     onlineUserIds,
     clans,
     userVotes,

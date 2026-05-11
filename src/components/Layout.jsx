@@ -17,10 +17,10 @@ import RoleBadge from './RoleBadge.jsx'
 const navItems = [
   { to: '/', label: 'Home', icon: House },
   { to: '/add', label: 'Add', icon: ListPlus },
-  { to: '/profile', label: 'Profile', icon: Settings },
-  { to: '/profiles', label: 'People', icon: UsersRound },
+  { to: '/profiles', label: 'Team', icon: UsersRound },
   { to: '/chat', label: 'Chat', icon: MessageSquare },
   { to: '/messages', label: 'DMs', icon: MessageSquare },
+  { to: '/profile', label: 'Profile', icon: Settings },
 ]
 
 function Layout() {
@@ -34,6 +34,7 @@ function Layout() {
     broadcastOnline,
     enablePushNotifications,
     pushPermission,
+    unreadDirectMessageCount,
   } = useIntel()
   const [dropping, setDropping] = useState(false)
   const [dropStatus, setDropStatus] = useState('') // 'sent' | 'error' | ''
@@ -190,6 +191,11 @@ function Layout() {
               >
                 <Icon className="mb-1 h-5 w-5" aria-hidden="true" />
                 {item.label}
+                {item.to === '/messages' && unreadDirectMessageCount ? (
+                  <span className="absolute right-2 top-2 min-w-5 rounded-full border border-red-500/50 bg-red-500/15 px-1.5 py-0.5 text-[0.55rem] font-black leading-none text-red-100">
+                    {unreadDirectMessageCount > 9 ? '9+' : unreadDirectMessageCount}
+                  </span>
+                ) : null}
               </NavLink>
             )
           })}
