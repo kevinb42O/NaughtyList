@@ -24,9 +24,30 @@ const navItems = [
 ]
 
 function Layout() {
-  const { isAuthenticated, isAdmin, isModerator, profileDisplayName, role, signOut, broadcastOnline } = useIntel()
+  const {
+    isAuthenticated,
+    isAdmin,
+    isModerator,
+    profileDisplayName,
+    role,
+    signOut,
+    broadcastOnline,
+    enablePushNotifications,
+    pushPermission,
+  } = useIntel()
   const [dropping, setDropping] = useState(false)
   const [dropStatus, setDropStatus] = useState('') // 'sent' | 'error' | ''
+  const [enablingAlerts, setEnablingAlerts] = useState(false)
+
+  async function handleEnableAlerts() {
+    if (enablingAlerts) return
+    setEnablingAlerts(true)
+    try {
+      await enablePushNotifications()
+    } finally {
+      setEnablingAlerts(false)
+    }
+  }
 
   async function handleDropIn() {
     if (dropping) return
@@ -60,6 +81,17 @@ function Layout() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {isAuthenticated && pushPermission !== 'granted' ? (
+              <button
+                type="button"
+                onClick={handleEnableAlerts}
+                disabled={enablingAlerts || pushPermission === 'denied'}
+                title={pushPermission === 'denied' ? 'Notifications are blocked in browser settings' : 'Enable phone alerts'}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/20 disabled:opacity-50"
+              >
+                Alerts
+              </button>
+            ) : null}
             {isAuthenticated ? (
               <button
                 type="button"

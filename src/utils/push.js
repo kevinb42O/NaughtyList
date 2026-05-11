@@ -2,6 +2,15 @@ import { supabase } from '../lib/supabase.js'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
 
+export function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+}
+
+export function notificationPermission() {
+  if (!('Notification' in window)) return 'unsupported'
+  return Notification.permission
+}
+
 /**
  * Convert a base64url VAPID public key to the Uint8Array the browser expects.
  */
@@ -19,7 +28,7 @@ function urlBase64ToUint8Array(base64String) {
  */
 export async function subscribeToPush(userId) {
   if (!userId) return false
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+  if (!pushSupported()) return false
   if (!VAPID_PUBLIC_KEY) {
     console.warn('[push] VITE_VAPID_PUBLIC_KEY is not set')
     return false

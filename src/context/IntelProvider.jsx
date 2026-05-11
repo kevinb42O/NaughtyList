@@ -1,9 +1,9 @@
-/* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { buildClanIntel } from '../utils/clans.js'
 import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMappers.js'
-import { subscribeToPush } from '../utils/push.js'
+import { notificationPermission, subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
 function profileDisplayName(user) {
@@ -20,6 +20,7 @@ function IntelProvider({ children }) {
   const [directMessages, setDirectMessages] = useState([])
   const [onlineUserIds, setOnlineUserIds] = useState([])
   const [userVotes, setUserVotes] = useState({})
+  const [pushPermission, setPushPermission] = useState(notificationPermission())
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(true)
   const [error, setError] = useState('')
@@ -203,6 +204,9 @@ function IntelProvider({ children }) {
       }
 
       setSession(data.session)
+      if (data.session?.access_token) {
+        supabase.realtime.setAuth(data.session.access_token)
+      }
       setAuthLoading(false)
     }
 
@@ -210,6 +214,9 @@ function IntelProvider({ children }) {
 
     const { data: authSubscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
+      if (nextSession?.access_token) {
+        supabase.realtime.setAuth(nextSession.access_token)
+      }
       setAuthLoading(false)
     })
 
@@ -287,7 +294,9 @@ function IntelProvider({ children }) {
       .then(() => {})
 
     // Auto-subscribe to push notifications when signed in
-    subscribeToPush(user.id).catch(() => {})
+    subscribeToPush(user.id)
+      .then(() => setPushPermission(notificationPermission()))
+      .catch(() => setPushPermission(notificationPermission()))
 
     return () => {
       supabase.removeChannel(presenceChannel)
@@ -381,6 +390,21 @@ function IntelProvider({ children }) {
     if (messageError) {
       throw messageError
     }
+
+    const displayName = profile?.display_name || profileDisplayName(user)
+    const clanTag = profile?.clan_tag || ''
+    supabase.functions
+      .invoke('send-push', {
+        body: {
+          type: 'direct-message',
+          senderUserId: user.id,
+          recipientUserId: recipientId,
+          displayName,
+          clanTag,
+          message: body.trim(),
+        },
+      })
+      .catch((pushError) => console.warn('[push] DM notification failed:', pushError.message))
 
     await refresh()
   }
@@ -544,12 +568,20 @@ function IntelProvider({ children }) {
 
   async function broadcastOnline() {
     if (!user) throw new Error('You must be logged in.')
+    await enablePushNotifications()
     const displayName = profile?.display_name || profileDisplayName(user)
     const clanTag = profile?.clan_tag || ''
     const { error: fnError } = await supabase.functions.invoke('send-push', {
-      body: { displayName, clanTag, senderUserId: user.id },
+      body: { type: 'online', displayName, clanTag, senderUserId: user.id },
     })
     if (fnError) throw fnError
+  }
+
+  async function enablePushNotifications() {
+    if (!user) return false
+    const subscribed = await subscribeToPush(user.id)
+    setPushPermission(notificationPermission())
+    return subscribed
   }
 
   const value = {
@@ -564,6 +596,7 @@ function IntelProvider({ children }) {
     onlineUserIds,
     clans,
     userVotes,
+    pushPermission,
     loading: loading || authLoading,
     error,
     role,
@@ -588,6 +621,7 @@ function IntelProvider({ children }) {
     deletePublicMessage,
     reorderPlayers,
     broadcastOnline,
+    enablePushNotifications,
   }
 
   return <IntelContext.Provider value={value}>{children}</IntelContext.Provider>

@@ -12,7 +12,7 @@ self.addEventListener('push', (event) => {
     body: data.body ?? '',
     icon: '/naughty-list-icon.svg',
     badge: '/naughty-list-icon.svg',
-    tag: 'drop-in',
+    tag: data.tag ?? 'naughty-list-alert',
     renotify: true,
     vibrate: [100, 50, 100],
     data: { url: data.url ?? '/' },

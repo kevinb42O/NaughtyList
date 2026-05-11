@@ -18,6 +18,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Authorization, Content-Type, apikey, x-client-info',
 }
 
+function trimMessage(value: unknown) {
+  if (typeof value !== 'string') return ''
+  return value.trim().replace(/\s+/g, ' ').slice(0, 120)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -31,15 +36,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { displayName, clanTag, senderUserId } = await req.json()
+    const { type, displayName, clanTag, senderUserId, recipientUserId, message } = await req.json()
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // Fetch all subscriptions except the sender's own
-    const query = supabase.from('push_subscriptions').select('subscription, user_id')
-    if (senderUserId) {
-      query.neq('user_id', senderUserId)
+    const query = supabase.from('push_subscriptions').select('id, subscription, user_id')
+    if (type === 'direct-message') {
+      if (!recipientUserId) throw new Error('recipientUserId is required')
+      query.eq('user_id', recipientUserId)
     }
+
     const { data: rows, error: dbError } = await query
 
     if (dbError) throw dbError
@@ -47,15 +53,39 @@ Deno.serve(async (req) => {
     const tag = clanTag ? `[${clanTag}] ` : ''
     const name = `${tag}${displayName || 'Someone'}`
 
-    const payload = JSON.stringify({
-      title: 'OPERATOR ONLINE',
-      body: `${name} just dropped in. Gear up.`,
-      url: '/',
-    })
+    const payload = JSON.stringify(
+      type === 'direct-message'
+        ? {
+            title: 'NEW DIRECT MESSAGE',
+            body: `${name}: ${trimMessage(message)}`,
+            url: senderUserId ? `/messages?to=${senderUserId}` : '/messages',
+            tag: `dm-${senderUserId ?? 'new'}`,
+          }
+        : {
+            title: 'OPERATOR ONLINE',
+            body: `${name} is online. Squad up.`,
+            url: '/',
+            tag: 'drop-in',
+          },
+    )
 
     const results = await Promise.allSettled(
       (rows ?? []).map((row) => webPush.sendNotification(row.subscription, payload)),
     )
+
+    const deadSubscriptionIds = results
+      .map((result, index) => ({ result, row: rows?.[index] }))
+      .filter(({ result }) => {
+        if (result.status !== 'rejected') return false
+        const statusCode = (result.reason as { statusCode?: number })?.statusCode
+        return statusCode === 404 || statusCode === 410
+      })
+      .map(({ row }) => row?.id)
+      .filter(Boolean)
+
+    if (deadSubscriptionIds.length) {
+      await supabase.from('push_subscriptions').delete().in('id', deadSubscriptionIds)
+    }
 
     const sent = results.filter((r) => r.status === 'fulfilled').length
     const failed = results.filter((r) => r.status === 'rejected').length
