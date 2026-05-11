@@ -41,7 +41,7 @@ function Auth() {
     return (
       <div>
         <PageHeader eyebrow="Auth Screen" title="Logged In">
-          You can add operators, vote on trust scores, and access role tools if assigned.
+          You can add intel, manage your profile, and access role tools if assigned.
         </PageHeader>
         <section className="panel rounded-[1.8rem] p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -68,7 +68,7 @@ function Auth() {
   return (
     <div>
       <PageHeader eyebrow="Auth Screen" title="Login Required">
-        Everyone can view 21rats. Adding operators requires an account.
+        Everyone can scan 21rats. Adding intel requires an account.
       </PageHeader>
 
       <form onSubmit={handleSubmit} className="panel mx-auto grid max-w-xl gap-4 rounded-[1.8rem] p-5 sm:p-6">

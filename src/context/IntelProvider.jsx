@@ -486,7 +486,7 @@ function IntelProvider({ children }) {
 
   async function reorderPlayers(orderedIds) {
     if (!isAdmin) {
-      throw new Error('Only admins can reorder the list.')
+      throw new Error('Only admins can reorder the board.')
     }
 
     // Optimistically update local state immediately

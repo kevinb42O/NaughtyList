@@ -120,12 +120,12 @@ function AddPlayerModal({ open, onClose }) {
           <div className="sticky top-0 z-10 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="intel-label mb-2 text-red-100">New Operator Record</p>
+                <p className="intel-label mb-2 text-red-100">New Intel Record</p>
                 <h2 id={titleId} className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
                   Log Operator
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
-                  Capture the name first, add the threat level, then attach only the context that helps the team act faster.
+                  Start with the gamer tag, set the threat level, then add only the context your squad can use immediately.
                 </p>
               </div>
               <button
@@ -148,7 +148,7 @@ function AddPlayerModal({ open, onClose }) {
                   <p className="font-black uppercase tracking-[0.04em] text-white">Login required</p>
                 </div>
                 <p className="text-sm leading-6 text-gray-300">
-                  Everyone can read the list, but only signed-in squad members can create operator records.
+                  Everyone can read the board, but only signed-in squad members can add intel.
                 </p>
               </div>
               <Link
@@ -157,7 +157,7 @@ function AddPlayerModal({ open, onClose }) {
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
               >
                 <LogIn className="h-4 w-4" aria-hidden="true" />
-                Login to add names
+                Login to add intel
               </Link>
             </div>
           ) : (
@@ -317,7 +317,7 @@ function AddPlayerModal({ open, onClose }) {
 
                 <aside className="grid content-start gap-4">
                   <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                    <p className="intel-label mb-3">Record Preview</p>
+                    <p className="intel-label mb-3">Intel Preview</p>
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <div className="mb-3 flex items-center gap-3">
                         <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-red-100">
@@ -342,11 +342,11 @@ function AddPlayerModal({ open, onClose }) {
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                    <p className="intel-label mb-2">Fast Check</p>
+                    <p className="intel-label mb-2">Ready Check</p>
                     <ul className="grid gap-2 text-xs font-bold text-gray-400">
-                      <li className={form.name.trim() ? 'text-green-200' : ''}>Name captured</li>
-                      <li className={form.tags.length ? 'text-green-200' : ''}>Tags optional</li>
-                      <li className={form.evidenceUrl.trim() ? 'text-green-200' : ''}>Clip optional</li>
+                      <li className={form.name.trim() ? 'text-green-200' : ''}>Name locked</li>
+                      <li className={form.tags.length ? 'text-green-200' : ''}>Tags added</li>
+                      <li className={form.evidenceUrl.trim() ? 'text-green-200' : ''}>Clip linked</li>
                     </ul>
                   </div>
                 </aside>
@@ -372,7 +372,7 @@ function AddPlayerModal({ open, onClose }) {
                       className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/60 bg-red-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 shadow-[0_0_28px_rgba(239,68,68,0.18)] transition hover:bg-red-500/22 disabled:opacity-50"
                     >
                       <Save className="h-5 w-5" aria-hidden="true" />
-                      {saving ? 'Saving' : 'Save Operator'}
+                      {saving ? 'Saving' : 'Save Intel'}
                     </button>
                   </div>
                 </div>

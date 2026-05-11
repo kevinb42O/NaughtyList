@@ -132,15 +132,14 @@ function Home() {
   return (
     <div className="flex flex-1 flex-col gap-6">
       <section className="panel overflow-hidden rounded-[2rem] px-5 py-6 sm:px-7 sm:py-7">
-        <p className="intel-label mb-3 text-red-100">Local Building 21 Watchboard</p>
+        <p className="intel-label mb-3 text-red-100">21rats Intel Board</p>
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-end">
           <div className="max-w-3xl">
             <h1 className="text-5xl font-black uppercase leading-none tracking-[0.04em] text-white sm:text-6xl">
               21rats
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-300 sm:text-base">
-              Track repeat problems, document hostile operators, and tie them back to squads
-              that keep showing up in Building 21.
+              Track repeat squads, hostile operators, shadowban risk, and the callouts that actually matter before you queue into Building 21.
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
@@ -149,11 +148,11 @@ function Home() {
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/60 bg-red-500/15 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 shadow-[0_0_28px_rgba(239,68,68,0.16)] transition hover:bg-red-500/25"
               >
                 <Plus className="h-5 w-5" aria-hidden="true" />
-                Log Operator
+                Add Intel
               </button>
               <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
                 <ShieldX className="h-4 w-4 text-red-200" aria-hidden="true" />
-                Fast intel entry
+                Live squad intel
               </span>
             </div>
           </div>
@@ -170,10 +169,10 @@ function Home() {
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="intel-label text-red-100">Identity</p>
+                  <p className="intel-label text-red-100">Signal</p>
                   <p className="mt-2 text-2xl font-black uppercase tracking-[0.04em] text-white">21rats</p>
                   <p className="mt-2 text-sm leading-6 text-gray-400">
-                    One clear mark across the board, install icon, and push notifications.
+                    One recognizable mark across installs, alerts, and the live intel board.
                   </p>
                 </div>
               </div>
@@ -197,14 +196,14 @@ function Home() {
         <div className="flex flex-col gap-4 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="intel-label">The List</p>
+              <p className="intel-label">Intel Board</p>
               <h2 className="mt-2 text-2xl font-black uppercase tracking-[0.04em] text-white">
-                Naughty Operators
+                Tracked Operators
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                {filteredPlayers.length} shown
+                {filteredPlayers.length} visible
               </span>
               <button
                 type="button"
@@ -212,12 +211,12 @@ function Home() {
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
-                Add
+                New Intel
               </button>
             </div>
             {isAdmin && !isFiltering ? (
               <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-yellow-300">
-                Drag to reorder
+                Admin order mode
               </span>
             ) : null}
           </div>
@@ -232,7 +231,7 @@ function Home() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search operator or clan tag"
+                placeholder="Search operator, clan, or note"
                 className="field min-h-14 pl-12 text-lg font-black uppercase tracking-[0.04em] placeholder:text-gray-600"
                 autoComplete="off"
               />
@@ -272,19 +271,19 @@ function Home() {
             )
           ) : (
             <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-black/25 p-6 text-center">
-              <p className="intel-label mb-3">No entries yet</p>
+              <p className="intel-label mb-3">Board Empty</p>
               <h3 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
-                Start the list properly
+                Build the board
               </h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-400">
-                There is no fake sample data. Add real operators and they will show up here immediately.
+                No filler data. Add your first operator record and 21rats updates instantly for the squad.
               </p>
               <button
                 type="button"
                 onClick={openAddModal}
                 className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
               >
-                Add the first entry
+                Add first intel
               </button>
             </div>
           )}

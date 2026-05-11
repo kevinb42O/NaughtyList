@@ -77,7 +77,7 @@ function Layout() {
                 21rats
               </p>
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-gray-500">
-                Building 21 Squad Hub
+                Building 21 Intel Network
               </p>
             </div>
           </div>

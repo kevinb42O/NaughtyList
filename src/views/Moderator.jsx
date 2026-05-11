@@ -135,7 +135,7 @@ function Moderator() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="field min-h-12 pl-11"
-              placeholder="Search players, votes, or public chat"
+              placeholder="Search players, public chat, or notes"
             />
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-center">
