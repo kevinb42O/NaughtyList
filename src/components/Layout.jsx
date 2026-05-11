@@ -2,7 +2,6 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import {
   Crown,
   House,
-  ListPlus,
   LogIn,
   MessageSquare,
   Settings,
@@ -16,7 +15,6 @@ import RoleBadge from './RoleBadge.jsx'
 
 const navItems = [
   { to: '/', label: 'Home', icon: House },
-  { to: '/add', label: 'Add', icon: ListPlus },
   { to: '/profiles', label: 'Team', icon: UsersRound },
   { to: '/chat', label: 'Chat', icon: MessageSquare },
   { to: '/messages', label: 'DMs', icon: MessageSquare },
@@ -52,6 +50,15 @@ function Layout() {
       setDropping(false)
     }
   }
+
+  const roleNavItem = isAdmin
+    ? { to: '/admin', label: 'Admin', icon: Crown, tone: 'admin' }
+    : isModerator
+      ? { to: '/moderator', label: 'Mod', icon: ShieldAlert, tone: 'moderator' }
+      : null
+  const bottomNavItems = roleNavItem
+    ? [...navItems.slice(0, -1), roleNavItem, navItems[navItems.length - 1]]
+    : navItems
 
   return (
     <div className="min-h-screen bg-neutral-950 text-gray-100">
@@ -89,24 +96,6 @@ function Layout() {
                 <Zap className="h-3.5 w-3.5" aria-hidden="true" />
                 {dropStatus === 'sent' ? 'Pinged!' : dropStatus === 'error' ? 'Failed' : dropping ? 'Sending…' : 'Drop In'}
               </button>
-            ) : null}
-            {isModerator ? (
-              <Link
-                to="/moderator"
-                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-orange-300/30 bg-orange-400/10 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-orange-100"
-              >
-                <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
-                Mod
-              </Link>
-            ) : null}
-            {isAdmin ? (
-              <Link
-                to="/admin"
-                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-red-400/40 bg-red-500/14 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-red-100"
-              >
-                <Crown className="h-3.5 w-3.5" aria-hidden="true" />
-                Admin
-              </Link>
             ) : null}
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
@@ -150,9 +139,13 @@ function Layout() {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/85 px-3 py-2 shadow-2xl shadow-black backdrop-blur-xl">
-        <div className="mx-auto grid max-w-6xl grid-cols-6 gap-1.5 sm:gap-2">
-          {navItems.map((item) => {
+        <div
+          className="mx-auto grid max-w-6xl gap-1.5 sm:gap-2"
+          style={{ gridTemplateColumns: `repeat(${bottomNavItems.length}, minmax(0, 1fr))` }}
+        >
+          {bottomNavItems.map((item) => {
             const Icon = item.icon
+            const isRoleItem = item.tone === 'admin' || item.tone === 'moderator'
 
             return (
               <NavLink
@@ -160,10 +153,18 @@ function Layout() {
                 to={item.to}
                 className={({ isActive }) =>
                   [
-                    'flex min-h-14 flex-col items-center justify-center rounded-2xl border px-2 text-[0.65rem] font-black uppercase tracking-[0.16em] transition',
+                    'relative flex min-h-14 flex-col items-center justify-center rounded-2xl border px-2 text-[0.65rem] font-black uppercase tracking-[0.16em] transition',
                     isActive
-                      ? 'border-red-500/60 bg-red-500/12 text-red-100 shadow-[0_0_22px_rgba(239,68,68,0.18)]'
-                      : 'border-transparent text-gray-500 hover:border-white/10 hover:bg-white/5 hover:text-gray-200',
+                      ? item.tone === 'admin'
+                        ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-100 shadow-[0_0_22px_rgba(250,204,21,0.18)]'
+                        : item.tone === 'moderator'
+                          ? 'border-orange-400/60 bg-orange-400/15 text-orange-100 shadow-[0_0_22px_rgba(251,146,60,0.16)]'
+                          : 'border-red-500/60 bg-red-500/12 text-red-100 shadow-[0_0_22px_rgba(239,68,68,0.18)]'
+                      : isRoleItem
+                        ? item.tone === 'admin'
+                          ? 'border-yellow-400/30 bg-yellow-400/10 text-yellow-200 hover:border-yellow-400/50 hover:bg-yellow-400/15'
+                          : 'border-orange-400/30 bg-orange-400/10 text-orange-100 hover:border-orange-400/50 hover:bg-orange-400/15'
+                        : 'border-transparent text-gray-500 hover:border-white/10 hover:bg-white/5 hover:text-gray-200',
                   ].join(' ')
                 }
               >

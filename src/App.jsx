@@ -1,7 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
 import IntelProvider from './context/IntelProvider.jsx'
-import AddPlayer from './views/AddPlayer.jsx'
 import Admin from './views/Admin.jsx'
 import Auth from './views/Auth.jsx'
 import Chat from './views/Chat.jsx'
@@ -20,7 +19,7 @@ function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/add" element={<AddPlayer />} />
+            <Route path="/add" element={<Navigate to="/?add=1" replace />} />
             <Route path="/clans" element={<Clans />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/profile" element={<Profile />} />

@@ -1,5 +1,5 @@
-import { Search } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Plus, Search, ShieldX } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import {
   DndContext,
@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
+import AddPlayerModal from '../components/AddPlayerModal.jsx'
 import PlayerRow from '../components/PlayerRow.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { comparePlayersByPriority } from '../utils/threat.js'
@@ -57,11 +58,27 @@ function SortablePlayerRow({ player, isDragging }) {
 
 function Home() {
   const { players, isAdmin, reorderPlayers } = useIntel()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [threatFilter, setThreatFilter] = useState('all')
   const [localPlayers, setLocalPlayers] = useState(null)
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const isAddRouteOpen = searchParams.get('add') === '1'
+  const isAddModalOpen = addModalOpen || isAddRouteOpen
 
   const isFiltering = query.trim() !== '' || threatFilter !== 'all'
+
+  function openAddModal() {
+    setAddModalOpen(true)
+  }
+
+  function closeAddModal() {
+    setAddModalOpen(false)
+    if (isAddRouteOpen) {
+      navigate('/', { replace: true })
+    }
+  }
 
   const filteredPlayers = useMemo(() => {
     const source = localPlayers ?? players
@@ -125,6 +142,20 @@ function Home() {
               Track repeat problems, document hostile operators, and tie them back to squads
               that keep showing up in Building 21.
             </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/60 bg-red-500/15 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 shadow-[0_0_28px_rgba(239,68,68,0.16)] transition hover:bg-red-500/25"
+              >
+                <Plus className="h-5 w-5" aria-hidden="true" />
+                Log Operator
+              </button>
+              <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
+                <ShieldX className="h-4 w-4 text-red-200" aria-hidden="true" />
+                Fast intel entry
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -149,9 +180,19 @@ function Home() {
                 Naughty Operators
               </h2>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
-              {filteredPlayers.length} shown
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                {filteredPlayers.length} shown
+              </span>
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add
+              </button>
+            </div>
             {isAdmin && !isFiltering ? (
               <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-yellow-300">
                 Drag to reorder
@@ -216,16 +257,19 @@ function Home() {
               <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-400">
                 There is no fake sample data. Add real operators and they will show up here immediately.
               </p>
-              <Link
-                to="/add"
+              <button
+                type="button"
+                onClick={openAddModal}
                 className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
               >
                 Add the first entry
-              </Link>
+              </button>
             </div>
           )}
         </div>
       </section>
+
+      <AddPlayerModal open={isAddModalOpen} onClose={closeAddModal} />
     </div>
   )
 }

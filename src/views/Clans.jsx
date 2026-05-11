@@ -29,7 +29,7 @@ function Clans() {
             Right now you have {players.length} total operator entries recorded.
           </p>
           <Link
-            to="/add"
+            to="/?add=1"
             className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
           >
             Add the first clan-linked operator
