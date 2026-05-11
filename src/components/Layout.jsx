@@ -68,7 +68,7 @@ function Layout() {
             <span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_16px_rgba(239,68,68,0.8)]" />
             <div>
               <p className="text-[0.62rem] font-black uppercase tracking-[0.28em] text-red-100">
-                The Naughty List
+                21rats
               </p>
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-gray-500">
                 Building 21 Squad Hub

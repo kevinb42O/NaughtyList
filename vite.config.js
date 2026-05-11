@@ -16,15 +16,15 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.js',
       includeAssets: [
-        'naughtylist.png',
-        'naughtylist-180.png',
-        'naughtylist-192.png',
-        'naughtylist-512.png',
+        '21rats.png',
+        '21rats-180.png',
+        '21rats-192.png',
+        '21rats-512.png',
         'notification-badge.svg',
       ],
       manifest: {
-        name: 'The Naughty List',
-        short_name: 'Naughty List',
+        name: '21rats',
+        short_name: '21rats',
         description:
           'A local-first Building 21 reputation tracker for operators, clans, and repeat problems.',
         theme_color: '#111827',
@@ -35,19 +35,19 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: `/naughtylist-192.png?v=${APP_ICON_VERSION}`,
+            src: `/21rats-192.png?v=${APP_ICON_VERSION}`,
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: `/naughtylist-512.png?v=${APP_ICON_VERSION}`,
+            src: `/21rats-512.png?v=${APP_ICON_VERSION}`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: `/naughtylist-512.png?v=${APP_ICON_VERSION}`,
+            src: `/21rats-512.png?v=${APP_ICON_VERSION}`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

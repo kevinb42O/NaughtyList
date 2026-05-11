@@ -68,7 +68,7 @@ function Auth() {
   return (
     <div>
       <PageHeader eyebrow="Auth Screen" title="Login Required">
-        Everyone can view The Naughty List. Adding operators and voting requires an account.
+        Everyone can view 21rats. Adding operators requires an account.
       </PageHeader>
 
       <form onSubmit={handleSubmit} className="panel mx-auto grid max-w-xl gap-4 rounded-[1.8rem] p-5 sm:p-6">

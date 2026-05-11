@@ -210,7 +210,7 @@ function IntelProvider({ children }) {
 
   useEffect(() => {
     const channel = supabase
-      .channel('naughty-list-db-changes')
+      .channel('21rats-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
         refresh()
       })

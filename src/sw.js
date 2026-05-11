@@ -11,12 +11,12 @@ cleanupOutdatedCaches()
 // Handle push notifications
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {}
-  const title = data.title ?? 'The Naughty List'
+  const title = data.title ?? '21rats'
   const options = {
     body: data.body ?? '',
-    icon: '/naughtylist-192.png?v=20260511',
+    icon: '/21rats-192.png?v=20260511',
     badge: '/notification-badge.svg?v=20260511b',
-    tag: data.tag ?? 'naughty-list-alert',
+    tag: data.tag ?? '21rats-alert',
     renotify: true,
     vibrate: [100, 50, 100],
     data: { url: data.url ?? '/' },

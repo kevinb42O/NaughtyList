@@ -136,7 +136,7 @@ function Home() {
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <h1 className="text-5xl font-black uppercase leading-none tracking-[0.04em] text-white sm:text-6xl">
-              The Naughty List
+              21rats
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-300 sm:text-base">
               Track repeat problems, document hostile operators, and tie them back to squads

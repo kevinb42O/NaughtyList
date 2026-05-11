@@ -7,7 +7,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 webPush.setVapidDetails(
-  'mailto:noreply@naughtylist.app',
+  'mailto:noreply@21rats.app',
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY,
 )

@@ -20,7 +20,7 @@ const templates = [
   },
   {
     name: 'Target Update',
-    title: 'NAUGHTY LIST UPDATED',
+    title: '21RATS UPDATED',
     body: 'New operator intel is live. Check the board before you queue.',
     url: '/',
   },
@@ -325,7 +325,7 @@ function AdminPushConsole() {
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black uppercase tracking-[0.04em] text-white">{preview.title}</p>
-                  <p className="text-xs font-bold text-gray-500">The Naughty List</p>
+                  <p className="text-xs font-bold text-gray-500">21rats</p>
                 </div>
               </div>
               <p className="text-sm leading-6 text-gray-300">{preview.body}</p>
