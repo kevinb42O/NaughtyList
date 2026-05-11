@@ -133,7 +133,7 @@ function Home() {
     <div className="flex flex-1 flex-col gap-6">
       <section className="panel overflow-hidden rounded-[2rem] px-5 py-6 sm:px-7 sm:py-7">
         <p className="intel-label mb-3 text-red-100">21rats Intel Board</p>
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-end">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <h1 className="text-5xl font-black uppercase leading-none tracking-[0.04em] text-white sm:text-6xl">
               21rats
@@ -157,37 +157,15 @@ function Home() {
             </div>
           </div>
 
-          <div className="grid gap-3">
-            <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.18),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0))] p-4 shadow-[0_0_36px_rgba(0,0,0,0.3)]">
-              <div className="absolute -right-10 top-0 h-28 w-28 rounded-full bg-red-500/10 blur-3xl" />
-              <div className="relative flex items-center gap-4">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[1.4rem] border border-red-500/20 bg-black/30 p-2 shadow-[0_0_24px_rgba(239,68,68,0.14)] sm:h-28 sm:w-28">
-                  <img
-                    src="/ratslogo.png?v=20260511-ratslogo"
-                    alt="21rats logo"
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="intel-label text-red-100">Signal</p>
-                  <p className="mt-2 text-2xl font-black uppercase tracking-[0.04em] text-white">21rats</p>
-                  <p className="mt-2 text-sm leading-6 text-gray-400">
-                    One recognizable mark across installs, alerts, and the live intel board.
-                  </p>
-                </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:max-w-[420px]">
+            {stats.map((stat) => (
+              <div key={stat.label} className="metric-card min-w-24">
+                <p className={`text-2xl font-black ${stat.tone}`}>{stat.value}</p>
+                <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.2em] text-gray-500">
+                  {stat.label}
+                </p>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
-              {stats.map((stat) => (
-                <div key={stat.label} className="metric-card min-w-24">
-                  <p className={`text-2xl font-black ${stat.tone}`}>{stat.value}</p>
-                  <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.2em] text-gray-500">
-                    {stat.label}
-                  </p>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
