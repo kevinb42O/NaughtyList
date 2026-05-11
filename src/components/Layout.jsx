@@ -79,13 +79,15 @@ function Layout() {
                   'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] transition',
                   dropStatus === 'sent'
                     ? 'border-green-500/50 bg-green-500/12 text-green-200'
+                    : dropStatus === 'error'
+                      ? 'border-red-500/50 bg-red-500/12 text-red-100'
                     : dropping
                       ? 'border-white/10 bg-white/5 text-gray-500 opacity-60'
                       : 'border-yellow-400/40 bg-yellow-400/10 text-yellow-100 hover:bg-yellow-400/20',
                 ].join(' ')}
               >
                 <Zap className="h-3.5 w-3.5" aria-hidden="true" />
-                {dropStatus === 'sent' ? 'Pinged!' : dropping ? 'Sending…' : 'Drop In'}
+                {dropStatus === 'sent' ? 'Pinged!' : dropStatus === 'error' ? 'Failed' : dropping ? 'Sending…' : 'Drop In'}
               </button>
             ) : null}
             {isModerator ? (

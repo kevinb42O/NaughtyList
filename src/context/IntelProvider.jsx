@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { buildClanIntel } from '../utils/clans.js'
@@ -8,6 +8,15 @@ import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
 const profileSelect = 'id, display_name, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
+
+function withTimeout(promise, ms, message) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), ms)
+    }),
+  ])
+}
 
 function profileDisplayName(user) {
   return user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Operator'
@@ -374,16 +383,20 @@ function IntelProvider({ children }) {
 
     const displayName = profile?.display_name || profileDisplayName(user)
     const clanTag = profile?.clan_tag || ''
-    const { data: pushResult, error: pushError } = await supabase.functions.invoke('send-push', {
-      body: {
-        type: 'direct-message',
-        senderUserId: user.id,
-        recipientUserId: recipientId,
-        displayName,
-        clanTag,
-        message: body.trim(),
-      },
-    })
+    const { data: pushResult, error: pushError } = await withTimeout(
+      supabase.functions.invoke('send-push', {
+        body: {
+          type: 'direct-message',
+          senderUserId: user.id,
+          recipientUserId: recipientId,
+          displayName,
+          clanTag,
+          message: body.trim(),
+        },
+      }),
+      12000,
+      'Push notification request timed out.',
+    )
 
     if (pushError) {
       throw new Error(`Message sent, but push failed: ${pushError.message}`)
@@ -522,15 +535,15 @@ function IntelProvider({ children }) {
 
   async function broadcastOnline() {
     if (!user) throw new Error('You must be logged in.')
-    const subscribed = await enablePushNotifications()
-    if (!subscribed) {
-      throw new Error('Notifications are blocked or unavailable on this device.')
-    }
     const displayName = profile?.display_name || profileDisplayName(user)
     const clanTag = profile?.clan_tag || ''
-    const { data, error: fnError } = await supabase.functions.invoke('send-push', {
-      body: { type: 'online', displayName, clanTag, senderUserId: user.id },
-    })
+    const { data, error: fnError } = await withTimeout(
+      supabase.functions.invoke('send-push', {
+        body: { type: 'online', displayName, clanTag, senderUserId: user.id },
+      }),
+      12000,
+      'Online ping request timed out.',
+    )
     if (fnError) throw fnError
     if (!data?.sent) {
       throw new Error('No active phone subscriptions found for the team yet.')
