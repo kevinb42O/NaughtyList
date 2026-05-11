@@ -1,11 +1,13 @@
 import { MessageSquare, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
 import OnlineDot from './OnlineDot.jsx'
 import RoleBadge from './RoleBadge.jsx'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
 function ProfileCard({ profile, onlineUserIds }) {
   const online = isProfileOnline(profile, onlineUserIds)
+  const gameAccounts = profileGameAccounts(profile)
 
   return (
     <article className="panel rounded-[1.5rem] p-4">
@@ -36,19 +38,25 @@ function ProfileCard({ profile, onlineUserIds }) {
         </Link>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {profile.activision_ids?.length ? (
-          profile.activision_ids.map((activisionId) => (
-            <span
-              key={activisionId}
-              className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-xs font-black text-cyan-100"
-            >
-              {activisionId}
-            </span>
-          ))
+      <div className="mt-4 space-y-2">
+        {gameAccounts.length ? (
+          gameAccounts.map((account) => {
+            const statusMeta = gameAccountStatusMeta(account)
+
+            return (
+              <div key={account.id} className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-xs font-black text-cyan-100">
+                  {account.id}
+                </span>
+                <span className={`rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.16em] ${statusMeta.className}`}>
+                  {statusMeta.label}
+                </span>
+              </div>
+            )
+          })
         ) : (
           <span className="rounded-full border border-dashed border-white/10 px-2.5 py-1 text-xs font-bold text-gray-500">
-            No Activision IDs yet
+            No game accounts yet
           </span>
         )}
       </div>

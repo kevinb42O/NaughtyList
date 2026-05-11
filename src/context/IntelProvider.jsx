@@ -2,9 +2,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { buildClanIntel } from '../utils/clans.js'
+import { gameAccountIds, normalizeGameAccounts } from '../utils/gameAccounts.js'
 import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMappers.js'
-import { notificationPermission, subscribeToPush } from '../utils/push.js'
+import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
+
+const profileSelect = 'id, display_name, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
 
 function profileDisplayName(user) {
   return user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Operator'
@@ -15,12 +18,9 @@ function IntelProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [profiles, setProfiles] = useState([])
   const [players, setPlayers] = useState([])
-  const [trustVotes, setTrustVotes] = useState([])
   const [publicMessages, setPublicMessages] = useState([])
   const [directMessages, setDirectMessages] = useState([])
   const [onlineUserIds, setOnlineUserIds] = useState([])
-  const [userVotes, setUserVotes] = useState({})
-  const [pushPermission, setPushPermission] = useState(notificationPermission())
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(true)
   const [error, setError] = useState('')
@@ -37,7 +37,7 @@ function IntelProvider({ children }) {
   const fetchProfiles = useCallback(async () => {
     const { data, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, display_name, role, clan_tag, activision_ids, last_seen, created_at, updated_at')
+      .select(profileSelect)
       .order('created_at', { ascending: true })
 
     if (profilesError) {
@@ -99,48 +99,6 @@ function IntelProvider({ children }) {
     )
   }, [])
 
-  const fetchPlayerVotes = useCallback(async (userId) => {
-    if (!userId) {
-      setUserVotes({})
-      return
-    }
-
-    const { data, error: votesError } = await supabase
-      .from('trust_votes')
-      .select('player_id, score')
-      .eq('user_id', userId)
-
-    if (votesError) {
-      throw votesError
-    }
-
-    setUserVotes(
-      Object.fromEntries((data ?? []).map((vote) => [vote.player_id, vote.score])),
-    )
-  }, [])
-
-  const fetchTrustVotes = useCallback(async (nextProfiles = [], nextPlayers = []) => {
-    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
-    const playerById = new Map(nextPlayers.map((nextPlayer) => [nextPlayer.id, nextPlayer]))
-
-    const { data, error: votesError } = await supabase
-      .from('trust_votes')
-      .select('id, player_id, user_id, score, created_at, updated_at')
-      .order('created_at', { ascending: false })
-
-    if (votesError) {
-      throw votesError
-    }
-
-    setTrustVotes(
-      (data ?? []).map((vote) => ({
-        ...vote,
-        profile: profileById.get(vote.user_id),
-        player: playerById.get(vote.player_id),
-      })),
-    )
-  }, [])
-
   const refresh = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -164,8 +122,6 @@ function IntelProvider({ children }) {
       setPlayers(nextPlayers)
 
       await Promise.all([
-        fetchTrustVotes(nextProfiles, nextPlayers),
-        fetchPlayerVotes(user?.id),
         fetchPublicMessages(nextProfiles),
         fetchDirectMessages(user?.id, nextProfiles),
       ])
@@ -174,7 +130,7 @@ function IntelProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [fetchDirectMessages, fetchPlayerVotes, fetchProfiles, fetchPublicMessages, fetchTrustVotes, user?.id])
+  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, user?.id])
 
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) {
@@ -184,7 +140,7 @@ function IntelProvider({ children }) {
 
     const { data, error: profileError } = await supabase
       .from('profiles')
-      .select('id, display_name, role, clan_tag, activision_ids, last_seen, created_at, updated_at')
+      .select(profileSelect)
       .eq('id', userId)
       .maybeSingle()
 
@@ -244,15 +200,16 @@ function IntelProvider({ children }) {
         refresh()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'public_chat_messages' }, () => {
-        refresh()
+        fetchProfiles()
+          .then((nextProfiles) => fetchPublicMessages(nextProfiles))
+          .catch((messagesError) => setError(messagesError.message))
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () => {
-        refresh()
+        fetchProfiles()
+          .then((nextProfiles) => fetchDirectMessages(user?.id, nextProfiles))
+          .catch((messagesError) => setError(messagesError.message))
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
-        refresh()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trust_votes' }, () => {
         refresh()
       })
       .subscribe()
@@ -260,7 +217,27 @@ function IntelProvider({ children }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [refresh])
+  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refresh, user?.id])
+
+  useEffect(() => {
+    if (!user?.id) {
+      return undefined
+    }
+
+    const pollMessages = () => {
+      fetchProfiles()
+        .then((nextProfiles) =>
+          Promise.all([
+            fetchPublicMessages(nextProfiles),
+            fetchDirectMessages(user.id, nextProfiles),
+          ]),
+        )
+        .catch((messagesError) => setError(messagesError.message))
+    }
+
+    const intervalId = window.setInterval(pollMessages, 3000)
+    return () => window.clearInterval(intervalId)
+  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, user?.id])
 
   useEffect(() => {
     if (!user) {
@@ -296,10 +273,7 @@ function IntelProvider({ children }) {
       .eq('id', user.id)
       .then(() => {})
 
-    // Auto-subscribe to push notifications when signed in
-    subscribeToPush(user.id)
-      .then(() => setPushPermission(notificationPermission()))
-      .catch(() => setPushPermission(notificationPermission()))
+    subscribeToPush(user.id).catch(() => {})
 
     return () => {
       supabase.removeChannel(presenceChannel)
@@ -343,15 +317,18 @@ function IntelProvider({ children }) {
       throw new Error('You must be logged in to update your profile.')
     }
 
+    const normalizedGameAccounts = normalizeGameAccounts(updates.gameAccounts)
+
     const { data, error: updateError } = await supabase
       .from('profiles')
       .update({
         display_name: updates.displayName?.trim() ?? '',
         clan_tag: updates.clanTag?.trim() ?? '',
-        activision_ids: updates.activisionIds ?? [],
+        activision_ids: gameAccountIds(normalizedGameAccounts),
+        game_accounts: normalizedGameAccounts,
       })
       .eq('id', user.id)
-      .select('id, display_name, role, clan_tag, activision_ids, last_seen, created_at, updated_at')
+      .select(profileSelect)
       .single()
 
     if (updateError) {
@@ -376,7 +353,8 @@ function IntelProvider({ children }) {
       throw messageError
     }
 
-    await refresh()
+    const nextProfiles = await fetchProfiles()
+    await fetchPublicMessages(nextProfiles)
   }
 
   async function sendDirectMessage(recipientId, body) {
@@ -396,20 +374,27 @@ function IntelProvider({ children }) {
 
     const displayName = profile?.display_name || profileDisplayName(user)
     const clanTag = profile?.clan_tag || ''
-    supabase.functions
-      .invoke('send-push', {
-        body: {
-          type: 'direct-message',
-          senderUserId: user.id,
-          recipientUserId: recipientId,
-          displayName,
-          clanTag,
-          message: body.trim(),
-        },
-      })
-      .catch((pushError) => console.warn('[push] DM notification failed:', pushError.message))
+    const { data: pushResult, error: pushError } = await supabase.functions.invoke('send-push', {
+      body: {
+        type: 'direct-message',
+        senderUserId: user.id,
+        recipientUserId: recipientId,
+        displayName,
+        clanTag,
+        message: body.trim(),
+      },
+    })
 
-    await refresh()
+    if (pushError) {
+      throw new Error(`Message sent, but push failed: ${pushError.message}`)
+    }
+
+    if (!pushResult?.sent) {
+      console.warn('[push] DM delivered in-app but recipient has no active push subscription.')
+    }
+
+    const nextProfiles = await fetchProfiles()
+    await fetchDirectMessages(user.id, nextProfiles)
   }
 
   async function markDirectMessageRead(messageId) {
@@ -426,7 +411,8 @@ function IntelProvider({ children }) {
       throw readError
     }
 
-    await refresh()
+    const nextProfiles = await fetchProfiles()
+    await fetchDirectMessages(user.id, nextProfiles)
   }
 
   async function deletePublicMessage(messageId) {
@@ -465,47 +451,12 @@ function IntelProvider({ children }) {
     return data
   }
 
-  async function voteTrust(playerId, score) {
-    if (!user) {
-      throw new Error('You must be logged in to vote.')
-    }
-
-    const { error: voteError } = await supabase.from('trust_votes').upsert(
-      {
-        player_id: playerId,
-        user_id: user.id,
-        score: Number(score),
-      },
-      { onConflict: 'player_id,user_id' },
-    )
-
-    if (voteError) {
-      throw voteError
-    }
-
-    await refresh()
-  }
-
   async function deletePlayer(playerId) {
     if (!isModerator) {
       throw new Error('Only moderators and admins can delete entries.')
     }
 
     const { error: deleteError } = await supabase.from('players').delete().eq('id', playerId)
-
-    if (deleteError) {
-      throw deleteError
-    }
-
-    await refresh()
-  }
-
-  async function deleteTrustVote(voteId) {
-    if (!isModerator) {
-      throw new Error('Only moderators and admins can delete votes.')
-    }
-
-    const { error: deleteError } = await supabase.from('trust_votes').delete().eq('id', voteId)
 
     if (deleteError) {
       throw deleteError
@@ -571,20 +522,24 @@ function IntelProvider({ children }) {
 
   async function broadcastOnline() {
     if (!user) throw new Error('You must be logged in.')
-    await enablePushNotifications()
+    const subscribed = await enablePushNotifications()
+    if (!subscribed) {
+      throw new Error('Notifications are blocked or unavailable on this device.')
+    }
     const displayName = profile?.display_name || profileDisplayName(user)
     const clanTag = profile?.clan_tag || ''
-    const { error: fnError } = await supabase.functions.invoke('send-push', {
+    const { data, error: fnError } = await supabase.functions.invoke('send-push', {
       body: { type: 'online', displayName, clanTag, senderUserId: user.id },
     })
     if (fnError) throw fnError
+    if (!data?.sent) {
+      throw new Error('No active phone subscriptions found for the team yet.')
+    }
   }
 
   async function enablePushNotifications() {
     if (!user) return false
-    const subscribed = await subscribeToPush(user.id)
-    setPushPermission(notificationPermission())
-    return subscribed
+    return subscribeToPush(user.id)
   }
 
   const value = {
@@ -593,14 +548,11 @@ function IntelProvider({ children }) {
     profile,
     profiles,
     players,
-    trustVotes,
     publicMessages,
     directMessages,
     unreadDirectMessageCount,
     onlineUserIds,
     clans,
-    userVotes,
-    pushPermission,
     loading: loading || authLoading,
     error,
     role,
@@ -613,9 +565,7 @@ function IntelProvider({ children }) {
     signUp,
     signOut,
     addPlayer,
-    voteTrust,
     deletePlayer,
-    deleteTrustVote,
     claimAdmin,
     setProfileRole,
     updateProfile,

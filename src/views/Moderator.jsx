@@ -14,10 +14,8 @@ function Moderator() {
     role,
     profileDisplayName,
     players,
-    trustVotes,
     publicMessages,
     deletePlayer,
-    deleteTrustVote,
     deletePublicMessage,
   } = useIntel()
   const [status, setStatus] = useState('')
@@ -38,18 +36,6 @@ function Moderator() {
         .some((value) => value.toLowerCase().includes(normalizedQuery))
     })
   }, [normalizedQuery, players])
-
-  const filteredVotes = useMemo(() => {
-    return trustVotes.filter((vote) => {
-      if (!normalizedQuery) {
-        return true
-      }
-
-      return [vote.player?.name, vote.profile?.display_name, String(vote.score)]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(normalizedQuery))
-    })
-  }, [normalizedQuery, trustVotes])
 
   const filteredMessages = useMemo(() => {
     return [...publicMessages]
@@ -73,21 +59,6 @@ function Moderator() {
     try {
       await deletePlayer(playerId)
       setStatus('Entry deleted.')
-    } catch (deleteError) {
-      setError(deleteError.message)
-    } finally {
-      setWorkingId('')
-    }
-  }
-
-  async function handleDeleteVote(voteId) {
-    setStatus('')
-    setError('')
-    setWorkingId(voteId)
-
-    try {
-      await deleteTrustVote(voteId)
-      setStatus('Vote deleted.')
     } catch (deleteError) {
       setError(deleteError.message)
     } finally {
@@ -157,7 +128,7 @@ function Moderator() {
           <RoleBadge role={role} />
         </div>
 
-        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,180px))]">
+        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(2,minmax(0,180px))]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-red-200" aria-hidden="true" />
             <input
@@ -170,10 +141,6 @@ function Moderator() {
           <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-center">
             <p className="text-xl font-black text-white">{players.length}</p>
             <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Operators</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-center">
-            <p className="text-xl font-black text-white">{trustVotes.length}</p>
-            <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Votes</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-center">
             <p className="text-xl font-black text-white">{publicMessages.length}</p>
@@ -232,52 +199,6 @@ function Moderator() {
 
         {status ? <p className="mt-4 text-sm font-bold text-green-200">{status}</p> : null}
         {error ? <p className="mt-4 text-sm font-bold text-red-200">{error}</p> : null}
-      </section>
-
-      <section className="panel mt-5 rounded-[1.8rem] p-5">
-        <div className="mb-4 border-b border-white/10 pb-4">
-          <p className="intel-label mb-2">Trust Votes</p>
-          <p className="text-sm text-gray-500">Delete vote abuse so trust scores stay useful.</p>
-        </div>
-
-        <div className="grid gap-3">
-          {filteredVotes.length ? (
-            filteredVotes.map((vote) => (
-              <article
-                key={vote.id}
-                className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-lg font-black uppercase tracking-[0.04em] text-white">
-                      {vote.player?.name || 'Deleted operator'}
-                    </p>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                      Vote {vote.score}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs font-bold text-gray-500">
-                    By {vote.profile?.display_name || vote.user_id}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleDeleteVote(vote.id)}
-                  disabled={workingId === vote.id}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  {workingId === vote.id ? 'Deleting' : 'Delete Vote'}
-                </button>
-              </article>
-            ))
-          ) : (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
-              No votes to moderate.
-            </div>
-          )}
-        </div>
       </section>
 
       <section className="panel mt-5 rounded-[1.8rem] p-5">

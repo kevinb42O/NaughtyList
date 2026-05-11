@@ -1,5 +1,4 @@
 import { ExternalLink } from 'lucide-react'
-import TrustVote from './TrustVote.jsx'
 import { getThreatStyle } from '../utils/threat.js'
 
 function PlayerRow({ player, dragHandle }) {
@@ -20,12 +19,6 @@ function PlayerRow({ player, dragHandle }) {
           </h2>
           <span className={`rounded-full border px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.2em] ${threat.badge}`}>
             {threat.label}
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-200">
-            Trust {player.trustScore}
-          </span>
-          <span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-400">
-            {player.voteCount || 0} votes
           </span>
           {player.evidenceUrl ? (
             <a
@@ -56,8 +49,6 @@ function PlayerRow({ player, dragHandle }) {
             ))}
           </div>
         ) : null}
-
-        <TrustVote player={player} />
       </div>
     </article>
   )
