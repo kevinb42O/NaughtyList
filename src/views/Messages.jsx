@@ -1,6 +1,5 @@
 import { Send } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-
 import { Link, useSearchParams } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -89,10 +88,6 @@ function Messages() {
 
   const selectedProfile = profiles.find((profile) => profile.id === selectedId) ?? contacts[0]
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [thread.length, selectedProfile?.id])
-
   const unreadCountsBySender = useMemo(() => {
     return directMessages.reduce((counts, directMessage) => {
       if (directMessage.recipient_id !== user?.id || directMessage.read_at) {
@@ -116,6 +111,10 @@ function Messages() {
       )
     })
   }, [directMessages, selectedProfile, user])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [thread.length, selectedProfile?.id])
 
   useEffect(() => {
     if (!selectedProfile || !user) {
