@@ -137,7 +137,7 @@ function Chat() {
   const [clanMessageState, setClanMessageState] = useState({ clanId: '', messages: [] })
   const [clanLoading, setClanLoading] = useState(false)
   const scrollRef = useRef(null)
-  const bottomRef = useRef(null)
+  const stickToBottomRef = useRef(true)
   const myClanId = myClan?.id ?? ''
 
   const availableClanRooms = useMemo(() => {
@@ -179,6 +179,9 @@ function Chat() {
   const showClanLoading =
     activeRoom === 'clan' && clanLoading && clanMessageState.clanId !== resolvedSelectedClanId
   const activeMessages = activeRoom === 'clan' ? clanMessages : publicMessages
+  const activeRoomKey = activeRoom === 'clan' ? `clan:${resolvedSelectedClanId}` : 'public'
+  const lastActiveMessageId = activeMessages[activeMessages.length - 1]?.id ?? ''
+  const activeMessagesLength = activeMessages.length
 
   const scrollToLatestMessage = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -187,10 +190,30 @@ function Chat() {
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight
         }
-        bottomRef.current?.scrollIntoView({ block: 'end' })
       })
     })
   }, [])
+
+  const handleScroll = useCallback(() => {
+    const scrollElement = scrollRef.current
+    if (!scrollElement) return
+    const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight
+    stickToBottomRef.current = distanceFromBottom < 80
+  }, [])
+
+  // Snap to bottom when entering or switching rooms
+  useEffect(() => {
+    stickToBottomRef.current = true
+    scrollToLatestMessage()
+  }, [activeRoomKey, scrollToLatestMessage])
+
+  // Auto-scroll on new messages only if user is near the bottom
+  useEffect(() => {
+    if (!lastActiveMessageId) return
+    if (stickToBottomRef.current) {
+      scrollToLatestMessage()
+    }
+  }, [activeMessagesLength, lastActiveMessageId, scrollToLatestMessage])
 
   useEffect(() => {
     let cancelled = false
@@ -256,6 +279,7 @@ function Chat() {
     setSending(true)
     setError('')
     setMessage('')
+    stickToBottomRef.current = true
 
     try {
       if (activeRoom === 'clan') {
@@ -445,7 +469,7 @@ function Chat() {
           ) : null}
         </div>
 
-        <div ref={scrollRef} className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+        <div ref={scrollRef} onScroll={handleScroll} className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
           {showClanLoading ? (
             <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-white/10 bg-black/35 p-5 text-center text-sm font-bold text-gray-500">
               Loading clan room…
@@ -511,7 +535,6 @@ function Chat() {
               {activeRoom === 'clan' ? 'No clan messages yet.' : 'No chat yet. Ask who is playing.'}
             </div>
           )}
-          <div ref={bottomRef} aria-hidden="true" />
         </div>
 
         <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">

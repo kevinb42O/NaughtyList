@@ -95,7 +95,7 @@ function Messages() {
   const [error, setError] = useState('')
   const sendingRef = useRef(false)
   const scrollRef = useRef(null)
-  const bottomRef = useRef(null)
+  const stickToBottomRef = useRef(true)
   const markedReadIdsRef = useRef(new Set())
   const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
   const setMessageReactionRef = useRef(setMessageReaction)
@@ -115,9 +115,15 @@ function Messages() {
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight
         }
-        bottomRef.current?.scrollIntoView({ block: 'end' })
       })
     })
+  }, [])
+
+  const handleScroll = useCallback(() => {
+    const scrollElement = scrollRef.current
+    if (!scrollElement) return
+    const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight
+    stickToBottomRef.current = distanceFromBottom < 80
   }, [])
 
   const contacts = useMemo(() => {
@@ -177,6 +183,23 @@ function Messages() {
       .map((directMessage) => directMessage.id)
   }, [thread, user])
   const unreadThreadMessageIdsKey = unreadThreadMessageIds.join('|')
+  const threadLength = thread.length
+  const lastMessageId = thread[thread.length - 1]?.id ?? ''
+
+  // Reset stickiness and snap to bottom when entering a thread
+  useEffect(() => {
+    if (!selectedProfileId) return
+    stickToBottomRef.current = true
+    scrollToLatestMessage()
+  }, [scrollToLatestMessage, selectedProfileId])
+
+  // Auto-scroll on new messages only if user was already near the bottom
+  useEffect(() => {
+    if (!lastMessageId) return
+    if (stickToBottomRef.current) {
+      scrollToLatestMessage()
+    }
+  }, [lastMessageId, scrollToLatestMessage, threadLength])
 
   useEffect(() => {
     if (!selectedProfileId || !userId || !unreadThreadMessageIds.length) {
@@ -219,6 +242,7 @@ function Messages() {
     sendingRef.current = true
     setError('')
     setMessage('')
+    stickToBottomRef.current = true
 
     try {
       await sendDirectMessage(selectedProfile.id, nextMessage)
@@ -319,7 +343,7 @@ function Messages() {
                 <OnlineDot online={isProfileOnline(selectedProfile, onlineUserIds)} />
               </div>
 
-              <div ref={scrollRef} className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+              <div ref={scrollRef} onScroll={handleScroll} className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
                 {thread.length ? (
                   thread.map((directMessage, index) => {
                     const mine = directMessage.sender_id === user.id
@@ -353,7 +377,6 @@ function Messages() {
                     No messages yet.
                   </p>
                 )}
-                <div ref={bottomRef} aria-hidden="true" />
               </div>
 
               <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">
