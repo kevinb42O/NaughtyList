@@ -1,4 +1,5 @@
-import { ArrowLeft, MessageSquare, Settings, UserRound } from 'lucide-react'
+import { ArrowLeft, Check, Copy, MessageSquare, Settings, UserRound } from 'lucide-react'
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -10,6 +11,7 @@ import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profil
 function PublicProfile() {
   const { profileId } = useParams()
   const { isAuthenticated, loading, onlineUserIds, profiles, user } = useIntel()
+  const [copiedAccountId, setCopiedAccountId] = useState('')
 
   const profile = profiles.find((nextProfile) => nextProfile.id === profileId)
 
@@ -48,6 +50,14 @@ function PublicProfile() {
   const gameAccounts = profileGameAccounts(profile)
   const bio = profile.bio?.trim()
   const viewingOwnProfile = user?.id === profile.id
+
+  async function copyGameAccountId(accountId) {
+    await navigator.clipboard.writeText(accountId)
+    setCopiedAccountId(accountId)
+    window.setTimeout(() => {
+      setCopiedAccountId((currentId) => (currentId === accountId ? '' : currentId))
+    }, 1800)
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -125,6 +135,7 @@ function PublicProfile() {
             <div className="space-y-3">
               {gameAccounts.map((account, index) => {
                 const statusMeta = gameAccountStatusMeta(account)
+                const copied = copiedAccountId === account.id
 
                 return (
                   <div key={`${account.id}-${index}`} className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
@@ -132,6 +143,15 @@ function PublicProfile() {
                       <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-sm font-black text-cyan-100">
                         {account.id}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => copyGameAccountId(account.id)}
+                        className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:border-cyan-300/60 hover:bg-cyan-400/20"
+                        aria-label={`Copy Activision ID ${account.id}`}
+                      >
+                        {copied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+                        {copied ? 'Copied' : 'Copy'}
+                      </button>
                       <span className={`rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.16em] ${statusMeta.className}`}>
                         {statusMeta.label}
                       </span>
