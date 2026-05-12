@@ -138,9 +138,6 @@ function Home() {
             <h1 className="text-5xl font-black uppercase leading-none tracking-[0.04em] text-white sm:text-6xl">
               21rats
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-300 sm:text-base">
-              Track repeat squads, hostile operators, shadowban risk, and the callouts that actually matter before you queue into Building 21.
-            </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
@@ -176,7 +173,7 @@ function Home() {
             <div>
               <p className="intel-label">Intel Board</p>
               <h2 className="mt-2 text-2xl font-black uppercase tracking-[0.04em] text-white">
-                Tracked Operators
+                Enemy Watchlist
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
