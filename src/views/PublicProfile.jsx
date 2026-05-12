@@ -1,8 +1,9 @@
-import { ArrowLeft, Check, Copy, MessageSquare, Settings, UserRound } from 'lucide-react'
+import { ArrowLeft, Check, Copy, MessageSquare, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
+import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
@@ -97,9 +98,7 @@ function PublicProfile() {
 
       <section className="panel rounded-[1.8rem] p-5 sm:p-6">
         <div className="flex items-start gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl border border-white/10 bg-white/5 text-gray-300">
-            <UserRound className="h-8 w-8" aria-hidden="true" />
-          </span>
+          <ProfileAvatar profile={profile} online={online} showOnline size="xl" />
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">

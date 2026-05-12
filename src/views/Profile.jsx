@@ -1,9 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { KeyRound, Plus, Save, Trash2, UserRound } from 'lucide-react'
+import { KeyRound, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
+import ProfileAvatar, { avatarIconOptions, defaultAvatarIconKey } from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
@@ -41,6 +42,7 @@ function Profile() {
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '')
   const [bio, setBio] = useState(profile?.bio ?? '')
+  const [avatarIcon, setAvatarIcon] = useState(profile?.avatar_icon ?? defaultAvatarIconKey)
   const [gameAccounts, setGameAccounts] = useState(() => profileGameAccounts(profile))
   const [newId, setNewId] = useState('')
 
@@ -60,6 +62,7 @@ function Profile() {
   useEffect(() => {
     setDisplayName(profile?.display_name ?? '')
     setBio(profile?.bio ?? '')
+    setAvatarIcon(profile?.avatar_icon ?? defaultAvatarIconKey)
     setGameAccounts(profileGameAccounts(profile))
   }, [profile])
 
@@ -121,7 +124,7 @@ function Profile() {
     setSaveStatus('')
     setSaveError('')
     try {
-      await updateProfile({ displayName, bio, gameAccounts })
+      await updateProfile({ displayName, bio, avatarIcon, gameAccounts })
       setSaveStatus('Profile saved.')
     } catch (err) {
       setSaveError(err.message)
@@ -183,9 +186,7 @@ function Profile() {
       </PageHeader>
 
       <div className="mb-6 flex items-center gap-4 rounded-[1.8rem] border border-white/10 bg-black/30 p-5">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-white/10 bg-white/5 text-gray-300">
-          <UserRound className="h-7 w-7" aria-hidden="true" />
-        </span>
+        <ProfileAvatar iconKey={avatarIcon} online={isOnline} showOnline size="lg" />
         <div>
           <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
             {clanPrefix(profile)} {displayName || 'No name set'}
@@ -212,6 +213,35 @@ function Profile() {
             />
 
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <p className="intel-label mb-3">Avatar Icon</p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-10">
+                  {avatarIconOptions.map((option) => {
+                    const selected = avatarIcon === option.key
+
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => setAvatarIcon(option.key)}
+                        title={option.label}
+                        aria-label={`Use ${option.label} avatar`}
+                        className={`group flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border p-2 transition ${
+                          selected
+                            ? 'border-red-400/60 bg-red-500/16 shadow-[0_0_22px_rgba(239,68,68,0.18)]'
+                            : 'border-white/10 bg-black/25 hover:border-red-400/35 hover:bg-white/[0.04]'
+                        }`}
+                      >
+                        <ProfileAvatar iconKey={option.key} size="md" />
+                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-red-100' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                          {option.label}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="pf-name" className="intel-label mb-2 block">
                   Display Name

@@ -7,7 +7,7 @@ import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMap
 import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
-const profileSelect = 'id, display_name, bio, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
+const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
 const clanSelect = 'id, name, tag, description, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
@@ -652,6 +652,7 @@ function IntelProvider({ children }) {
       .update({
         display_name: updates.displayName?.trim() ?? '',
         bio: updates.bio?.trim() ?? '',
+        avatar_icon: updates.avatarIcon || 'skull',
         ...(typeof updates.clanTag === 'string' ? { clan_tag: updates.clanTag.trim() } : {}),
         activision_ids: gameAccountIds(normalizedGameAccounts),
         game_accounts: normalizedGameAccounts,

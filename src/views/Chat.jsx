@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MessageReactions from '../components/MessageReactions.jsx'
 import PageHeader from '../components/PageHeader.jsx'
+import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
@@ -44,17 +45,7 @@ function formatMessageTime(value) {
 }
 
 function ProfileInitial({ profile, mine, online }) {
-  const name = displayProfileName(profile)
-  const initial = name.charAt(0).toUpperCase() || '?'
-
-  return (
-    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10 bg-zinc-900 shadow-lg shadow-black/25">
-      <div className={`flex h-full w-full items-center justify-center text-xs font-black ${mine ? 'bg-red-500/20 text-red-50' : 'bg-white/8 text-gray-200'}`}>
-        {initial}
-      </div>
-      <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 ${online ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-    </div>
-  )
+  return <ProfileAvatar className={mine ? 'ring-red-400/20' : ''} profile={profile} online={online} showOnline size="sm" />
 }
 
 function Chat() {
