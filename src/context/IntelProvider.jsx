@@ -537,6 +537,37 @@ function IntelProvider({ children }) {
     await refresh()
   }
 
+  async function deleteProfileAccount(userId) {
+    if (!isAdmin) {
+      throw new Error('Only admins can delete accounts.')
+    }
+
+    if (userId === user?.id) {
+      throw new Error('You cannot delete your own admin account.')
+    }
+
+    const targetProfile = profiles.find((nextProfile) => nextProfile.id === userId)
+    if (targetProfile?.role === 'admin') {
+      throw new Error('The admin account is locked.')
+    }
+
+    const { data, error: deleteError } = await withTimeout(
+      supabase.functions.invoke('admin-users', {
+        body: { type: 'delete-account', targetUserId: userId },
+      }),
+      12000,
+      'Account deletion request timed out.',
+    )
+
+    if (deleteError) {
+      throw deleteError
+    }
+
+    setProfiles((currentProfiles) => currentProfiles.filter((currentProfile) => currentProfile.id !== userId))
+    await refresh()
+    return data
+  }
+
   const clans = useMemo(() => buildClanIntel(players), [players])
 
   async function broadcastOnline() {
@@ -642,6 +673,7 @@ function IntelProvider({ children }) {
     signOut,
     addPlayer,
     deletePlayer,
+    deleteProfileAccount,
     claimAdmin,
     setProfileRole,
     updateProfile,

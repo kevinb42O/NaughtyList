@@ -1,4 +1,4 @@
-import { Crown, Search, Shield } from 'lucide-react'
+import { Crown, Search, Shield, Trash2, UserX } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminPushConsole from '../components/AdminPushConsole.jsx'
@@ -7,11 +7,23 @@ import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
+import { getThreatStyle } from '../utils/threat.js'
 
 const roleOptions = ['user', 'moderator']
 
 function Admin() {
-  const { isAuthenticated, isAdmin, profiles, profile, onlineUserIds, claimAdmin, setProfileRole } = useIntel()
+  const {
+    isAuthenticated,
+    isAdmin,
+    profiles,
+    profile,
+    players,
+    onlineUserIds,
+    claimAdmin,
+    setProfileRole,
+    deletePlayer,
+    deleteProfileAccount,
+  } = useIntel()
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [workingId, setWorkingId] = useState('')
@@ -39,6 +51,18 @@ function Admin() {
         )
       })
   }, [normalizedQuery, onlineUserIds, profiles, roleFilter])
+
+  const visiblePlayers = useMemo(() => {
+    return players.filter((player) => {
+      if (!normalizedQuery) {
+        return true
+      }
+
+      return [player.name, player.clan, player.notes, ...(player.tags ?? [])]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery))
+    })
+  }, [normalizedQuery, players])
 
   const stats = useMemo(
     () => ({
@@ -77,6 +101,50 @@ function Admin() {
       setStatus('Role updated.')
     } catch (roleError) {
       setError(roleError.message)
+    } finally {
+      setWorkingId('')
+    }
+  }
+
+  async function handleDeletePlayer(playerId) {
+    const targetPlayer = players.find((player) => player.id === playerId)
+    const label = targetPlayer?.name || 'this operator'
+
+    if (!window.confirm(`Delete tracked operator ${label}?`)) {
+      return
+    }
+
+    setStatus('')
+    setError('')
+    setWorkingId(`player-${playerId}`)
+
+    try {
+      await deletePlayer(playerId)
+      setStatus('Tracked operator deleted.')
+    } catch (deleteError) {
+      setError(deleteError.message)
+    } finally {
+      setWorkingId('')
+    }
+  }
+
+  async function handleDeleteAccount(userId) {
+    const targetProfile = profiles.find((nextProfile) => nextProfile.id === userId)
+    const label = displayProfileName(targetProfile)
+
+    if (!window.confirm(`Delete account ${label}? This removes their login, profile, chat, DMs, votes, and push subscriptions.`)) {
+      return
+    }
+
+    setStatus('')
+    setError('')
+    setWorkingId(`account-${userId}`)
+
+    try {
+      await deleteProfileAccount(userId)
+      setStatus('Account deleted.')
+    } catch (deleteError) {
+      setError(deleteError.message)
     } finally {
       setWorkingId('')
     }
@@ -142,7 +210,7 @@ function Admin() {
   return (
     <div>
       <PageHeader eyebrow="Admin Screen" title="Command Center">
-        Send tactical push alerts, watch subscriber coverage, and control moderator access.
+        Send tactical push alerts, manage tracked operators, and control account access.
       </PageHeader>
 
       <AdminPushConsole />
@@ -176,16 +244,81 @@ function Admin() {
           </div>
         </div>
 
-        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-red-200" aria-hidden="true" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="field min-h-12 pl-11"
-              placeholder="Search name, clan, or Activision ID"
+              placeholder="Search operators, profiles, clans, or IDs"
             />
           </div>
+          <Link
+            to="/moderator"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-orange-400/30 bg-orange-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-100 transition hover:bg-orange-400/20"
+          >
+            <Shield className="h-4 w-4" aria-hidden="true" />
+            Mod Queue
+          </Link>
+        </div>
+
+        <div className="mb-4 border-b border-white/10 pb-4">
+          <p className="intel-label mb-2">Tracked Operators</p>
+          <p className="text-sm text-gray-500">Admins can remove fake, duplicate, or stale operator records here.</p>
+        </div>
+
+        <div className="mb-6 grid gap-3">
+          {visiblePlayers.length ? (
+            visiblePlayers.map((player) => {
+              const threat = getThreatStyle(player.threatLevel)
+
+              return (
+                <article
+                  key={player.id}
+                  className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-lg font-black uppercase tracking-[0.04em] text-white">
+                        {player.clan ? <span className="text-gray-400">[{player.clan}] </span> : null}
+                        {player.name}
+                      </p>
+                      <span className={`rounded-full border px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] ${threat.badge}`}>
+                        {threat.label}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                        Trust {player.trustScore}
+                      </span>
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm text-gray-500">{player.notes || 'No notes.'}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePlayer(player.id)}
+                    disabled={workingId === `player-${player.id}`}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    {workingId === `player-${player.id}` ? 'Deleting' : 'Delete'}
+                  </button>
+                </article>
+              )
+            })
+          ) : (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
+              No tracked operators match the current search.
+            </div>
+          )}
+        </div>
+
+        <div className="mb-4 border-b border-white/10 pb-4">
+          <p className="intel-label mb-2">Accounts</p>
+          <p className="text-sm text-gray-500">Promote moderators or remove accounts that should no longer have access.</p>
+        </div>
+
+        <div className="mb-5 flex flex-wrap gap-2">
           <div className="flex flex-wrap gap-2">
             {['all', 'user', 'moderator', 'admin'].map((nextRole) => (
               <button
@@ -261,6 +394,15 @@ function Admin() {
                       {nextRole}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAccount(nextProfile.id)}
+                    disabled={workingId === `account-${nextProfile.id}`}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                  >
+                    <UserX className="h-4 w-4" aria-hidden="true" />
+                    {workingId === `account-${nextProfile.id}` ? 'Deleting' : 'Delete Account'}
+                  </button>
                 </div>
               )}
             </div>
