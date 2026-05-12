@@ -19,9 +19,14 @@ function AddPlayerModal({ open, onClose }) {
   const { addPlayer, clans, isAuthenticated } = useIntel()
   const titleId = useId()
   const dialogRef = useRef(null)
+  const onCloseRef = useRef(onClose)
   const [form, setForm] = useState(defaultForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   const selectedThreat = useMemo(
     () => threatLevels.find((level) => level.id === form.threatLevel),
@@ -33,21 +38,27 @@ function AddPlayerModal({ open, onClose }) {
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape' && !saving) {
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', closeOnEscape)
     window.setTimeout(() => dialogRef.current?.focus(), 0)
 
     return () => {
       document.body.style.overflow = previousOverflow
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape' && !saving) {
+        onCloseRef.current?.()
+      }
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
       window.removeEventListener('keydown', closeOnEscape)
     }
-  }, [onClose, open, saving])
+  }, [open, saving])
 
   if (!open) return null
 

@@ -1,6 +1,6 @@
 import { Plus, Search, ShieldX } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -69,16 +69,16 @@ function Home() {
 
   const isFiltering = query.trim() !== '' || threatFilter !== 'all'
 
-  function openAddModal() {
+  const openAddModal = useCallback(() => {
     setAddModalOpen(true)
-  }
+  }, [])
 
-  function closeAddModal() {
+  const closeAddModal = useCallback(() => {
     setAddModalOpen(false)
     if (isAddRouteOpen) {
       navigate('/', { replace: true })
     }
-  }
+  }, [isAddRouteOpen, navigate])
 
   const filteredPlayers = useMemo(() => {
     const source = localPlayers ?? players
