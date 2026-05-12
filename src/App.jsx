@@ -10,6 +10,7 @@ import Leaderboard from './views/Leaderboard.jsx'
 import Messages from './views/Messages.jsx'
 import Moderator from './views/Moderator.jsx'
 import Profile from './views/Profile.jsx'
+import PublicProfile from './views/PublicProfile.jsx'
 import Profiles from './views/Profiles.jsx'
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profiles" element={<Profiles />} />
+            <Route path="/profiles/:profileId" element={<PublicProfile />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/auth" element={<Auth />} />

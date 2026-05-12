@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { KeyRound, Plus, Save, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
@@ -26,10 +26,21 @@ function ProfileSectionHeader({ step, eyebrow, title, description }) {
 }
 
 function Profile() {
-  const { isAuthenticated, user, profile, onlineUserIds, updateProfile, enablePushNotifications } = useIntel()
+  const {
+    isAuthenticated,
+    user,
+    profile,
+    myClan,
+    myClanRole,
+    clanInvites,
+    clanJoinRequests,
+    onlineUserIds,
+    updateProfile,
+    enablePushNotifications,
+  } = useIntel()
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '')
-  const [clanTag, setClanTag] = useState(profile?.clan_tag ?? '')
+  const [bio, setBio] = useState(profile?.bio ?? '')
   const [gameAccounts, setGameAccounts] = useState(() => profileGameAccounts(profile))
   const [newId, setNewId] = useState('')
 
@@ -48,7 +59,7 @@ function Profile() {
 
   useEffect(() => {
     setDisplayName(profile?.display_name ?? '')
-    setClanTag(profile?.clan_tag ?? '')
+    setBio(profile?.bio ?? '')
     setGameAccounts(profileGameAccounts(profile))
   }, [profile])
 
@@ -57,6 +68,8 @@ function Profile() {
   }
 
   const isOnline = onlineUserIds.includes(user?.id)
+  const pendingInviteCount = clanInvites.filter((invite) => invite.invitee_user_id === user?.id).length
+  const pendingRequestCount = clanJoinRequests.filter((request) => request.user_id === user?.id).length
 
   function addGameAccount() {
     const trimmed = newId.trim()
@@ -108,7 +121,7 @@ function Profile() {
     setSaveStatus('')
     setSaveError('')
     try {
-      await updateProfile({ displayName, clanTag, gameAccounts })
+      await updateProfile({ displayName, bio, gameAccounts })
       setSaveStatus('Profile saved.')
     } catch (err) {
       setSaveError(err.message)
@@ -166,7 +179,7 @@ function Profile() {
   return (
     <div>
       <PageHeader eyebrow="Settings" title="My Profile">
-        Update your display name, clan tag, game accounts, shadowban tracking, and password.
+        Update your display name, bio, review your clan status, track game accounts, and manage your password.
       </PageHeader>
 
       <div className="mb-6 flex items-center gap-4 rounded-[1.8rem] border border-white/10 bg-black/30 p-5">
@@ -182,6 +195,9 @@ function Profile() {
             <RoleBadge role={profile?.role} compact />
             <span className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">{user?.email}</span>
           </div>
+          <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-gray-400">
+            {bio.trim() || 'No bio set yet.'}
+          </p>
         </div>
       </div>
 
@@ -192,7 +208,7 @@ function Profile() {
               step="1"
               eyebrow="Identity"
               title="Profile Details"
-              description="Set the display name and clan tag your squad sees across the board, chat, and direct messages."
+              description="Set the display name and bio your squad sees across the board, chat, and direct messages. Clan membership now lives in Clan HQ."
             />
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -210,19 +226,54 @@ function Profile() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="pf-clan" className="intel-label mb-2 block">
-                  Clan Tag
-                </label>
-                <input
-                  id="pf-clan"
-                  value={clanTag}
-                  onChange={(e) => setClanTag(e.target.value)}
-                  className="field font-mono uppercase tracking-widest"
-                  placeholder="B21"
-                  maxLength="16"
-                />
+              <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+                <p className="intel-label mb-2">Clan Access</p>
+                {myClan ? (
+                  <>
+                    <p className="text-lg font-black uppercase tracking-[0.04em] text-white">
+                      [{myClan.tag}] {myClan.name}
+                    </p>
+                    <p className="mt-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-500">
+                      Role: {myClanRole}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-black uppercase tracking-[0.04em] text-white">No active clan</p>
+                    <p className="mt-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-500">
+                      {pendingInviteCount} invites, {pendingRequestCount} requests pending
+                    </p>
+                  </>
+                )}
+                <p className="mt-3 text-sm leading-6 text-gray-400">
+                  Clan tags are now managed through real clan membership instead of a manual profile field.
+                </p>
+                <Link
+                  to="/clans"
+                  className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+                >
+                  Open Clan HQ
+                </Link>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <label htmlFor="pf-bio" className="intel-label block">
+                  Bio
+                </label>
+                <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">
+                  {bio.length}/280
+                </span>
+              </div>
+              <textarea
+                id="pf-bio"
+                value={bio}
+                onChange={(event) => setBio(event.target.value)}
+                className="field min-h-[140px] resize-y"
+                placeholder="What you run, when you are on, or anything the squad should know before they queue with you."
+                maxLength="280"
+              />
             </div>
           </section>
 

@@ -5,6 +5,7 @@ import {
   LogIn,
   MessageSquare,
   Settings,
+  Shield,
   ShieldAlert,
   UsersRound,
   Zap,
@@ -16,6 +17,7 @@ import RoleBadge from './RoleBadge.jsx'
 const navItems = [
   { to: '/', label: 'Home', icon: House },
   { to: '/profiles', label: 'Team', icon: UsersRound },
+  { to: '/clans', label: 'Clans', icon: Shield },
   { to: '/chat', label: 'Chat', icon: MessageSquare },
   { to: '/messages', label: 'DMs', icon: MessageSquare },
   { to: '/profile', label: 'Profile', icon: Settings },

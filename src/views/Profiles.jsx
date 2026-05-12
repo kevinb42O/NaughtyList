@@ -21,6 +21,7 @@ function Profiles() {
 
         return (
           displayProfileName(nextProfile).toLowerCase().includes(normalizedQuery) ||
+          nextProfile.bio?.toLowerCase().includes(normalizedQuery) ||
           nextProfile.clan_tag?.toLowerCase().includes(normalizedQuery) ||
           nextProfile.activision_ids?.some((id) => id.toLowerCase().includes(normalizedQuery))
         )
@@ -36,7 +37,7 @@ function Profiles() {
   return (
     <div>
       <PageHeader eyebrow="Profiles" title="Squad Directory">
-        See who is online, copy Activision IDs, and find clan tags fast.
+        See who is online, open operator bios, copy Activision IDs, and find clan tags fast.
       </PageHeader>
 
       {isAuthenticated ? (
@@ -67,7 +68,7 @@ function Profiles() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="field min-h-14 pl-12"
-            placeholder="Search name, clan tag, or Activision ID"
+            placeholder="Search name, bio, clan tag, or Activision ID"
           />
         </div>
       </section>

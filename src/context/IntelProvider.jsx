@@ -7,7 +7,7 @@ import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMap
 import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
-const profileSelect = 'id, display_name, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
+const profileSelect = 'id, display_name, bio, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
 const clanSelect = 'id, name, tag, description, created_by, created_at, updated_at, archived_at'
 
 function withTimeout(promise, ms, message) {
@@ -166,7 +166,7 @@ function IntelProvider({ children }) {
 
     setMyClanMembership(nextMembership)
     return nextMembership
-  }, [user?.id, user?.id])
+  }, [user?.id])
 
   const fetchClanMembers = useCallback(async (clanId, nextProfiles = profiles) => {
     if (!clanId || !user?.id) {
@@ -289,7 +289,7 @@ function IntelProvider({ children }) {
       fetchMyClanMembership(),
       fetchVisibleClanRequests(nextProfiles),
       fetchVisibleClanInvites(nextProfiles),
-    ]).then(([directory, membership]) => [directory, membership])
+    ])
 
     if (nextMembership?.clan_id) {
       await fetchMyClanMembers(nextMembership.clan_id, nextProfiles)
@@ -603,6 +603,8 @@ function IntelProvider({ children }) {
       .from('profiles')
       .update({
         display_name: updates.displayName?.trim() ?? '',
+        bio: updates.bio?.trim() ?? '',
+        ...(typeof updates.clanTag === 'string' ? { clan_tag: updates.clanTag.trim() } : {}),
         activision_ids: gameAccountIds(normalizedGameAccounts),
         game_accounts: normalizedGameAccounts,
       })
