@@ -30,6 +30,63 @@ function profileDisplayName(user) {
   return user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Operator'
 }
 
+function sortMessagesByCreatedAt(messages) {
+  return [...messages].sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
+}
+
+function reactionListsMatch(firstReactions = [], secondReactions = []) {
+  if (firstReactions.length !== secondReactions.length) {
+    return false
+  }
+
+  return firstReactions.every((firstReaction, index) => {
+    const secondReaction = secondReactions[index]
+    return (
+      firstReaction?.message_id === secondReaction?.message_id &&
+      firstReaction?.user_id === secondReaction?.user_id &&
+      firstReaction?.reaction === secondReaction?.reaction &&
+      firstReaction?.created_at === secondReaction?.created_at
+    )
+  })
+}
+
+function messageRecordMatches(currentMessage, nextMessage) {
+  return (
+    currentMessage?.id === nextMessage?.id &&
+    currentMessage?.body === nextMessage?.body &&
+    currentMessage?.created_at === nextMessage?.created_at &&
+    currentMessage?.read_at === nextMessage?.read_at &&
+    currentMessage?.deleted_at === nextMessage?.deleted_at &&
+    currentMessage?.deleted_by === nextMessage?.deleted_by &&
+    reactionListsMatch(currentMessage?.reactions, nextMessage?.reactions)
+  )
+}
+
+function mergeMessageRecords(currentMessages, nextMessages, limit) {
+  const currentById = new Map(currentMessages.map((message) => [message.id, message]))
+  const mergedMessages = sortMessagesByCreatedAt(
+    nextMessages.map((nextMessage) => {
+      const currentMessage = currentById.get(nextMessage.id)
+      return currentMessage && messageRecordMatches(currentMessage, nextMessage) ? currentMessage : nextMessage
+    }),
+  )
+
+  return typeof limit === 'number' ? mergedMessages.slice(-limit) : mergedMessages
+}
+
+function upsertMessageRecord(currentMessages, nextMessage, limit) {
+  const exists = currentMessages.some((currentMessage) => currentMessage.id === nextMessage.id)
+  const nextMessages = exists
+    ? currentMessages.map((currentMessage) =>
+        currentMessage.id === nextMessage.id && !messageRecordMatches(currentMessage, nextMessage)
+          ? { ...currentMessage, ...nextMessage, reactions: nextMessage.reactions ?? currentMessage.reactions ?? [] }
+          : currentMessage,
+      )
+    : [...currentMessages, nextMessage]
+
+  return sortMessagesByCreatedAt(nextMessages).slice(typeof limit === 'number' ? -limit : 0)
+}
+
 function IntelProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -133,7 +190,8 @@ function IntelProvider({ children }) {
       .reverse()
     const reactionMap = await fetchMessageReactionMap('public', messages.map((message) => message.id))
 
-    setPublicMessages(messages.map((message) => withMessageReaction(message, reactionMap)))
+    const nextMessages = messages.map((message) => withMessageReaction(message, reactionMap))
+    setPublicMessages((currentMessages) => mergeMessageRecords(currentMessages, nextMessages, 100))
   }, [fetchMessageReactionMap])
 
   const fetchDirectMessages = useCallback(async (userId, nextProfiles = []) => {
@@ -162,7 +220,8 @@ function IntelProvider({ children }) {
     }))
     const reactionMap = await fetchMessageReactionMap('direct', messages.map((message) => message.id))
 
-    setDirectMessages(messages.map((message) => withMessageReaction(message, reactionMap)))
+    const nextMessages = messages.map((message) => withMessageReaction(message, reactionMap))
+    setDirectMessages((currentMessages) => mergeMessageRecords(currentMessages, nextMessages, 300))
   }, [fetchMessageReactionMap])
 
   const fetchClanDirectory = useCallback(async () => {
@@ -507,15 +566,62 @@ function IntelProvider({ children }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
         refresh()
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'public_chat_messages' }, () => {
-        fetchProfiles()
-          .then((nextProfiles) => fetchPublicMessages(nextProfiles))
-          .catch((messagesError) => setError(messagesError.message))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'public_chat_messages' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          setPublicMessages((currentMessages) =>
+            currentMessages.filter((message) => message.id !== payload.old?.id),
+          )
+          return
+        }
+
+        const nextMessage = payload.new
+        if (!nextMessage?.id) {
+          return
+        }
+
+        const profileById = new Map(profilesRef.current.map((nextProfile) => [nextProfile.id, nextProfile]))
+        setPublicMessages((currentMessages) =>
+          upsertMessageRecord(
+            currentMessages,
+            {
+              ...nextMessage,
+              profile: profileById.get(nextMessage.user_id),
+              reactions: currentMessages.find((message) => message.id === nextMessage.id)?.reactions ?? [],
+            },
+            100,
+          ),
+        )
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () => {
-        fetchProfiles()
-          .then((nextProfiles) => fetchDirectMessages(user?.id, nextProfiles))
-          .catch((messagesError) => setError(messagesError.message))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, (payload) => {
+        if (!user?.id) {
+          return
+        }
+
+        if (payload.eventType === 'DELETE') {
+          setDirectMessages((currentMessages) =>
+            currentMessages.filter((message) => message.id !== payload.old?.id),
+          )
+          return
+        }
+
+        const nextMessage = payload.new
+        if (!nextMessage?.id || (nextMessage.sender_id !== user.id && nextMessage.recipient_id !== user.id)) {
+          return
+        }
+
+        const profileById = new Map(profilesRef.current.map((nextProfile) => [nextProfile.id, nextProfile]))
+        setDirectMessages((currentMessages) =>
+          upsertMessageRecord(
+            currentMessages,
+            {
+              ...nextMessage,
+              sender: profileById.get(nextMessage.sender_id),
+              recipient: profileById.get(nextMessage.recipient_id),
+              reactions: currentMessages.find((message) => message.id === nextMessage.id)?.reactions ?? [],
+            },
+            300,
+          ),
+        )
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
         refresh()
@@ -545,7 +651,7 @@ function IntelProvider({ children }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refresh, refreshClanState, user?.id])
+  }, [refresh, refreshClanState, user?.id])
 
   useEffect(() => {
     if (!user?.id) {
@@ -884,14 +990,26 @@ function IntelProvider({ children }) {
       throw new Error('You must be logged in to send clan chat.')
     }
 
-    const { error: clanMessageError } = await supabase.from('clan_messages').insert({
-      clan_id: clanId,
-      user_id: user.id,
-      body: body.trim(),
-    })
+    const { data: sentMessage, error: clanMessageError } = await supabase
+      .from('clan_messages')
+      .insert({
+        clan_id: clanId,
+        user_id: user.id,
+        body: body.trim(),
+      })
+      .select('id, clan_id, user_id, body, created_at, deleted_at, deleted_by')
+      .single()
 
     if (clanMessageError) {
       throw clanMessageError
+    }
+
+    const profileById = new Map(profilesRef.current.map((nextProfile) => [nextProfile.id, nextProfile]))
+    return {
+      ...sentMessage,
+      profile: profileById.get(sentMessage.user_id),
+      deletedByProfile: profileById.get(sentMessage.deleted_by),
+      reactions: [],
     }
   }
 
@@ -983,17 +1101,31 @@ function IntelProvider({ children }) {
       throw new Error('You must be logged in to chat.')
     }
 
-    const { error: messageError } = await supabase.from('public_chat_messages').insert({
-      user_id: user.id,
-      body: body.trim(),
-    })
+    const { data: sentMessage, error: messageError } = await supabase
+      .from('public_chat_messages')
+      .insert({
+        user_id: user.id,
+        body: body.trim(),
+      })
+      .select('id, user_id, body, created_at')
+      .single()
 
     if (messageError) {
       throw messageError
     }
 
-    const nextProfiles = await fetchProfiles()
-    await fetchPublicMessages(nextProfiles)
+    const profileById = new Map(profilesRef.current.map((nextProfile) => [nextProfile.id, nextProfile]))
+    setPublicMessages((currentMessages) =>
+      upsertMessageRecord(
+        currentMessages,
+        {
+          ...sentMessage,
+          profile: profileById.get(sentMessage.user_id),
+          reactions: [],
+        },
+        100,
+      ),
+    )
   }
 
   async function sendDirectMessage(recipientId, body) {
@@ -1023,15 +1155,16 @@ function IntelProvider({ children }) {
         return currentMessages
       }
 
-      return [
-        ...currentMessages,
+      return upsertMessageRecord(
+        currentMessages,
         {
           ...sentMessage,
           sender: profileById.get(sentMessage.sender_id),
           recipient: profileById.get(sentMessage.recipient_id),
           reactions: [],
         },
-      ].sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
+        300,
+      )
     })
 
     const displayName = profile?.display_name || profileDisplayName(user)

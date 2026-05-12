@@ -44,6 +44,27 @@ function formatMessageTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+function mergeClanMessages(currentMessages, nextMessages) {
+  const currentById = new Map(currentMessages.map((message) => [message.id, message]))
+  return [...nextMessages]
+    .map((nextMessage) => {
+      const currentMessage = currentById.get(nextMessage.id)
+      if (
+        currentMessage &&
+        currentMessage.body === nextMessage.body &&
+        currentMessage.created_at === nextMessage.created_at &&
+        currentMessage.deleted_at === nextMessage.deleted_at &&
+        currentMessage.deleted_by === nextMessage.deleted_by &&
+        (currentMessage.reactions?.length ?? 0) === (nextMessage.reactions?.length ?? 0)
+      ) {
+        return currentMessage
+      }
+
+      return nextMessage
+    })
+    .sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
+}
+
 function ProfileInitial({ profile, mine, online }) {
   return <ProfileAvatar className={mine ? 'ring-red-400/20' : ''} profile={profile} online={online} showOnline size="sm" />
 }
@@ -130,7 +151,13 @@ function Chat() {
       fetchClanMessages(resolvedSelectedClanId)
         .then((nextMessages) => {
           if (!cancelled) {
-            setClanMessageState({ clanId: resolvedSelectedClanId, messages: nextMessages })
+            setClanMessageState((currentState) => ({
+              clanId: resolvedSelectedClanId,
+              messages:
+                currentState.clanId === resolvedSelectedClanId
+                  ? mergeClanMessages(currentState.messages, nextMessages)
+                  : nextMessages,
+            }))
           }
         })
         .catch((chatError) => {
@@ -187,11 +214,14 @@ function Chat() {
           throw new Error('Only active clan members can send in this room.')
         }
 
-        await sendClanMessage(resolvedSelectedClanId, nextMessage)
-        setClanMessageState({
+        const sentMessage = await sendClanMessage(resolvedSelectedClanId, nextMessage)
+        setClanMessageState((currentState) => ({
           clanId: resolvedSelectedClanId,
-          messages: await fetchClanMessages(resolvedSelectedClanId),
-        })
+          messages:
+            currentState.clanId === resolvedSelectedClanId
+              ? mergeClanMessages(currentState.messages, [...currentState.messages, sentMessage])
+              : [sentMessage],
+        }))
       } else {
         await sendPublicMessage(nextMessage)
       }
