@@ -66,14 +66,7 @@ function Layout() {
     <div className="min-h-screen text-gray-100">
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          backgroundImage: 'url(/ratslogo.png)',
-          backgroundSize: '38vmin',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          opacity: 0.04,
-        }}
+        className="app-watermark pointer-events-none fixed inset-0 z-0"
       />
       <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-28 pt-5 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between rounded-full border border-white/10 bg-black/30 px-4 py-2.5 backdrop-blur">
