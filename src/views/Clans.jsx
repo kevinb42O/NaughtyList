@@ -117,6 +117,7 @@ function Clans() {
     messages: [],
     events: [],
     error: '',
+    loading: false,
   })
   const chatBottomRef = useRef(null)
   const myClanId = myClan?.id ?? ''
@@ -169,14 +170,12 @@ function Clans() {
     return sortedDirectory.reduce((total, clan) => total + clan.memberCount, 0)
   }, [sortedDirectory])
   const adminSelectedClan = useMemo(() => {
-    if (!isAdmin) return null
-    return sortedDirectory.find((clan) => clan.id === adminClanId) ?? sortedDirectory[0] ?? null
+    if (!isAdmin || !adminClanId) return null
+    return sortedDirectory.find((clan) => clan.id === adminClanId) ?? null
   }, [adminClanId, isAdmin, sortedDirectory])
   const auditEvents = auditState.clanId === myClanId ? auditState.events : []
   const loadingAudit = Boolean(myClanId && auditState.clanId !== myClanId)
-  const adminClanLoading = Boolean(
-    isAdmin && adminSelectedClan?.id && adminClanState.clanId !== adminSelectedClan.id,
-  )
+  const adminClanLoading = Boolean(adminSelectedClan?.id && adminClanState.loading)
 
   useEffect(() => {
     let cancelled = false
@@ -236,8 +235,21 @@ function Clans() {
     let cancelled = false
 
     if (!isAdmin || !adminSelectedClan?.id) {
+      setAdminClanState((currentState) => ({
+        ...currentState,
+        loading: false,
+      }))
       return undefined
     }
+
+    setAdminClanState({
+      clanId: adminSelectedClan.id,
+      members: [],
+      messages: [],
+      events: [],
+      error: '',
+      loading: true,
+    })
 
     Promise.all([
       fetchClanMembers(adminSelectedClan.id),
@@ -252,6 +264,7 @@ function Clans() {
             messages: nextMessages,
             events: nextEvents,
             error: '',
+            loading: false,
           })
         }
       })
@@ -263,6 +276,7 @@ function Clans() {
             messages: [],
             events: [],
             error: nextError.message,
+            loading: false,
           })
         }
       })
@@ -485,17 +499,30 @@ function Clans() {
     </SectionCard>
   )
 
-  const adminInspector = isAdmin && adminSelectedClan ? (
+  const adminInspector = isAdmin ? (
     <SectionCard>
       <div className="mb-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="intel-label mb-2">Admin Clan Inspect</p>
-          <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
-            [{adminSelectedClan.tag}] {adminSelectedClan.name}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-gray-400">
-            {adminSelectedClan.description || 'No clan description yet.'}
-          </p>
+          {adminSelectedClan ? (
+            <>
+              <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
+                [{adminSelectedClan.tag}] {adminSelectedClan.name}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-gray-400">
+                {adminSelectedClan.description || 'No clan description yet.'}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
+                Select a clan to inspect
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-gray-400">
+                Pick Inspect on a directory row or use the dropdown. Clan interiors do not load until selected.
+              </p>
+            </>
+          )}
         </div>
         <div className="grid gap-2 sm:min-w-72">
           <label htmlFor="admin-clan-select" className="intel-label">
@@ -503,10 +530,11 @@ function Clans() {
           </label>
           <select
             id="admin-clan-select"
-            value={adminSelectedClan.id}
+            value={adminSelectedClan?.id ?? ''}
             onChange={(event) => setAdminClanId(event.target.value)}
             className="field min-h-11 text-sm font-black uppercase tracking-[0.12em]"
           >
+            <option value="">Choose a clan</option>
             {sortedDirectory.map((clan) => (
               <option key={clan.id} value={clan.id}>
                 [{clan.tag}] {clan.name} ({clan.memberCount})
@@ -518,7 +546,11 @@ function Clans() {
 
       {adminClanState.error ? <p className="mb-4 text-sm font-bold text-red-200">{adminClanState.error}</p> : null}
 
-      {adminClanLoading ? (
+      {!adminSelectedClan ? (
+        <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-500">
+          No clan selected.
+        </p>
+      ) : adminClanLoading ? (
         <p className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-500">
           Loading clan interior...
         </p>
