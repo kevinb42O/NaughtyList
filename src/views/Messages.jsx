@@ -94,7 +94,6 @@ function Messages() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const sendingRef = useRef(false)
-  const scrollRef = useRef(null)
   const markedReadIdsRef = useRef(new Set())
   const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
   const setMessageReactionRef = useRef(setMessageReaction)
@@ -148,7 +147,6 @@ function Messages() {
     })
   }, [directMessages, selectedProfile, user])
 
-  const threadMessageIds = useMemo(() => thread.map((directMessage) => directMessage.id).join('|'), [thread])
   const unreadThreadMessageIds = useMemo(() => {
     if (!user) {
       return []
@@ -159,17 +157,6 @@ function Messages() {
       .map((directMessage) => directMessage.id)
   }, [thread, user])
   const unreadThreadMessageIdsKey = unreadThreadMessageIds.join('|')
-
-  useEffect(() => {
-    const scrollElement = scrollRef.current
-    if (!scrollElement) {
-      return
-    }
-
-    window.requestAnimationFrame(() => {
-      scrollElement.scrollTop = scrollElement.scrollHeight
-    })
-  }, [selectedProfileId, threadMessageIds])
 
   useEffect(() => {
     if (!selectedProfileId || !userId || !unreadThreadMessageIds.length) {
@@ -311,7 +298,7 @@ function Messages() {
                 <OnlineDot online={isProfileOnline(selectedProfile, onlineUserIds)} />
               </div>
 
-              <div ref={scrollRef} className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+              <div className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
                 {thread.length ? (
                   thread.map((directMessage, index) => {
                     const mine = directMessage.sender_id === user.id
@@ -321,8 +308,8 @@ function Messages() {
                     return (
                       <div key={directMessage.id} className="mb-3">
                         {showDateDivider ? (
-                          <div className="sticky top-0 z-[1] flex justify-center py-2">
-                            <span className="rounded-full border border-white/10 bg-zinc-950/80 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-400 shadow-lg shadow-black/30 backdrop-blur">
+                          <div className="flex justify-center py-2">
+                            <span className="rounded-full border border-white/10 bg-zinc-950/90 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-400 shadow-lg shadow-black/30">
                               {formatDayLabel(directMessage.created_at)}
                             </span>
                           </div>

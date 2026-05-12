@@ -1,5 +1,5 @@
 import { Crown, Eye, MessageSquare, Send, Shield } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MessageReactions from '../components/MessageReactions.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -136,7 +136,6 @@ function Chat() {
   const [selectedClanId, setSelectedClanId] = useState(searchParams.get('clan') || '')
   const [clanMessageState, setClanMessageState] = useState({ clanId: '', messages: [] })
   const [clanLoading, setClanLoading] = useState(false)
-  const bottomRef = useRef(null)
   const myClanId = myClan?.id ?? ''
 
   const availableClanRooms = useMemo(() => {
@@ -178,10 +177,6 @@ function Chat() {
   const showClanLoading =
     activeRoom === 'clan' && clanLoading && clanMessageState.clanId !== resolvedSelectedClanId
   const activeMessages = activeRoom === 'clan' ? clanMessages : publicMessages
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
-  }, [activeRoom, clanMessages.length, publicMessages.length])
 
   useEffect(() => {
     let cancelled = false
@@ -450,8 +445,8 @@ function Chat() {
               return (
                 <div key={chatMessage.id} className="mb-3">
                   {showDateDivider ? (
-                    <div className="sticky top-0 z-[1] flex justify-center py-2">
-                      <span className="rounded-full border border-white/10 bg-zinc-950/80 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-400 shadow-lg shadow-black/30 backdrop-blur">
+                    <div className="flex justify-center py-2">
+                      <span className="rounded-full border border-white/10 bg-zinc-950/90 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-400 shadow-lg shadow-black/30">
                         {formatDayLabel(chatMessage.created_at)}
                       </span>
                     </div>
@@ -500,7 +495,6 @@ function Chat() {
               {activeRoom === 'clan' ? 'No clan messages yet.' : 'No chat yet. Ask who is playing.'}
             </div>
           )}
-          <div ref={bottomRef} />
         </div>
 
         <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">

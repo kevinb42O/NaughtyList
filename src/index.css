@@ -144,9 +144,9 @@ button:disabled {
 
   .chat-scroll-surface {
     background: #07070a;
+    overflow-anchor: none;
     transform: translateZ(0);
     backface-visibility: hidden;
-    will-change: scroll-position;
   }
 
   .watchlist-shell {
