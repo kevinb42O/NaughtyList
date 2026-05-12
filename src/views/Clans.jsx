@@ -1,4 +1,4 @@
-import { Check, Crown, LogIn, Send, Shield, Star, UsersRound, X } from 'lucide-react'
+import { Check, Crown, Eye, LogIn, Search, Send, Shield, Star, UsersRound, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
@@ -91,11 +91,13 @@ function Clans() {
     fetchClanAuditEvents,
     fetchClanMessages,
     sendClanMessage,
+    fetchClanMembers,
     onlineUserIds,
   } = useIntel()
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [workingKey, setWorkingKey] = useState('')
+  const [directoryQuery, setDirectoryQuery] = useState('')
 
   const [createName, setCreateName] = useState('')
   const [createTag, setCreateTag] = useState('')
@@ -108,6 +110,14 @@ function Clans() {
   const [clanChatInput, setClanChatInput] = useState('')
   const [clanChatSending, setClanChatSending] = useState(false)
   const [clanChatError, setClanChatError] = useState('')
+  const [adminClanId, setAdminClanId] = useState('')
+  const [adminClanState, setAdminClanState] = useState({
+    clanId: '',
+    members: [],
+    messages: [],
+    events: [],
+    error: '',
+  })
   const chatBottomRef = useRef(null)
   const myClanId = myClan?.id ?? ''
 
@@ -140,13 +150,33 @@ function Clans() {
       .sort((first, second) => displayProfileName(first).localeCompare(displayProfileName(second)))
   }, [myClanMembers, myClanPendingInvites, profiles, user?.id])
 
-  const visibleDirectory = useMemo(() => {
+  const sortedDirectory = useMemo(() => {
     return [...clanDirectory].sort((first, second) => {
       return second.memberCount - first.memberCount || first.name.localeCompare(second.name)
     })
   }, [clanDirectory])
+  const visibleDirectory = useMemo(() => {
+    const normalizedQuery = directoryQuery.trim().toLowerCase()
+    if (!normalizedQuery) return sortedDirectory
+
+    return sortedDirectory.filter((clan) => {
+      return [clan.name, clan.tag, clan.description]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery))
+    })
+  }, [directoryQuery, sortedDirectory])
+  const directoryMemberTotal = useMemo(() => {
+    return sortedDirectory.reduce((total, clan) => total + clan.memberCount, 0)
+  }, [sortedDirectory])
+  const adminSelectedClan = useMemo(() => {
+    if (!isAdmin) return null
+    return sortedDirectory.find((clan) => clan.id === adminClanId) ?? sortedDirectory[0] ?? null
+  }, [adminClanId, isAdmin, sortedDirectory])
   const auditEvents = auditState.clanId === myClanId ? auditState.events : []
   const loadingAudit = Boolean(myClanId && auditState.clanId !== myClanId)
+  const adminClanLoading = Boolean(
+    isAdmin && adminSelectedClan?.id && adminClanState.clanId !== adminSelectedClan.id,
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -201,6 +231,46 @@ function Clans() {
       cancelled = true
     }
   }, [clanInvites.length, clanJoinRequests.length, fetchClanAuditEvents, myClanId, myClanMembers.length])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!isAdmin || !adminSelectedClan?.id) {
+      return undefined
+    }
+
+    Promise.all([
+      fetchClanMembers(adminSelectedClan.id),
+      fetchClanMessages(adminSelectedClan.id),
+      fetchClanAuditEvents(adminSelectedClan.id),
+    ])
+      .then(([nextMembers, nextMessages, nextEvents]) => {
+        if (!cancelled) {
+          setAdminClanState({
+            clanId: adminSelectedClan.id,
+            members: nextMembers,
+            messages: nextMessages,
+            events: nextEvents,
+            error: '',
+          })
+        }
+      })
+      .catch((nextError) => {
+        if (!cancelled) {
+          setAdminClanState({
+            clanId: adminSelectedClan.id,
+            members: [],
+            messages: [],
+            events: [],
+            error: nextError.message,
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [adminSelectedClan?.id, fetchClanAuditEvents, fetchClanMembers, fetchClanMessages, isAdmin])
 
   async function runAction(key, successMessage, action) {
     setWorkingKey(key)
@@ -297,34 +367,266 @@ function Clans() {
     })
   }
 
+  const directoryPanel = (
+    <SectionCard>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-3">
+          <UsersRound className="h-5 w-5 text-red-200" aria-hidden="true" />
+          <div>
+            <p className="intel-label">Clan Directory</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                {sortedDirectory.length} clans
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                {directoryMemberTotal} members
+              </span>
+            </div>
+          </div>
+        </div>
+        <label htmlFor="clan-directory-search" className="relative block sm:min-w-64">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-red-200" aria-hidden="true" />
+          <input
+            id="clan-directory-search"
+            type="search"
+            aria-label="Search clans"
+            value={directoryQuery}
+            onChange={(event) => setDirectoryQuery(event.target.value)}
+            className="field min-h-11 pl-11 text-sm"
+            placeholder="Search clans"
+          />
+        </label>
+      </div>
+
+      {visibleDirectory.length ? (
+        <div className="space-y-3">
+          {visibleDirectory.map((clan) => {
+            const pendingInvite = clan.has_pending_invite
+            const pendingRequest = clan.has_pending_request
+            const isSelectedByAdmin = adminSelectedClan?.id === clan.id
+
+            return (
+              <article key={clan.id} className={`rounded-2xl border bg-black/25 p-4 ${isSelectedByAdmin ? 'border-red-500/40' : 'border-white/10'}`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-lg font-black uppercase tracking-[0.04em] text-white">
+                        [{clan.tag}] {clan.name}
+                      </h3>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                        {clan.memberCount} members
+                      </span>
+                      {clan.is_member ? (
+                        <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">
+                          Yours
+                        </span>
+                      ) : null}
+                    </div>
+                    {clan.description ? (
+                      <p className="mt-2 text-sm leading-6 text-gray-400">{clan.description}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {isAdmin ? (
+                      <button
+                        type="button"
+                        onClick={() => setAdminClanId(clan.id)}
+                        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-yellow-400/40 bg-yellow-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-400/20"
+                      >
+                        <Eye className="h-4 w-4" aria-hidden="true" />
+                        {isSelectedByAdmin ? 'Viewing' : 'Inspect'}
+                      </button>
+                    ) : null}
+
+                    {isAuthenticated && !myClan ? (
+                      pendingInvite ? (
+                        <span className="rounded-full border border-green-500/40 bg-green-500/10 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-green-100">
+                          Invite Ready
+                        </span>
+                      ) : pendingRequest ? (
+                        <span className="rounded-full border border-orange-400/40 bg-orange-400/10 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-100">
+                          Pending
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            runAction(`request-join-${clan.id}`, 'Join request sent.', () => requestClanJoin(clan.id))
+                          }
+                          disabled={workingKey === `request-join-${clan.id}`}
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                        >
+                          Request Access
+                        </button>
+                      )
+                    ) : null}
+
+                    {!isAuthenticated ? (
+                      <Link
+                        to="/auth"
+                        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/20 hover:text-white"
+                      >
+                        <LogIn className="h-4 w-4" aria-hidden="true" />
+                        Login
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
+          {sortedDirectory.length ? 'No clans match.' : 'No clans yet.'}
+        </p>
+      )}
+    </SectionCard>
+  )
+
+  const adminInspector = isAdmin && adminSelectedClan ? (
+    <SectionCard>
+      <div className="mb-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <p className="intel-label mb-2">Admin Clan Inspect</p>
+          <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
+            [{adminSelectedClan.tag}] {adminSelectedClan.name}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-gray-400">
+            {adminSelectedClan.description || 'No clan description yet.'}
+          </p>
+        </div>
+        <div className="grid gap-2 sm:min-w-72">
+          <label htmlFor="admin-clan-select" className="intel-label">
+            Open Clan
+          </label>
+          <select
+            id="admin-clan-select"
+            value={adminSelectedClan.id}
+            onChange={(event) => setAdminClanId(event.target.value)}
+            className="field min-h-11 text-sm font-black uppercase tracking-[0.12em]"
+          >
+            {sortedDirectory.map((clan) => (
+              <option key={clan.id} value={clan.id}>
+                [{clan.tag}] {clan.name} ({clan.memberCount})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {adminClanState.error ? <p className="mb-4 text-sm font-bold text-red-200">{adminClanState.error}</p> : null}
+
+      {adminClanLoading ? (
+        <p className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-500">
+          Loading clan interior...
+        </p>
+      ) : (
+        <div className="grid gap-4 xl:grid-cols-3">
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="intel-label">Roster</p>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                {adminSelectedClan.memberCount}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {adminClanState.members.length ? adminClanState.members.map((member) => (
+                <article key={member.user_id} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-black uppercase tracking-[0.06em] text-white">
+                      {displayProfileName(member.profile)}
+                    </p>
+                    <RolePill role={member.role} />
+                  </div>
+                  <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-gray-600">
+                    Joined {new Date(member.joined_at).toLocaleDateString()}
+                  </p>
+                </article>
+              )) : (
+                <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-3 text-sm font-bold text-gray-500">
+                  No roster rows visible.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <p className="intel-label mb-3">Recent Chat</p>
+            <div className="max-h-80 space-y-2 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+              {adminClanState.messages.length ? adminClanState.messages.slice(-20).map((message) => (
+                <article key={message.id} className="rounded-xl bg-white/[0.04] p-3">
+                  <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-500">
+                    {clanPrefix(message.profile)} {displayProfileName(message.profile)}
+                  </p>
+                  <p className={`mt-1 whitespace-pre-wrap text-sm leading-6 ${message.deleted_at ? 'italic text-gray-600' : 'text-gray-300'}`}>
+                    {message.deleted_at ? 'Message removed.' : message.body}
+                  </p>
+                </article>
+              )) : (
+                <p className="text-sm font-bold text-gray-500">No clan messages visible.</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <p className="intel-label mb-3">Activity</p>
+            <div className="space-y-2">
+              {adminClanState.events.length ? adminClanState.events.slice(0, 10).map((event) => (
+                <article key={event.id} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                  <p className="text-sm font-black uppercase tracking-[0.08em] text-white">
+                    {clanEventLabels[event.event_type] || event.event_type}
+                  </p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-600">
+                    {new Date(event.created_at).toLocaleString()}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-gray-400">
+                    {displayProfileName(event.actorProfile)}
+                    {event.targetProfile ? ` -> ${displayProfileName(event.targetProfile)}` : ''}
+                  </p>
+                </article>
+              )) : (
+                <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-3 text-sm font-bold text-gray-500">
+                  No activity visible.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  ) : null
+
   return (
     <div>
       <PageHeader eyebrow="Clan Network" title="Clan HQ">
-        Manage real account-based clans, membership, invites, and private rooms.
+        Browse clans. Manage yours.
       </PageHeader>
 
       {status ? <p className="mb-4 text-sm font-bold text-green-200">{status}</p> : null}
       {error ? <p className="mb-4 text-sm font-bold text-red-200">{error}</p> : null}
 
       {!isAuthenticated ? (
-        <SectionCard>
-          <p className="intel-label mb-3">Clan HQ</p>
-          <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
-            Login required for social clans
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400">
-            Real clans are account-based. Log in to create a clan, accept members, or use private
-            clan chat.
-          </p>
-          <Link
-            to="/auth"
-            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
-          >
-            <LogIn className="h-4 w-4" aria-hidden="true" />
-            Login to continue
-          </Link>
-        </SectionCard>
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+          <SectionCard>
+            <p className="intel-label mb-3">Clan HQ</p>
+            <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
+              Login to join
+            </h2>
+            <Link
+              to="/auth"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+            >
+              <LogIn className="h-4 w-4" aria-hidden="true" />
+              Login
+            </Link>
+          </SectionCard>
+          {directoryPanel}
+        </div>
       ) : null}
+
+      {adminInspector ? <div className="mb-5">{adminInspector}</div> : null}
 
       {isAuthenticated && !myClan ? (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -484,65 +786,7 @@ function Clans() {
             </SectionCard>
           </div>
 
-          <SectionCard>
-            <div className="mb-4 flex items-center gap-3">
-              <UsersRound className="h-5 w-5 text-red-200" aria-hidden="true" />
-              <div>
-                <p className="intel-label">Clan Directory</p>
-                <p className="text-sm text-gray-500">Request access or wait for an invite.</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {visibleDirectory.length ? (
-                visibleDirectory.map((clan) => {
-                  const pendingInvite = clan.has_pending_invite
-                  const pendingRequest = clan.has_pending_request
-
-                  return (
-                    <article key={clan.id} className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-lg font-black uppercase tracking-[0.04em] text-white">
-                          [{clan.tag}] {clan.name}
-                        </h3>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                          {clan.memberCount} members
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-gray-400">
-                        {clan.description || 'No clan description yet.'}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {pendingInvite ? (
-                          <span className="rounded-full border border-green-500/40 bg-green-500/10 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-green-100">
-                            Check your invite panel
-                          </span>
-                        ) : pendingRequest ? (
-                          <span className="rounded-full border border-orange-400/40 bg-orange-400/10 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-100">
-                            Request pending
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              runAction(`request-join-${clan.id}`, 'Join request sent.', () => requestClanJoin(clan.id))
-                            }
-                            disabled={workingKey === `request-join-${clan.id}`}
-                            className="inline-flex min-h-10 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-                          >
-                            Request Access
-                          </button>
-                        )}
-                      </div>
-                    </article>
-                  )
-                })
-              ) : (
-                <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
-                  No clans have been created yet.
-                </p>
-              )}
-            </div>
-          </SectionCard>
+          {directoryPanel}
         </div>
       ) : null}
 
@@ -793,6 +1037,8 @@ function Clans() {
           </div>
 
           <div className="grid gap-5">
+            {directoryPanel}
+
             {canEditClan ? (
               <SectionCard>
                 <p className="intel-label mb-3">Clan Settings</p>

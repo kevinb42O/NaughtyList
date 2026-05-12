@@ -1,6 +1,6 @@
 import { Plus, Search, ShieldX } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -29,7 +29,45 @@ const threatFilters = [
   ['friendly', 'Friendly'],
 ]
 
-function SortablePlayerRow({ player, isDragging, number }) {
+function getCooldownRemainingLabel(cooldownEndsAt, nowMs) {
+  if (!cooldownEndsAt) {
+    return ''
+  }
+
+  const cooldownEndMs = new Date(cooldownEndsAt).getTime()
+
+  if (Number.isNaN(cooldownEndMs)) {
+    return ''
+  }
+
+  const remainingMs = cooldownEndMs - nowMs
+
+  if (remainingMs <= 0) {
+    return ''
+  }
+
+  const totalMinutes = Math.ceil(remainingMs / 60000)
+
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+    return minutes ? `${hours}h ${minutes}m` : `${hours}h`
+  }
+
+  return `${totalMinutes}m`
+}
+
+function SortablePlayerRow({
+  player,
+  isDragging,
+  number,
+  onLogKill,
+  killPending,
+  killDisabled,
+  killButtonLabel,
+  killMessage,
+  killTone,
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: player.id })
 
   const style = {
@@ -51,19 +89,32 @@ function SortablePlayerRow({ player, isDragging, number }) {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <PlayerRow player={player} dragHandle={handle} number={number} />
+      <PlayerRow
+        player={player}
+        dragHandle={handle}
+        number={number}
+        onLogKill={onLogKill}
+        killPending={killPending}
+        killDisabled={killDisabled}
+        killButtonLabel={killButtonLabel}
+        killMessage={killMessage}
+        killTone={killTone}
+      />
     </div>
   )
 }
 
 function Home() {
-  const { players, isAdmin, reorderPlayers } = useIntel()
+  const { players, isAdmin, isAuthenticated, registerPlayerKill, reorderPlayers } = useIntel()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [threatFilter, setThreatFilter] = useState('all')
   const [localPlayers, setLocalPlayers] = useState(null)
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [pendingKillId, setPendingKillId] = useState('')
+  const [killFeedbackByPlayer, setKillFeedbackByPlayer] = useState({})
+  const [now, setNow] = useState(() => Date.now())
   const isAddRouteOpen = searchParams.get('add') === '1'
   const isAddModalOpen = addModalOpen || isAddRouteOpen
 
@@ -79,6 +130,16 @@ function Home() {
       navigate('/', { replace: true })
     }
   }, [isAddRouteOpen, navigate])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now())
+    }, 30000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   const filteredPlayers = useMemo(() => {
     const source = localPlayers ?? players
@@ -119,6 +180,75 @@ function Home() {
     reorderPlayers(reordered.map((p) => p.id)).catch(() => setLocalPlayers(null))
   }
 
+  const applyKillResultToLocalPlayers = useCallback((playerId, result) => {
+    setLocalPlayers((currentPlayers) =>
+      currentPlayers
+        ? currentPlayers.map((currentPlayer) =>
+            currentPlayer.id === playerId
+              ? {
+                  ...currentPlayer,
+                  killCount: result.kill_count ?? currentPlayer.killCount,
+                  myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
+                  myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
+                }
+              : {
+                  ...currentPlayer,
+                  myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
+                  myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
+                },
+          )
+        : currentPlayers,
+    )
+  }, [])
+
+  const handleRegisterKill = useCallback(
+    async (player) => {
+      if (!isAuthenticated || pendingKillId === player.id) {
+        return
+      }
+
+      setPendingKillId(player.id)
+      setKillFeedbackByPlayer((currentFeedback) => ({
+        ...currentFeedback,
+        [player.id]: {
+          tone: 'success',
+          message: '',
+        },
+      }))
+
+      try {
+        const result = await registerPlayerKill(player.id)
+        const remaining = getCooldownRemainingLabel(result.cooldown_ends_at, Date.now())
+
+        applyKillResultToLocalPlayers(player.id, result)
+
+        setKillFeedbackByPlayer((currentFeedback) => ({
+          ...currentFeedback,
+          [player.id]: result.accepted
+            ? {
+                tone: 'success',
+                message: remaining ? `Kill logged. Cooldown ${remaining}.` : 'Kill logged.',
+              }
+            : {
+                tone: 'warning',
+                message: remaining ? `Cooldown active. ${remaining} left.` : result.reason,
+              },
+        }))
+      } catch (killError) {
+        setKillFeedbackByPlayer((currentFeedback) => ({
+          ...currentFeedback,
+          [player.id]: {
+            tone: 'error',
+            message: killError.message,
+          },
+        }))
+      } finally {
+        setPendingKillId('')
+      }
+    },
+    [applyKillResultToLocalPlayers, isAuthenticated, pendingKillId, registerPlayerKill],
+  )
+
   const stats = useMemo(
     () => [
       { label: 'Operators', value: players.length, tone: 'text-white' },
@@ -136,7 +266,7 @@ function Home() {
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <h1 className="text-5xl font-black uppercase leading-none tracking-[0.04em] text-white sm:text-6xl">
-              21rats
+              2̴̡̩̘͇̝̤͕̾̾͜1̵̨̼̦̗̔̇̉͝R̷͉͔̜̎͆̊͒̓̓́̚̚A̸͚̰͐̐͆̇͊̕͠Ț̵̨̖̖̱̰͙̥̯̾̆̊́̑̿̾͝ͅṠ̸̢͍̼͉̜̥͖̘̞̮̏̕̚
             </h1>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
@@ -167,7 +297,7 @@ function Home() {
         </div>
       </section>
 
-      <section className="panel rounded-[1.8rem] p-4 sm:p-5">
+      <section className="watchlist-shell rounded-[1.8rem] p-4 sm:p-5">
         <div className="flex flex-col gap-4 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -180,6 +310,11 @@ function Home() {
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
                 {filteredPlayers.length} visible
               </span>
+              {!isAuthenticated ? (
+                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
+                  Login to log kills
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={openAddModal}
@@ -236,13 +371,45 @@ function Home() {
             isAdmin && !isFiltering ? (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={filteredPlayers.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                  {filteredPlayers.map((player, index) => (
-                    <SortablePlayerRow key={player.id} player={player} number={index + 1} />
-                  ))}
+                  {filteredPlayers.map((player, index) => {
+                    const cooldownLabel = getCooldownRemainingLabel(player.myKillCooldownEndsAt, now)
+                    const feedback = killFeedbackByPlayer[player.id]
+
+                    return (
+                      <SortablePlayerRow
+                        key={player.id}
+                        player={player}
+                        number={index + 1}
+                        onLogKill={isAuthenticated ? handleRegisterKill : undefined}
+                        killPending={pendingKillId === player.id}
+                        killDisabled={pendingKillId === player.id || Boolean(cooldownLabel)}
+                        killButtonLabel={cooldownLabel ? `Ready in ${cooldownLabel}` : 'Log Kill'}
+                        killMessage={feedback?.message ?? ''}
+                        killTone={feedback?.tone ?? 'success'}
+                      />
+                    )
+                  })}
                 </SortableContext>
               </DndContext>
             ) : (
-              filteredPlayers.map((player, index) => <PlayerRow key={player.id} player={player} number={index + 1} />)
+              filteredPlayers.map((player, index) => {
+                const cooldownLabel = getCooldownRemainingLabel(player.myKillCooldownEndsAt, now)
+                const feedback = killFeedbackByPlayer[player.id]
+
+                return (
+                  <PlayerRow
+                    key={player.id}
+                    player={player}
+                    number={index + 1}
+                    onLogKill={isAuthenticated ? handleRegisterKill : undefined}
+                    killPending={pendingKillId === player.id}
+                    killDisabled={pendingKillId === player.id || Boolean(cooldownLabel)}
+                    killButtonLabel={cooldownLabel ? `Ready in ${cooldownLabel}` : 'Log Kill'}
+                    killMessage={feedback?.message ?? ''}
+                    killTone={feedback?.tone ?? 'success'}
+                  />
+                )
+              })
             )
           ) : (
             <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-black/25 p-6 text-center">

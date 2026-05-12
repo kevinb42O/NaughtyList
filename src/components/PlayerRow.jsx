@@ -1,11 +1,29 @@
-import { Edit3, ExternalLink } from 'lucide-react'
+import { Crosshair, Edit3, ExternalLink } from 'lucide-react'
 import { getThreatStyle } from '../utils/threat.js'
 
-function PlayerRow({ player, dragHandle, number, onEdit }) {
+const killFeedbackToneClasses = {
+  success: 'text-green-200',
+  warning: 'text-yellow-200',
+  error: 'text-red-200',
+}
+
+function PlayerRow({
+  player,
+  dragHandle,
+  number,
+  onEdit,
+  onLogKill,
+  killPending = false,
+  killDisabled = false,
+  killButtonLabel = 'Log Kill',
+  killMessage = '',
+  killTone = 'success',
+}) {
   const threat = getThreatStyle(player.threatLevel)
+  const killFeedbackToneClass = killFeedbackToneClasses[killTone] ?? 'text-gray-300'
 
   return (
-    <article className={`panel relative overflow-hidden rounded-[1.4rem] p-4 ${threat.glow}`}>
+    <article className={`watchlist-row relative rounded-[1.4rem] p-4 ${threat.glow}`}>
       <div className={`absolute inset-y-0 left-0 w-1.5 ${threat.dot}`} aria-hidden="true" />
 
       <div className="pl-3">
@@ -25,6 +43,9 @@ function PlayerRow({ player, dragHandle, number, onEdit }) {
           <span className={`rounded-full border px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.2em] ${threat.badge}`}>
             {threat.label}
           </span>
+          <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-200">
+            {player.killCount ?? 0} kills
+          </span>
           {player.evidenceUrl ? (
             <a
               href={player.evidenceUrl}
@@ -35,6 +56,17 @@ function PlayerRow({ player, dragHandle, number, onEdit }) {
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               Clip
             </a>
+          ) : null}
+          {onLogKill ? (
+            <button
+              type="button"
+              onClick={() => onLogKill(player)}
+              disabled={killDisabled}
+              className="inline-flex min-h-9 items-center gap-1 rounded-full border border-red-500/45 bg-red-500/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/18 disabled:border-white/10 disabled:bg-white/5 disabled:text-gray-500 disabled:hover:bg-white/5"
+            >
+              <Crosshair className="h-3.5 w-3.5" aria-hidden="true" />
+              {killPending ? 'Logging...' : killButtonLabel}
+            </button>
           ) : null}
           {onEdit ? (
             <button
@@ -50,6 +82,12 @@ function PlayerRow({ player, dragHandle, number, onEdit }) {
 
         {player.notes ? (
           <p className="mt-3 text-sm leading-6 text-gray-400">{player.notes}</p>
+        ) : null}
+
+        {killMessage ? (
+          <p className={`mt-3 text-[0.72rem] font-black uppercase tracking-[0.16em] ${killFeedbackToneClass}`}>
+            {killMessage}
+          </p>
         ) : null}
 
         {player.tags.length ? (

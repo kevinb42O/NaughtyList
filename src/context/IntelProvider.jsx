@@ -126,11 +126,6 @@ function IntelProvider({ children }) {
   }, [])
 
   const fetchClanDirectory = useCallback(async () => {
-    if (!user?.id) {
-      setClanDirectory([])
-      return []
-    }
-
     const { data, error: clanDirectoryError } = await supabase.rpc('list_clan_directory')
 
     if (clanDirectoryError) {
@@ -144,7 +139,7 @@ function IntelProvider({ children }) {
 
     setClanDirectory(nextDirectory)
     return nextDirectory
-  }, [user?.id])
+  }, [])
 
   const fetchMyClanMembership = useCallback(async () => {
     if (!user?.id) {
@@ -284,12 +279,15 @@ function IntelProvider({ children }) {
 
   const refreshClanState = useCallback(async (nextProfiles = profiles) => {
     if (!user?.id) {
-      setClanDirectory([])
+      const nextDirectory = await fetchClanDirectory()
       setMyClanMembership(null)
       setMyClanMembers([])
       setClanJoinRequests([])
       setClanInvites([])
-      return null
+      return {
+        directory: nextDirectory,
+        membership: null,
+      }
     }
 
     const [nextDirectory, nextMembership] = await Promise.all([
@@ -1015,6 +1013,45 @@ function IntelProvider({ children }) {
     await refresh()
   }
 
+  async function registerPlayerKill(playerId) {
+    if (!user) {
+      throw new Error('You must be logged in to log a kill.')
+    }
+
+    const { data, error: killError } = await supabase.rpc('register_player_kill', {
+      target_player_id: playerId,
+    })
+
+    if (killError) {
+      throw killError
+    }
+
+    const result = Array.isArray(data) ? data[0] : data
+
+    if (!result) {
+      throw new Error('Kill log did not return a result.')
+    }
+
+    setPlayers((currentPlayers) =>
+      currentPlayers.map((currentPlayer) =>
+        currentPlayer.id === playerId
+          ? {
+              ...currentPlayer,
+              killCount: result.kill_count ?? currentPlayer.killCount,
+              myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
+              myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
+            }
+          : {
+              ...currentPlayer,
+              myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
+              myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
+            },
+      ),
+    )
+
+    return result
+  }
+
   async function reorderPlayers(orderedIds) {
     if (!isAdmin) {
       throw new Error('Only admins can reorder the board.')
@@ -1211,6 +1248,7 @@ function IntelProvider({ children }) {
     signOut,
     addPlayer,
     updatePlayer,
+    registerPlayerKill,
     deletePlayer,
     deleteProfileAccount,
     claimAdmin,
