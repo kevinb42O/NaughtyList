@@ -382,7 +382,7 @@ function Chat() {
                         {new Date(chatMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div className={`rounded-xl border px-3.5 py-2 text-sm leading-relaxed ${
+                    <div className={`relative rounded-xl border px-3.5 py-2 text-sm leading-relaxed ${
                       mine
                         ? 'border-red-500/25 bg-red-950/40 text-gray-100'
                         : 'border-white/[0.08] bg-white/[0.04] text-gray-200'
@@ -390,15 +390,15 @@ function Chat() {
                       <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-400' : ''}`}>
                         {wasDeleted ? 'Message removed.' : chatMessage.body}
                       </p>
+                      {!wasDeleted ? (
+                        <MessageReactions
+                          align={mine ? 'right' : 'left'}
+                          currentUserId={user?.id}
+                          message={chatMessage}
+                          onReact={handleReaction}
+                        />
+                      ) : null}
                     </div>
-                    {!wasDeleted ? (
-                      <MessageReactions
-                        align={mine ? 'right' : 'left'}
-                        currentUserId={user?.id}
-                        message={chatMessage}
-                        onReact={handleReaction}
-                      />
-                    ) : null}
                   </article>
                 </div>
               )

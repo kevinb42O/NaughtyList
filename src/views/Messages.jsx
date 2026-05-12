@@ -254,20 +254,20 @@ function Messages() {
                               {new Date(directMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                             <div
-                              className={`rounded-2xl border px-3.5 py-2.5 text-sm leading-6 ${
+                              className={`relative rounded-2xl border px-3.5 py-2.5 text-sm leading-6 ${
                                 mine
                                   ? 'border-red-500/35 bg-red-500/12 text-red-50'
                                   : 'border-white/10 bg-black/25 text-gray-200'
                               }`}
                             >
                               <p className="whitespace-pre-wrap">{directMessage.body}</p>
+                              <MessageReactions
+                                align={mine ? 'right' : 'left'}
+                                currentUserId={user?.id}
+                                message={directMessage}
+                                onReact={handleReaction}
+                              />
                             </div>
-                            <MessageReactions
-                              align={mine ? 'right' : 'left'}
-                              currentUserId={user?.id}
-                              message={directMessage}
-                              onReact={handleReaction}
-                            />
                           </div>
                         </article>
                       </div>

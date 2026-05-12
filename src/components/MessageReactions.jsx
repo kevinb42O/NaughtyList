@@ -5,7 +5,7 @@ export const messageReactionOptions = [
   { key: 'heart', label: '❤️', title: 'Heart' },
   { key: 'rofl', label: '🤣', title: 'ROFL' },
   { key: 'sad_tear', label: '😢', title: 'Sad tear' },
-  { key: 'xd', label: '>_<', title: 'XD' },
+  { key: 'xd', label: '😆', title: 'XD' },
   { key: 'middle_finger', label: '🖕', title: 'Middle finger' },
 ]
 
@@ -16,12 +16,16 @@ function MessageReactions({ align = 'left', currentUserId, disabled = false, mes
   const containerRef = useRef(null)
   const reactions = message?.reactions ?? []
   const myReaction = reactions.find((reaction) => reaction.user_id === currentUserId)?.reaction ?? ''
-  const counts = reactions.reduce((nextCounts, reaction) => {
+  const countsByReaction = reactions.reduce((nextCounts, reaction) => {
     nextCounts[reaction.reaction] = (nextCounts[reaction.reaction] ?? 0) + 1
     return nextCounts
   }, {})
-  const activeOptions = messageReactionOptions.filter((option) => counts[option.key])
-  const hasReactions = Boolean(activeOptions.length)
+  const latestReaction = [...reactions].sort((first, second) => {
+    return new Date(second.created_at) - new Date(first.created_at)
+  })[0]
+  const badgeReaction = myReaction || latestReaction?.reaction || ''
+  const badgeOption = messageReactionOptions.find((option) => option.key === badgeReaction)
+  const badgeCount = badgeReaction ? countsByReaction[badgeReaction] ?? 0 : 0
 
   useEffect(() => {
     if (!open) {
@@ -57,35 +61,20 @@ function MessageReactions({ align = 'left', currentUserId, disabled = false, mes
   return (
     <div
       ref={containerRef}
-      className={`relative mt-1.5 flex items-center gap-1.5 ${align === 'right' ? 'justify-end' : 'justify-start'}`}
+      className="contents"
     >
-      {hasReactions ? (
-        <div className="flex flex-wrap items-center gap-1">
-          {activeOptions.map((option) => {
-            const selected = myReaction === option.key
-
-            return (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => handleReact(option.key)}
-                disabled={disabled}
-                title={option.title}
-                aria-label={`${selected ? 'Remove' : 'React with'} ${option.title}`}
-                className={`inline-flex min-h-7 items-center justify-center gap-1 rounded-full border px-2 text-[0.68rem] font-black transition disabled:opacity-60 ${
-                  selected
-                    ? 'border-red-400/55 bg-red-500/18 text-white'
-                    : 'border-white/12 bg-black/30 text-gray-300 hover:border-red-400/35 hover:text-gray-100'
-                }`}
-              >
-                <span className={option.key === 'xd' ? 'text-[0.62rem] tracking-normal' : 'text-sm'}>
-                  {option.label}
-                </span>
-                <span className="text-[0.62rem] text-gray-300">{counts[option.key]}</span>
-              </button>
-            )
-          })}
-        </div>
+      {badgeOption ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={disabled}
+          title={badgeOption.title}
+          aria-label={`Reaction: ${badgeOption.title}`}
+          className="absolute -bottom-3 right-2 z-10 inline-flex h-7 min-w-7 items-center justify-center gap-0.5 rounded-full border border-white/15 bg-zinc-950 px-1.5 text-sm shadow-lg shadow-black/50 ring-1 ring-black/40 transition hover:border-red-400/40 hover:bg-zinc-900 disabled:opacity-60"
+        >
+          <span>{badgeOption.label}</span>
+          {badgeCount > 1 ? <span className="text-[0.58rem] font-black text-gray-300">{badgeCount}</span> : null}
+        </button>
       ) : null}
 
       <button
@@ -95,7 +84,7 @@ function MessageReactions({ align = 'left', currentUserId, disabled = false, mes
         aria-expanded={open}
         aria-label="Add reaction"
         title="Add reaction"
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-gray-400 transition hover:border-red-400/45 hover:bg-red-500/10 hover:text-gray-100 disabled:opacity-60"
+        className="absolute -bottom-3 left-2 z-10 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/40 transition hover:border-red-400/45 hover:bg-red-500/10 hover:text-gray-100 disabled:opacity-60"
       >
         {open ? <X className="h-3.5 w-3.5" aria-hidden="true" /> : <Plus className="h-3.5 w-3.5" aria-hidden="true" />}
       </button>
@@ -123,9 +112,7 @@ function MessageReactions({ align = 'left', currentUserId, disabled = false, mes
                     : 'border-transparent bg-white/[0.04] text-gray-200 hover:border-white/15 hover:bg-white/10'
                 }`}
               >
-                <span className={option.key === 'xd' ? 'px-1 text-[0.72rem] tracking-normal' : ''}>
-                  {option.label}
-                </span>
+                <span>{option.label}</span>
               </button>
             )
           })}
