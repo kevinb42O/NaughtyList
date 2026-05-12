@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -34,13 +34,27 @@ function sortMessagesByCreatedAt(messages) {
   return [...messages].sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
 }
 
+function sortReactions(reactions = []) {
+  return [...reactions].sort((first, second) => {
+    const createdAtComparison = String(first.created_at ?? '').localeCompare(String(second.created_at ?? ''))
+    if (createdAtComparison !== 0) {
+      return createdAtComparison
+    }
+
+    return `${first.user_id ?? ''}:${first.reaction ?? ''}`.localeCompare(`${second.user_id ?? ''}:${second.reaction ?? ''}`)
+  })
+}
+
 function reactionListsMatch(firstReactions = [], secondReactions = []) {
-  if (firstReactions.length !== secondReactions.length) {
+  const sortedFirstReactions = sortReactions(firstReactions)
+  const sortedSecondReactions = sortReactions(secondReactions)
+
+  if (sortedFirstReactions.length !== sortedSecondReactions.length) {
     return false
   }
 
-  return firstReactions.every((firstReaction, index) => {
-    const secondReaction = secondReactions[index]
+  return sortedFirstReactions.every((firstReaction, index) => {
+    const secondReaction = sortedSecondReactions[index]
     return (
       firstReaction?.message_id === secondReaction?.message_id &&
       firstReaction?.user_id === secondReaction?.user_id &&
@@ -53,6 +67,10 @@ function reactionListsMatch(firstReactions = [], secondReactions = []) {
 function messageRecordMatches(currentMessage, nextMessage) {
   return (
     currentMessage?.id === nextMessage?.id &&
+    currentMessage?.user_id === nextMessage?.user_id &&
+    currentMessage?.sender_id === nextMessage?.sender_id &&
+    currentMessage?.recipient_id === nextMessage?.recipient_id &&
+    currentMessage?.clan_id === nextMessage?.clan_id &&
     currentMessage?.body === nextMessage?.body &&
     currentMessage?.created_at === nextMessage?.created_at &&
     currentMessage?.read_at === nextMessage?.read_at &&
@@ -64,25 +82,44 @@ function messageRecordMatches(currentMessage, nextMessage) {
 
 function mergeMessageRecords(currentMessages, nextMessages, limit) {
   const currentById = new Map(currentMessages.map((message) => [message.id, message]))
+  let changed = currentMessages.length !== nextMessages.length
   const mergedMessages = sortMessagesByCreatedAt(
     nextMessages.map((nextMessage) => {
       const currentMessage = currentById.get(nextMessage.id)
-      return currentMessage && messageRecordMatches(currentMessage, nextMessage) ? currentMessage : nextMessage
+      if (currentMessage && messageRecordMatches(currentMessage, nextMessage)) {
+        return currentMessage
+      }
+
+      changed = true
+      return nextMessage
     }),
   )
+  const limitedMessages = typeof limit === 'number' ? mergedMessages.slice(-limit) : mergedMessages
 
-  return typeof limit === 'number' ? mergedMessages.slice(-limit) : mergedMessages
+  if (!changed && limitedMessages.every((message, index) => message === currentMessages[index])) {
+    return currentMessages
+  }
+
+  return limitedMessages
 }
 
 function upsertMessageRecord(currentMessages, nextMessage, limit) {
   const exists = currentMessages.some((currentMessage) => currentMessage.id === nextMessage.id)
+  let changed = !exists
   const nextMessages = exists
     ? currentMessages.map((currentMessage) =>
         currentMessage.id === nextMessage.id && !messageRecordMatches(currentMessage, nextMessage)
-          ? { ...currentMessage, ...nextMessage, reactions: nextMessage.reactions ?? currentMessage.reactions ?? [] }
+          ? (() => {
+              changed = true
+              return { ...currentMessage, ...nextMessage, reactions: nextMessage.reactions ?? currentMessage.reactions ?? [] }
+            })()
           : currentMessage,
       )
     : [...currentMessages, nextMessage]
+
+  if (!changed) {
+    return currentMessages
+  }
 
   return sortMessagesByCreatedAt(nextMessages).slice(typeof limit === 'number' ? -limit : 0)
 }
@@ -651,7 +688,7 @@ function IntelProvider({ children }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [refresh, refreshClanState, user?.id])
+  }, [fetchProfiles, refresh, refreshClanState, user?.id])
 
   useEffect(() => {
     if (!user?.id) {

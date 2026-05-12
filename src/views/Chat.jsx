@@ -44,25 +44,69 @@ function formatMessageTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+function sortReactions(reactions = []) {
+  return [...reactions].sort((first, second) => {
+    const createdAtComparison = String(first.created_at ?? '').localeCompare(String(second.created_at ?? ''))
+    if (createdAtComparison !== 0) {
+      return createdAtComparison
+    }
+
+    return `${first.user_id ?? ''}:${first.reaction ?? ''}`.localeCompare(`${second.user_id ?? ''}:${second.reaction ?? ''}`)
+  })
+}
+
+function reactionListsMatch(firstReactions = [], secondReactions = []) {
+  const sortedFirstReactions = sortReactions(firstReactions)
+  const sortedSecondReactions = sortReactions(secondReactions)
+
+  if (sortedFirstReactions.length !== sortedSecondReactions.length) {
+    return false
+  }
+
+  return sortedFirstReactions.every((firstReaction, index) => {
+    const secondReaction = sortedSecondReactions[index]
+    return (
+      firstReaction?.message_id === secondReaction?.message_id &&
+      firstReaction?.user_id === secondReaction?.user_id &&
+      firstReaction?.reaction === secondReaction?.reaction &&
+      firstReaction?.created_at === secondReaction?.created_at
+    )
+  })
+}
+
+function clanMessageMatches(currentMessage, nextMessage) {
+  return (
+    currentMessage?.id === nextMessage?.id &&
+    currentMessage?.clan_id === nextMessage?.clan_id &&
+    currentMessage?.user_id === nextMessage?.user_id &&
+    currentMessage?.body === nextMessage?.body &&
+    currentMessage?.created_at === nextMessage?.created_at &&
+    currentMessage?.deleted_at === nextMessage?.deleted_at &&
+    currentMessage?.deleted_by === nextMessage?.deleted_by &&
+    reactionListsMatch(currentMessage?.reactions, nextMessage?.reactions)
+  )
+}
+
 function mergeClanMessages(currentMessages, nextMessages) {
   const currentById = new Map(currentMessages.map((message) => [message.id, message]))
-  return [...nextMessages]
+  let changed = currentMessages.length !== nextMessages.length
+  const mergedMessages = [...nextMessages]
     .map((nextMessage) => {
       const currentMessage = currentById.get(nextMessage.id)
-      if (
-        currentMessage &&
-        currentMessage.body === nextMessage.body &&
-        currentMessage.created_at === nextMessage.created_at &&
-        currentMessage.deleted_at === nextMessage.deleted_at &&
-        currentMessage.deleted_by === nextMessage.deleted_by &&
-        (currentMessage.reactions?.length ?? 0) === (nextMessage.reactions?.length ?? 0)
-      ) {
+      if (currentMessage && clanMessageMatches(currentMessage, nextMessage)) {
         return currentMessage
       }
 
+      changed = true
       return nextMessage
     })
     .sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
+
+  if (!changed && mergedMessages.every((message, index) => message === currentMessages[index])) {
+    return currentMessages
+  }
+
+  return mergedMessages
 }
 
 function ProfileInitial({ profile, mine, online }) {

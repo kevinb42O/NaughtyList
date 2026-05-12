@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 

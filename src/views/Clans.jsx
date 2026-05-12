@@ -1,11 +1,10 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { Check, Crown, Eye, LogIn, MessageSquare, Search, Shield, Star, UsersRound, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
-import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
-import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
+import { clanPrefix, displayProfileName } from '../utils/profiles.js'
 
 const clanEventLabels = {
   'clan-created': 'Clan created',
@@ -91,7 +90,6 @@ function Clans() {
     fetchClanAuditEvents,
     fetchClanMessages,
     fetchClanMembers,
-    onlineUserIds,
   } = useIntel()
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
@@ -199,10 +197,6 @@ function Clans() {
     let cancelled = false
 
     if (!isAdmin || !adminSelectedClan?.id) {
-      setAdminClanState((currentState) => ({
-        ...currentState,
-        loading: false,
-      }))
       return undefined
     }
 
