@@ -1,6 +1,7 @@
 import { Send } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import MessageReactions from '../components/MessageReactions.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import { useIntel } from '../context/useIntel.js'
@@ -47,6 +48,7 @@ function Messages() {
     onlineUserIds,
     sendDirectMessage,
     markDirectMessageRead,
+    setMessageReaction,
   } = useIntel()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedId = searchParams.get('to')
@@ -134,6 +136,16 @@ function Messages() {
       setError(messageError.message)
     } finally {
       setSending(false)
+    }
+  }
+
+  async function handleReaction(directMessage, reaction) {
+    setError('')
+
+    try {
+      await setMessageReaction('direct', directMessage.id, reaction)
+    } catch (reactionError) {
+      setError(reactionError.message)
     }
   }
 
@@ -250,6 +262,12 @@ function Messages() {
                             >
                               <p className="whitespace-pre-wrap">{directMessage.body}</p>
                             </div>
+                            <MessageReactions
+                              align={mine ? 'right' : 'left'}
+                              currentUserId={user?.id}
+                              message={directMessage}
+                              onReact={handleReaction}
+                            />
                           </div>
                         </article>
                       </div>

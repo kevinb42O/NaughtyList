@@ -9,6 +9,12 @@ import { IntelContext } from './intelContext.js'
 
 const profileSelect = 'id, display_name, bio, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
 const clanSelect = 'id, name, tag, description, created_by, created_at, updated_at, archived_at'
+const messageReactionTables = {
+  public: 'public_chat_message_reactions',
+  direct: 'direct_message_reactions',
+  clan: 'clan_message_reactions',
+}
+const messageReactionKeys = ['middle_finger', 'heart', 'rofl', 'sad_tear', 'xd']
 
 function withTimeout(promise, ms, message) {
   return Promise.race([
@@ -60,6 +66,37 @@ function IntelProvider({ children }) {
     profilesRef.current = profiles
   }, [profiles])
 
+  const fetchMessageReactionMap = useCallback(async (scope, messageIds) => {
+    const reactionTable = messageReactionTables[scope]
+
+    if (!reactionTable || !messageIds.length) {
+      return new Map()
+    }
+
+    const { data, error: reactionsError } = await supabase
+      .from(reactionTable)
+      .select('message_id, user_id, reaction, created_at')
+      .in('message_id', messageIds)
+
+    if (reactionsError) {
+      throw reactionsError
+    }
+
+    return (data ?? []).reduce((reactionMap, reaction) => {
+      const currentReactions = reactionMap.get(reaction.message_id) ?? []
+      currentReactions.push(reaction)
+      reactionMap.set(reaction.message_id, currentReactions)
+      return reactionMap
+    }, new Map())
+  }, [])
+
+  function withMessageReaction(message, reactionMap) {
+    return {
+      ...message,
+      reactions: reactionMap.get(message.id) ?? [],
+    }
+  }
+
   const fetchProfiles = useCallback(async () => {
     const { data, error: profilesError } = await supabase
       .from('profiles')
@@ -87,15 +124,16 @@ function IntelProvider({ children }) {
       throw messagesError
     }
 
-    setPublicMessages(
-      (data ?? [])
-        .map((message) => ({
-          ...message,
-          profile: profileById.get(message.user_id),
-        }))
-        .reverse(),
-    )
-  }, [])
+    const messages = (data ?? [])
+      .map((message) => ({
+        ...message,
+        profile: profileById.get(message.user_id),
+      }))
+      .reverse()
+    const reactionMap = await fetchMessageReactionMap('public', messages.map((message) => message.id))
+
+    setPublicMessages(messages.map((message) => withMessageReaction(message, reactionMap)))
+  }, [fetchMessageReactionMap])
 
   const fetchDirectMessages = useCallback(async (userId, nextProfiles = []) => {
     if (!userId) {
@@ -116,14 +154,15 @@ function IntelProvider({ children }) {
       throw messagesError
     }
 
-    setDirectMessages(
-      (data ?? []).map((message) => ({
-        ...message,
-        sender: profileById.get(message.sender_id),
-        recipient: profileById.get(message.recipient_id),
-      })),
-    )
-  }, [])
+    const messages = (data ?? []).map((message) => ({
+      ...message,
+      sender: profileById.get(message.sender_id),
+      recipient: profileById.get(message.recipient_id),
+    }))
+    const reactionMap = await fetchMessageReactionMap('direct', messages.map((message) => message.id))
+
+    setDirectMessages(messages.map((message) => withMessageReaction(message, reactionMap)))
+  }, [fetchMessageReactionMap])
 
   const fetchClanDirectory = useCallback(async () => {
     const { data, error: clanDirectoryError } = await supabase.rpc('list_clan_directory')
@@ -327,12 +366,15 @@ function IntelProvider({ children }) {
       throw clanMessagesError
     }
 
-    return (data ?? []).map((message) => ({
+    const messages = (data ?? []).map((message) => ({
       ...message,
       profile: profileById.get(message.user_id),
       deletedByProfile: profileById.get(message.deleted_by),
     }))
-  }, [user?.id])
+    const reactionMap = await fetchMessageReactionMap('clan', messages.map((message) => message.id))
+
+    return messages.map((message) => withMessageReaction(message, reactionMap))
+  }, [fetchMessageReactionMap, user?.id])
 
   const fetchClanAuditEvents = useCallback(async (clanId, nextProfiles = profilesRef.current) => {
     if (!clanId || !user?.id) {
@@ -856,6 +898,77 @@ function IntelProvider({ children }) {
     return data
   }
 
+  async function setMessageReaction(scope, messageId, reaction) {
+    if (!user) {
+      throw new Error('You must be logged in to react to messages.')
+    }
+
+    const reactionTable = messageReactionTables[scope]
+
+    if (!reactionTable) {
+      throw new Error('Unknown message reaction scope.')
+    }
+
+    if (!messageReactionKeys.includes(reaction)) {
+      throw new Error('Unknown reaction.')
+    }
+
+    const { data: existingReaction, error: existingReactionError } = await supabase
+      .from(reactionTable)
+      .select('reaction')
+      .eq('message_id', messageId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (existingReactionError) {
+      throw existingReactionError
+    }
+
+    if (existingReaction?.reaction === reaction) {
+      const { error: deleteReactionError } = await supabase
+        .from(reactionTable)
+        .delete()
+        .eq('message_id', messageId)
+        .eq('user_id', user.id)
+
+      if (deleteReactionError) {
+        throw deleteReactionError
+      }
+    } else {
+      const { error: upsertReactionError } = await supabase
+        .from(reactionTable)
+        .upsert(
+          {
+            message_id: messageId,
+            user_id: user.id,
+            reaction,
+          },
+          { onConflict: 'message_id,user_id' },
+        )
+
+      if (upsertReactionError) {
+        throw upsertReactionError
+      }
+    }
+
+    const reactionMap = await fetchMessageReactionMap(scope, [messageId])
+    const nextReactions = reactionMap.get(messageId) ?? []
+
+    if (scope === 'public') {
+      setPublicMessages((currentMessages) =>
+        currentMessages.map((message) => (message.id === messageId ? { ...message, reactions: nextReactions } : message)),
+      )
+    }
+
+    if (scope === 'direct') {
+      setDirectMessages((currentMessages) =>
+        currentMessages.map((message) => (message.id === messageId ? { ...message, reactions: nextReactions } : message)),
+      )
+    }
+
+    return nextReactions
+  }
+
   async function sendPublicMessage(body) {
     if (!user) {
       throw new Error('You must be logged in to chat.')
@@ -907,6 +1020,7 @@ function IntelProvider({ children }) {
           ...sentMessage,
           sender: profileById.get(sentMessage.sender_id),
           recipient: profileById.get(sentMessage.recipient_id),
+          reactions: [],
         },
       ].sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
     })
@@ -1294,6 +1408,7 @@ function IntelProvider({ children }) {
     sendPublicMessage,
     sendDirectMessage,
     sendClanMessage,
+    setMessageReaction,
     markDirectMessageRead,
     deletePublicMessage,
     deleteClanMessage,

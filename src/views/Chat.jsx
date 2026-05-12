@@ -1,6 +1,7 @@
 import { Crown, Eye, MessageSquare, Send, Shield } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import MessageReactions from '../components/MessageReactions.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
@@ -53,6 +54,7 @@ function Chat() {
     sendPublicMessage,
     sendClanMessage,
     fetchClanMessages,
+    setMessageReaction,
   } = useIntel()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -190,6 +192,26 @@ function Chat() {
       setError(chatError.message)
     } finally {
       setSending(false)
+    }
+  }
+
+  async function handleReaction(chatMessage, reaction) {
+    setError('')
+
+    try {
+      const scope = activeRoom === 'clan' ? 'clan' : 'public'
+      const nextReactions = await setMessageReaction(scope, chatMessage.id, reaction)
+
+      if (scope === 'clan') {
+        setClanMessageState((currentState) => ({
+          ...currentState,
+          messages: currentState.messages.map((message) =>
+            message.id === chatMessage.id ? { ...message, reactions: nextReactions } : message,
+          ),
+        }))
+      }
+    } catch (reactionError) {
+      setError(reactionError.message)
     }
   }
 
@@ -369,6 +391,14 @@ function Chat() {
                         {wasDeleted ? 'Message removed.' : chatMessage.body}
                       </p>
                     </div>
+                    {!wasDeleted ? (
+                      <MessageReactions
+                        align={mine ? 'right' : 'left'}
+                        currentUserId={user?.id}
+                        message={chatMessage}
+                        onReact={handleReaction}
+                      />
+                    ) : null}
                   </article>
                 </div>
               )
