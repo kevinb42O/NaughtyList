@@ -65,6 +65,7 @@ function Messages() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
+  const scrollRef = useRef(null)
   const bottomRef = useRef(null)
   const markedReadIdsRef = useRef(new Set())
 
@@ -79,7 +80,9 @@ function Messages() {
       })
   }, [onlineUserIds, profiles, user?.id])
 
-  const selectedProfile = profiles.find((profile) => profile.id === selectedId) ?? contacts[0]
+  const selectedProfile = useMemo(() => {
+    return profiles.find((nextProfile) => nextProfile.id === selectedId) ?? contacts[0]
+  }, [contacts, profiles, selectedId])
 
   const unreadCountsBySender = useMemo(() => {
     return directMessages.reduce((counts, directMessage) => {
@@ -105,23 +108,35 @@ function Messages() {
     })
   }, [directMessages, selectedProfile, user])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [thread.length, selectedProfile?.id])
+  const threadMessageIds = useMemo(() => thread.map((directMessage) => directMessage.id).join('|'), [thread])
+  const unreadThreadMessageIds = useMemo(() => {
+    if (!user) {
+      return []
+    }
+
+    return thread
+      .filter((directMessage) => directMessage.recipient_id === user.id && !directMessage.read_at)
+      .map((directMessage) => directMessage.id)
+  }, [thread, user])
+  const unreadThreadMessageIdsKey = unreadThreadMessageIds.join('|')
 
   useEffect(() => {
-    if (!selectedProfile || !user) {
+    const scrollElement = scrollRef.current
+    if (!scrollElement) {
       return
     }
 
-    const idsToMark = thread
-      .filter(
-        (directMessage) =>
-          directMessage.recipient_id === user.id &&
-          !directMessage.read_at &&
-          !markedReadIdsRef.current.has(directMessage.id),
-      )
-      .map((directMessage) => directMessage.id)
+    window.requestAnimationFrame(() => {
+      scrollElement.scrollTop = scrollElement.scrollHeight
+    })
+  }, [selectedProfile?.id, threadMessageIds])
+
+  useEffect(() => {
+    if (!selectedProfile || !user || !unreadThreadMessageIds.length) {
+      return
+    }
+
+    const idsToMark = unreadThreadMessageIds.filter((id) => !markedReadIdsRef.current.has(id))
 
     if (!idsToMark.length) {
       return
@@ -131,7 +146,7 @@ function Messages() {
     markDirectMessagesRead(idsToMark).catch(() => {
       idsToMark.forEach((id) => markedReadIdsRef.current.delete(id))
     })
-  }, [markDirectMessagesRead, selectedProfile, thread, user])
+  }, [markDirectMessagesRead, selectedProfile, unreadThreadMessageIds, unreadThreadMessageIdsKey, user])
 
   async function handleSend(event) {
     event.preventDefault()
@@ -254,7 +269,7 @@ function Messages() {
                 <OnlineDot online={isProfileOnline(selectedProfile, onlineUserIds)} />
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.08),transparent_18rem),linear-gradient(180deg,rgba(255,255,255,0.025),transparent)] px-3 py-4 sm:px-4">
+              <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.08),transparent_18rem),linear-gradient(180deg,rgba(255,255,255,0.025),transparent)] px-3 py-4 sm:px-4">
                 {thread.length ? (
                   thread.map((directMessage, index) => {
                     const mine = directMessage.sender_id === user.id
