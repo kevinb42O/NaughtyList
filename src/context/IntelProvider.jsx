@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { buildClanIntel } from '../utils/clans.js'
 import { gameAccountIds, normalizeGameAccounts } from '../utils/gameAccounts.js'
@@ -45,6 +45,7 @@ function IntelProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(true)
   const [error, setError] = useState('')
+  const profilesRef = useRef([])
 
   const user = session?.user ?? null
   const role = profile?.role ?? 'anonymous'
@@ -54,6 +55,10 @@ function IntelProvider({ children }) {
   const unreadDirectMessageCount = directMessages.filter(
     (message) => message.recipient_id === user?.id && !message.read_at,
   ).length
+
+  useEffect(() => {
+    profilesRef.current = profiles
+  }, [profiles])
 
   const fetchProfiles = useCallback(async () => {
     const { data, error: profilesError } = await supabase
@@ -303,7 +308,7 @@ function IntelProvider({ children }) {
     }
   }, [fetchClanDirectory, fetchMyClanMembers, fetchMyClanMembership, fetchVisibleClanInvites, fetchVisibleClanRequests, profiles, user?.id])
 
-  const fetchClanMessages = useCallback(async (clanId, nextProfiles = profiles) => {
+  const fetchClanMessages = useCallback(async (clanId, nextProfiles = profilesRef.current) => {
     if (!clanId || !user?.id) {
       return []
     }
@@ -326,9 +331,9 @@ function IntelProvider({ children }) {
       profile: profileById.get(message.user_id),
       deletedByProfile: profileById.get(message.deleted_by),
     }))
-  }, [profiles, user?.id])
+  }, [user?.id])
 
-  const fetchClanAuditEvents = useCallback(async (clanId, nextProfiles = profiles) => {
+  const fetchClanAuditEvents = useCallback(async (clanId, nextProfiles = profilesRef.current) => {
     if (!clanId || !user?.id) {
       return []
     }
@@ -351,7 +356,7 @@ function IntelProvider({ children }) {
       actorProfile: profileById.get(event.actor_user_id),
       targetProfile: profileById.get(event.target_user_id),
     }))
-  }, [profiles, user?.id])
+  }, [user?.id])
 
   const refresh = useCallback(async () => {
     setLoading(true)

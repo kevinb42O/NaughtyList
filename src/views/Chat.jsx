@@ -26,7 +26,7 @@ function Chat() {
   const [sending, setSending] = useState(false)
   const [activeRoom, setActiveRoom] = useState(searchParams.get('room') === 'clan' ? 'clan' : 'public')
   const [selectedClanId, setSelectedClanId] = useState(searchParams.get('clan') || '')
-  const [clanMessages, setClanMessages] = useState([])
+  const [clanMessageState, setClanMessageState] = useState({ clanId: '', messages: [] })
   const [clanLoading, setClanLoading] = useState(false)
   const bottomRef = useRef(null)
   const myClanId = myClan?.id ?? ''
@@ -65,6 +65,10 @@ function Chat() {
   }, [availableClanRooms, canUseClanRoom, myClanId, selectedClanId])
   const selectedClan = availableClanRooms.find((clan) => clan.id === resolvedSelectedClanId) ?? null
   const canSendClanRoomMessage = Boolean(resolvedSelectedClanId && myClanId === resolvedSelectedClanId)
+  const clanMessages =
+    clanMessageState.clanId === resolvedSelectedClanId ? clanMessageState.messages : []
+  const showClanLoading =
+    activeRoom === 'clan' && clanLoading && clanMessageState.clanId !== resolvedSelectedClanId
   const activeMessages = activeRoom === 'clan' ? clanMessages : publicMessages
 
   useEffect(() => {
@@ -83,7 +87,7 @@ function Chat() {
       fetchClanMessages(resolvedSelectedClanId)
         .then((nextMessages) => {
           if (!cancelled) {
-            setClanMessages(nextMessages)
+            setClanMessageState({ clanId: resolvedSelectedClanId, messages: nextMessages })
           }
         })
         .catch((chatError) => {
@@ -138,7 +142,10 @@ function Chat() {
         }
 
         await sendClanMessage(resolvedSelectedClanId, message)
-        setClanMessages(await fetchClanMessages(resolvedSelectedClanId))
+        setClanMessageState({
+          clanId: resolvedSelectedClanId,
+          messages: await fetchClanMessages(resolvedSelectedClanId),
+        })
       } else {
         await sendPublicMessage(message)
       }
@@ -282,7 +289,7 @@ function Chat() {
         </div>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-          {activeRoom === 'clan' && clanLoading ? (
+          {showClanLoading ? (
             <div className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
               Loading clan room…
             </div>
