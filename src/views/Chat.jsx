@@ -180,7 +180,7 @@ function Chat() {
   const activeMessages = activeRoom === 'clan' ? clanMessages : publicMessages
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
   }, [activeRoom, clanMessages.length, publicMessages.length])
 
   useEffect(() => {
@@ -399,7 +399,7 @@ function Chat() {
         </section>
       ) : null}
 
-      <section className="panel flex h-[72vh] min-h-[34rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
+      <section className="chat-stable-panel flex h-[72vh] min-h-[34rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
         <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
           <div className="mr-auto min-w-0">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">
@@ -434,7 +434,7 @@ function Chat() {
           ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.08),transparent_18rem),linear-gradient(180deg,rgba(255,255,255,0.025),transparent)] px-3 py-4 sm:px-4">
+        <div className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
           {showClanLoading ? (
             <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-white/10 bg-black/35 p-5 text-center text-sm font-bold text-gray-500">
               Loading clan room…
@@ -503,7 +503,7 @@ function Chat() {
           <div ref={bottomRef} />
         </div>
 
-        <form onSubmit={handleSend} className="border-t border-white/10 bg-black/30 p-3 backdrop-blur sm:p-4">
+        <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">
           <div className="grid gap-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/80 p-1.5 shadow-inner shadow-black/40 sm:grid-cols-[minmax(0,1fr)_auto]">
           <input
             value={message}
