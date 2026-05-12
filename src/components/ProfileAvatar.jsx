@@ -14,6 +14,7 @@ import {
   Radio,
   ScanFace,
   Shield,
+  ShieldAlert,
   Siren,
   Skull,
   Swords,
@@ -37,7 +38,8 @@ export const avatarIconOptions = [
   { key: 'bomb', label: 'Breach', Icon: Bomb, accent: 'text-orange-100', glow: 'from-orange-500/22 to-zinc-950' },
   { key: 'bug', label: 'Rat Hunter', Icon: Bug, accent: 'text-lime-100', glow: 'from-lime-500/20 to-zinc-950' },
   { key: 'siren', label: 'Alert', Icon: Siren, accent: 'text-red-100', glow: 'from-red-500/24 to-zinc-950' },
-  { key: 'crown', label: 'Commander', Icon: Crown, accent: 'text-yellow-100', glow: 'from-yellow-500/22 to-zinc-950' },
+  { key: 'crown', label: 'Admin', Icon: Crown, accent: 'text-yellow-100', glow: 'from-yellow-500/22 to-zinc-950', accessRole: 'admin' },
+  { key: 'shield-alert', label: 'Moderator', Icon: ShieldAlert, accent: 'text-orange-100', glow: 'from-orange-500/22 to-zinc-950', accessRole: 'moderator' },
   { key: 'lock', label: 'Locked', Icon: Lock, accent: 'text-zinc-100', glow: 'from-white/[0.12] to-zinc-950' },
   { key: 'fingerprint', label: 'Identity', Icon: Fingerprint, accent: 'text-cyan-100', glow: 'from-cyan-500/20 to-zinc-950' },
   { key: 'scan-face', label: 'Scanner', Icon: ScanFace, accent: 'text-emerald-100', glow: 'from-emerald-500/20 to-zinc-950' },
@@ -49,6 +51,30 @@ export const defaultAvatarIconKey = 'skull'
 
 export function getAvatarIconOption(key) {
   return avatarIconOptions.find((option) => option.key === key) ?? avatarIconOptions[0]
+}
+
+export function canUseAvatarIcon(iconOrKey, role) {
+  const option = typeof iconOrKey === 'string' ? getAvatarIconOption(iconOrKey) : iconOrKey
+
+  if (!option?.accessRole) {
+    return true
+  }
+
+  return role === option.accessRole
+}
+
+export function getAvatarIconLockLabel(iconOrKey) {
+  const option = typeof iconOrKey === 'string' ? getAvatarIconOption(iconOrKey) : iconOrKey
+
+  if (option?.accessRole === 'admin') {
+    return 'Admins only'
+  }
+
+  if (option?.accessRole === 'moderator') {
+    return 'Mods only'
+  }
+
+  return ''
 }
 
 function ProfileAvatar({ className = '', iconKey, online, profile, showOnline = false, size = 'md' }) {

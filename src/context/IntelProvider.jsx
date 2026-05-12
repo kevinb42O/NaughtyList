@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
 import { supabase } from '../lib/supabase.js'
 import { buildClanIntel } from '../utils/clans.js'
 import { gameAccountIds, normalizeGameAccounts } from '../utils/gameAccounts.js'
@@ -646,13 +647,19 @@ function IntelProvider({ children }) {
     }
 
     const normalizedGameAccounts = normalizeGameAccounts(updates.gameAccounts)
+    const nextAvatarIcon = updates.avatarIcon || defaultAvatarIconKey
+    const currentAvatarIcon = profile?.avatar_icon ?? defaultAvatarIconKey
+
+    if (!canUseAvatarIcon(nextAvatarIcon, role) && nextAvatarIcon !== currentAvatarIcon) {
+      throw new Error(`${getAvatarIconLockLabel(nextAvatarIcon)} can use that avatar.`)
+    }
 
     const { data, error: updateError } = await supabase
       .from('profiles')
       .update({
         display_name: updates.displayName?.trim() ?? '',
         bio: updates.bio?.trim() ?? '',
-        avatar_icon: updates.avatarIcon || 'skull',
+        avatar_icon: nextAvatarIcon,
         ...(typeof updates.clanTag === 'string' ? { clan_tag: updates.clanTag.trim() } : {}),
         activision_ids: gameAccountIds(normalizedGameAccounts),
         game_accounts: normalizedGameAccounts,

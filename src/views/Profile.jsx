@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { KeyRound, Plus, Save, Trash2 } from 'lucide-react'
+import { KeyRound, Lock, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
-import ProfileAvatar, { avatarIconOptions, defaultAvatarIconKey } from '../components/ProfileAvatar.jsx'
+import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
@@ -36,6 +36,8 @@ function Profile() {
     clanInvites,
     clanJoinRequests,
     onlineUserIds,
+    isAdmin,
+    isModerator,
     updateProfile,
     enablePushNotifications,
   } = useIntel()
@@ -71,6 +73,8 @@ function Profile() {
   }
 
   const isOnline = onlineUserIds.includes(user?.id)
+  const viewerRole = isAdmin ? 'admin' : isModerator ? 'moderator' : 'user'
+  const currentProfileAvatar = profile?.avatar_icon ?? defaultAvatarIconKey
   const pendingInviteCount = clanInvites.filter((invite) => invite.invitee_user_id === user?.id).length
   const pendingRequestCount = clanJoinRequests.filter((request) => request.user_id === user?.id).length
 
@@ -123,6 +127,13 @@ function Profile() {
     setSaving(true)
     setSaveStatus('')
     setSaveError('')
+
+    if (!canUseAvatarIcon(avatarIcon, viewerRole) && avatarIcon !== currentProfileAvatar) {
+      setSaveError(`${getAvatarIconLockLabel(avatarIcon)} can use that avatar.`)
+      setSaving(false)
+      return
+    }
+
     try {
       await updateProfile({ displayName, bio, avatarIcon, gameAccounts })
       setSaveStatus('Profile saved.')
@@ -218,24 +229,41 @@ function Profile() {
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-10">
                   {avatarIconOptions.map((option) => {
                     const selected = avatarIcon === option.key
+                    const unlocked = canUseAvatarIcon(option, viewerRole)
+                    const lockLabel = getAvatarIconLockLabel(option)
 
                     return (
                       <button
                         key={option.key}
                         type="button"
-                        onClick={() => setAvatarIcon(option.key)}
-                        title={option.label}
-                        aria-label={`Use ${option.label} avatar`}
+                        onClick={() => {
+                          if (unlocked) {
+                            setAvatarIcon(option.key)
+                          }
+                        }}
+                        title={unlocked ? option.label : `${option.label} · ${lockLabel}`}
+                        aria-label={unlocked ? `Use ${option.label} avatar` : `${option.label} avatar locked: ${lockLabel}`}
                         className={`group flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border p-2 transition ${
                           selected
                             ? 'border-red-400/60 bg-red-500/16 shadow-[0_0_22px_rgba(239,68,68,0.18)]'
-                            : 'border-white/10 bg-black/25 hover:border-red-400/35 hover:bg-white/[0.04]'
+                            : unlocked
+                              ? 'border-white/10 bg-black/25 hover:border-red-400/35 hover:bg-white/[0.04]'
+                              : 'border-white/10 bg-black/20 opacity-70'
                         }`}
+                        aria-disabled={!unlocked}
                       >
-                        <ProfileAvatar iconKey={option.key} size="md" />
-                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-red-100' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                        <div className="relative">
+                          <ProfileAvatar iconKey={option.key} size="md" className={!unlocked ? 'saturate-0 brightness-75' : ''} />
+                          {!unlocked ? (
+                            <span className="absolute -bottom-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-200 shadow-lg shadow-black/40">
+                              <Lock className="h-3 w-3" aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </div>
+                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-red-100' : unlocked ? 'text-gray-500 group-hover:text-gray-300' : 'text-gray-500'}`}>
                           {option.label}
                         </span>
+                        {!unlocked ? <span className="text-[0.5rem] font-black uppercase tracking-[0.14em] text-gray-600">{lockLabel}</span> : null}
                       </button>
                     )
                   })}
