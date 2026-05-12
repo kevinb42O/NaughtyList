@@ -45,7 +45,7 @@ function formatMessageTime(value) {
 }
 
 function ProfileInitial({ profile, online }) {
-  return <ProfileAvatar profile={profile} online={online} showOnline size="md" />
+  return <ProfileAvatar profile={profile} online={online} showOnline size="sm" />
 }
 
 function Messages() {
@@ -57,7 +57,7 @@ function Messages() {
     directMessages,
     onlineUserIds,
     sendDirectMessage,
-    markDirectMessageRead,
+    markDirectMessagesRead,
     setMessageReaction,
   } = useIntel()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -66,6 +66,7 @@ function Messages() {
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef(null)
+  const markedReadIdsRef = useRef(new Set())
 
   const contacts = useMemo(() => {
     return profiles
@@ -113,18 +114,24 @@ function Messages() {
       return
     }
 
-    const unreadThreadMessages = thread.filter(
-      (directMessage) => directMessage.recipient_id === user.id && !directMessage.read_at,
-    )
+    const idsToMark = thread
+      .filter(
+        (directMessage) =>
+          directMessage.recipient_id === user.id &&
+          !directMessage.read_at &&
+          !markedReadIdsRef.current.has(directMessage.id),
+      )
+      .map((directMessage) => directMessage.id)
 
-    if (!unreadThreadMessages.length) {
+    if (!idsToMark.length) {
       return
     }
 
-    Promise.allSettled(
-      unreadThreadMessages.map((directMessage) => markDirectMessageRead(directMessage.id)),
-    ).catch(() => {})
-  }, [markDirectMessageRead, selectedProfile, thread, user])
+    idsToMark.forEach((id) => markedReadIdsRef.current.add(id))
+    markDirectMessagesRead(idsToMark).catch(() => {
+      idsToMark.forEach((id) => markedReadIdsRef.current.delete(id))
+    })
+  }, [markDirectMessagesRead, selectedProfile, thread, user])
 
   async function handleSend(event) {
     event.preventDefault()

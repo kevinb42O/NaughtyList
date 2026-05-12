@@ -146,7 +146,7 @@ function Chat() {
     }
 
     loadClanMessages()
-    const intervalId = window.setInterval(loadClanMessages, 3000)
+    const intervalId = window.setInterval(loadClanMessages, 15000)
 
     return () => {
       cancelled = true

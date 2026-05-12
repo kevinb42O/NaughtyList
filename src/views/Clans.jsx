@@ -1,5 +1,5 @@
-import { Check, Crown, Eye, LogIn, Search, Send, Shield, Star, UsersRound, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Crown, Eye, LogIn, MessageSquare, Search, Shield, Star, UsersRound, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -89,8 +89,6 @@ function Clans() {
     updateClan,
     archiveClan,
     fetchClanAuditEvents,
-    fetchClanMessages,
-    sendClanMessage,
     fetchClanMembers,
     onlineUserIds,
   } = useIntel()
@@ -106,10 +104,6 @@ function Clans() {
   const [inviteUserId, setInviteUserId] = useState('')
   const [inviteMessage, setInviteMessage] = useState('')
   const [auditState, setAuditState] = useState({ clanId: '', events: [] })
-  const [clanChatMessages, setClanChatMessages] = useState([])
-  const [clanChatInput, setClanChatInput] = useState('')
-  const [clanChatSending, setClanChatSending] = useState(false)
-  const [clanChatError, setClanChatError] = useState('')
   const [adminClanId, setAdminClanId] = useState('')
   const [adminClanState, setAdminClanState] = useState({
     clanId: '',
@@ -119,7 +113,6 @@ function Clans() {
     error: '',
     loading: false,
   })
-  const chatBottomRef = useRef(null)
   const myClanId = myClan?.id ?? ''
 
   const canManageClan = Boolean(myClan && (isAdmin || myClanRole === 'owner' || myClanRole === 'officer'))
@@ -176,36 +169,6 @@ function Clans() {
   const auditEvents = auditState.clanId === myClanId ? auditState.events : []
   const loadingAudit = Boolean(myClanId && auditState.clanId !== myClanId)
   const adminClanLoading = Boolean(adminSelectedClan?.id && adminClanState.loading)
-
-  useEffect(() => {
-    let cancelled = false
-
-    if (!myClanId) {
-      return undefined
-    }
-
-    const loadMessages = () => {
-      fetchClanMessages(myClanId)
-        .then((msgs) => {
-          if (!cancelled) {
-            setClanChatMessages(msgs)
-          }
-        })
-        .catch(() => {})
-    }
-
-    loadMessages()
-    const intervalId = window.setInterval(loadMessages, 3000)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(intervalId)
-    }
-  }, [fetchClanMessages, myClanId])
-
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [clanChatMessages.length])
 
   useEffect(() => {
     let cancelled = false
@@ -314,23 +277,6 @@ function Clans() {
       setCreateTag('')
       setCreateDescription('')
     })
-  }
-
-  async function handleClanChatSend(event) {
-    event.preventDefault()
-    if (!clanChatInput.trim()) return
-    setClanChatSending(true)
-    setClanChatError('')
-    try {
-      await sendClanMessage(myClanId, clanChatInput)
-      setClanChatInput('')
-      const msgs = await fetchClanMessages(myClanId)
-      setClanChatMessages(msgs)
-    } catch (chatErr) {
-      setClanChatError(chatErr.message)
-    } finally {
-      setClanChatSending(false)
-    }
   }
 
   async function handleSaveClan(event) {
@@ -839,65 +785,28 @@ function Clans() {
                 </p>
               </div>
 
-              <div className="flex h-[52vh] flex-col rounded-2xl border border-white/10 bg-black/20">
-                <div className="border-b border-white/10 px-4 py-2.5">
-                  <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Clan Chat</p>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-2.5">
+                    <MessageSquare className="h-5 w-5 text-red-200" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Clan Chat</p>
+                    <h3 className="mt-0.5 text-lg font-black uppercase tracking-[0.04em] text-white">
+                      Squad comms live in the chat room
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-gray-400">
+                      Reactions, day dividers, and full bubble UI are all in the dedicated clan room.
+                    </p>
+                  </div>
                 </div>
-
-                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-                  {clanChatMessages.length ? (
-                    clanChatMessages.map((msg) => {
-                      const mine = msg.user_id === user?.id
-                      const online = isProfileOnline(msg.profile, onlineUserIds)
-                      const wasDeleted = Boolean(msg.deleted_at)
-                      return (
-                        <div key={msg.id} className="mb-3">
-                          <div className="mb-0.5 flex flex-wrap items-center gap-2">
-                            <OnlineDot online={online} label={false} />
-                            <span className={`text-[0.63rem] font-black uppercase tracking-[0.12em] ${mine ? 'text-red-300' : 'text-gray-400'}`}>
-                              {clanPrefix(msg.profile)} {displayProfileName(msg.profile)}
-                              {msg.profile?.role === 'admin' ? (
-                                <Crown className="ml-1 inline h-3 w-3 text-yellow-300" aria-hidden="true" />
-                              ) : null}
-                            </span>
-                            <RoleBadge role={msg.profile?.role} compact />
-                            <span className="ml-auto text-[0.55rem] font-bold uppercase tracking-[0.12em] text-gray-700">
-                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          <div className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                            mine ? 'bg-red-950/50 text-gray-100' : 'bg-white/[0.05] text-gray-200'
-                          }`}>
-                            <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-500' : ''}`}>
-                              {wasDeleted ? 'Message removed.' : msg.body}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })
-                  ) : (
-                    <p className="text-sm font-bold text-gray-600">No messages yet. Say something.</p>
-                  )}
-                  <div ref={chatBottomRef} />
-                </div>
-
-                <form onSubmit={handleClanChatSend} className="border-t border-white/10 p-3 flex gap-2">
-                  <input
-                    value={clanChatInput}
-                    onChange={(e) => setClanChatInput(e.target.value)}
-                    className="field min-h-10 flex-1 text-sm"
-                    placeholder={`Message ${myClan.name}`}
-                    maxLength="500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={clanChatSending}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-                  >
-                    <Send className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </form>
-                {clanChatError ? <p className="px-3 pb-2 text-sm font-bold text-red-200">{clanChatError}</p> : null}
+                <Link
+                  to="/chat?room=clan"
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+                >
+                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                  Open Clan Chat
+                </Link>
               </div>
             </SectionCard>
 

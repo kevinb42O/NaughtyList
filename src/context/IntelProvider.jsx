@@ -564,7 +564,8 @@ function IntelProvider({ children }) {
         .catch((messagesError) => setError(messagesError.message))
     }
 
-    const intervalId = window.setInterval(pollMessages, 3000)
+    // Realtime subscriptions already keep state fresh; this is a slow safety-net poll.
+    const intervalId = window.setInterval(pollMessages, 15000)
     return () => window.clearInterval(intervalId)
   }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
 
@@ -1068,21 +1069,37 @@ function IntelProvider({ children }) {
   }
 
   async function markDirectMessageRead(messageId) {
-    if (!user) {
+    return markDirectMessagesRead([messageId])
+  }
+
+  async function markDirectMessagesRead(messageIds) {
+    if (!user || !messageIds?.length) {
       return
     }
 
+    const uniqueIds = Array.from(new Set(messageIds))
+    const readAt = new Date().toISOString()
+
+    // Optimistic local patch first so the UI doesn't flicker waiting for realtime.
+    setDirectMessages((currentMessages) =>
+      currentMessages.map((directMessage) =>
+        uniqueIds.includes(directMessage.id) && !directMessage.read_at
+          ? { ...directMessage, read_at: readAt }
+          : directMessage,
+      ),
+    )
+
     const { error: readError } = await supabase
       .from('direct_messages')
-      .update({ read_at: new Date().toISOString() })
-      .eq('id', messageId)
+      .update({ read_at: readAt })
+      .in('id', uniqueIds)
+      .eq('recipient_id', user.id)
+      .is('read_at', null)
 
     if (readError) {
       throw readError
     }
-
-    const nextProfiles = await fetchProfiles()
-    await fetchDirectMessages(user.id, nextProfiles)
+    // Realtime listener will pick up the update; no manual refetch needed.
   }
 
   async function deletePublicMessage(messageId) {
@@ -1418,6 +1435,7 @@ function IntelProvider({ children }) {
     sendClanMessage,
     setMessageReaction,
     markDirectMessageRead,
+    markDirectMessagesRead,
     deletePublicMessage,
     deleteClanMessage,
     fetchClanMembers,

@@ -92,16 +92,31 @@ function ProfileAvatar({ className = '', iconKey, online, profile, showOnline = 
     lg: 'h-7 w-7',
     xl: 'h-8 w-8',
   }
+  const dotSizes = {
+    sm: 'h-3 w-3 -bottom-0.5 -right-0.5',
+    md: 'h-3.5 w-3.5 -bottom-0.5 -right-0.5',
+    lg: 'h-4 w-4 -bottom-1 -right-1',
+    xl: 'h-4 w-4 -bottom-1 -right-1',
+  }
 
   return (
-    <span
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-gradient-to-br ${option.glow} shadow-lg shadow-black/25 ring-1 ring-white/[0.03] ${sizeClasses[size] ?? sizeClasses.md} ${className}`}
-      title={option.label}
-      aria-label={`${option.label} avatar`}
-    >
-      <Icon className={`${iconSizes[size] ?? iconSizes.md} ${option.accent}`} aria-hidden="true" />
+    <span className={`relative inline-flex shrink-0 ${className}`}>
+      <span
+        className={`flex items-center justify-center overflow-hidden border border-white/10 bg-gradient-to-br ${option.glow} shadow-lg shadow-black/25 ring-1 ring-white/[0.03] ${sizeClasses[size] ?? sizeClasses.md}`}
+        title={option.label}
+        aria-label={`${option.label} avatar`}
+      >
+        <Icon className={`${iconSizes[size] ?? iconSizes.md} ${option.accent}`} aria-hidden="true" />
+      </span>
       {showOnline ? (
-        <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 ${online ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+        <span
+          className={`absolute z-10 rounded-full border-2 border-zinc-950 shadow-md ${
+            online
+              ? 'bg-emerald-400 shadow-emerald-500/60 ring-2 ring-emerald-400/30'
+              : 'bg-zinc-500 shadow-black/40'
+          } ${dotSizes[size] ?? dotSizes.md}`}
+          aria-label={online ? 'Online' : 'Offline'}
+        />
       ) : null}
     </span>
   )
