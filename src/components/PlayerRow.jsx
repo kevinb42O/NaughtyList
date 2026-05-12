@@ -1,7 +1,7 @@
-import { ExternalLink } from 'lucide-react'
+import { Edit3, ExternalLink } from 'lucide-react'
 import { getThreatStyle } from '../utils/threat.js'
 
-function PlayerRow({ player, dragHandle }) {
+function PlayerRow({ player, dragHandle, number, onEdit }) {
   const threat = getThreatStyle(player.threatLevel)
 
   return (
@@ -11,6 +11,11 @@ function PlayerRow({ player, dragHandle }) {
       <div className="pl-3">
         <div className="flex flex-wrap items-center gap-2">
           {dragHandle}
+          {number !== undefined ? (
+            <span className="rounded-md border border-gray-700 px-2 py-0.5 text-xs font-black text-gray-400">
+              #{number}
+            </span>
+          ) : null}
           <h2 className="truncate text-xl font-black uppercase tracking-[0.03em] text-white">
             {player.clan ? (
               <span className="text-gray-400">[{player.clan}]&nbsp;</span>
@@ -30,6 +35,16 @@ function PlayerRow({ player, dragHandle }) {
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               Clip
             </a>
+          ) : null}
+          {onEdit ? (
+            <button
+              type="button"
+              onClick={() => onEdit(player)}
+              className="inline-flex items-center gap-1 rounded-full border border-orange-400/40 bg-orange-400/10 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-orange-100 transition hover:bg-orange-400/20"
+            >
+              <Edit3 className="h-3.5 w-3.5" aria-hidden="true" />
+              Edit
+            </button>
           ) : null}
         </div>
 

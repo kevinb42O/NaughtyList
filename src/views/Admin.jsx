@@ -2,6 +2,7 @@ import { Crown, Search, Shield, Trash2, UserX } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminPushConsole from '../components/AdminPushConsole.jsx'
+import EditPlayerModal from '../components/EditPlayerModal.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
@@ -29,6 +30,8 @@ function Admin() {
   const [workingId, setWorkingId] = useState('')
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [editingPlayer, setEditingPlayer] = useState(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const adminProfile = profiles.find((nextProfile) => nextProfile.role === 'admin')
   const normalizedQuery = query.trim().toLowerCase()
 
@@ -126,6 +129,16 @@ function Admin() {
     } finally {
       setWorkingId('')
     }
+  }
+
+  async function handleEditPlayer(player) {
+    setEditingPlayer(player)
+    setEditModalOpen(true)
+  }
+
+  function closeEditModal() {
+    setEditingPlayer(null)
+    setEditModalOpen(false)
   }
 
   async function handleDeleteAccount(userId) {
@@ -270,7 +283,7 @@ function Admin() {
 
         <div className="mb-6 grid gap-3">
           {visiblePlayers.length ? (
-            visiblePlayers.map((player) => {
+            visiblePlayers.map((player, index) => {
               const threat = getThreatStyle(player.threatLevel)
 
               return (
@@ -278,8 +291,11 @@ function Admin() {
                   key={player.id}
                   className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-gray-700 px-2 py-0.5 text-xs font-black text-gray-400">
+                        #{index + 1}
+                      </span>
                       <p className="truncate text-lg font-black uppercase tracking-[0.04em] text-white">
                         {player.clan ? <span className="text-gray-400">[{player.clan}] </span> : null}
                         {player.name}
@@ -294,15 +310,25 @@ function Admin() {
                     <p className="mt-2 line-clamp-2 text-sm text-gray-500">{player.notes || 'No notes.'}</p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeletePlayer(player.id)}
-                    disabled={workingId === `player-${player.id}`}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    {workingId === `player-${player.id}` ? 'Deleting' : 'Delete'}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditPlayer(player)}
+                      disabled={workingId === `edit-${player.id}`}
+                      className="inline-flex min-h-10 items-center justify-center rounded-full border border-orange-500/50 bg-orange-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-100 transition hover:bg-orange-500/20 disabled:opacity-60"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePlayer(player.id)}
+                      disabled={workingId === `player-${player.id}`}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      {workingId === `player-${player.id}` ? 'Deleting' : 'Delete'}
+                    </button>
+                  </div>
                 </article>
               )
             })
@@ -412,6 +438,8 @@ function Admin() {
         {status ? <p className="mt-4 text-sm font-bold text-green-200">{status}</p> : null}
         {error ? <p className="mt-4 text-sm font-bold text-red-200">{error}</p> : null}
       </section>
+
+      <EditPlayerModal open={editModalOpen} onClose={closeEditModal} player={editingPlayer} />
     </div>
   )
 }

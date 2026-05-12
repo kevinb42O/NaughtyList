@@ -29,7 +29,7 @@ const threatFilters = [
   ['friendly', 'Friendly'],
 ]
 
-function SortablePlayerRow({ player, isDragging }) {
+function SortablePlayerRow({ player, isDragging, number }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: player.id })
 
   const style = {
@@ -51,7 +51,7 @@ function SortablePlayerRow({ player, isDragging }) {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <PlayerRow player={player} dragHandle={handle} />
+      <PlayerRow player={player} dragHandle={handle} number={number} />
     </div>
   )
 }
@@ -239,13 +239,13 @@ function Home() {
             isAdmin && !isFiltering ? (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={filteredPlayers.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                  {filteredPlayers.map((player) => (
-                    <SortablePlayerRow key={player.id} player={player} />
+                  {filteredPlayers.map((player, index) => (
+                    <SortablePlayerRow key={player.id} player={player} number={index + 1} />
                   ))}
                 </SortableContext>
               </DndContext>
             ) : (
-              filteredPlayers.map((player) => <PlayerRow key={player.id} player={player} />)
+              filteredPlayers.map((player, index) => <PlayerRow key={player.id} player={player} number={index + 1} />)
             )
           ) : (
             <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-black/25 p-6 text-center">

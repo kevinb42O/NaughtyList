@@ -8,6 +8,7 @@ import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
 const profileSelect = 'id, display_name, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
+const clanSelect = 'id, name, tag, description, created_by, created_at, updated_at, archived_at'
 
 function withTimeout(promise, ms, message) {
   return Promise.race([
@@ -29,6 +30,11 @@ function IntelProvider({ children }) {
   const [players, setPlayers] = useState([])
   const [publicMessages, setPublicMessages] = useState([])
   const [directMessages, setDirectMessages] = useState([])
+  const [clanDirectory, setClanDirectory] = useState([])
+  const [myClanMembership, setMyClanMembership] = useState(null)
+  const [myClanMembers, setMyClanMembers] = useState([])
+  const [clanJoinRequests, setClanJoinRequests] = useState([])
+  const [clanInvites, setClanInvites] = useState([])
   const [onlineUserIds, setOnlineUserIds] = useState([])
   const [pushSummary, setPushSummary] = useState({
     subscribed_users: 0,
@@ -114,6 +120,239 @@ function IntelProvider({ children }) {
     )
   }, [])
 
+  const fetchClanDirectory = useCallback(async () => {
+    if (!user?.id) {
+      setClanDirectory([])
+      return []
+    }
+
+    const { data, error: clanDirectoryError } = await supabase.rpc('list_clan_directory')
+
+    if (clanDirectoryError) {
+      throw clanDirectoryError
+    }
+
+    const nextDirectory = (data ?? []).map((clan) => ({
+      ...clan,
+      memberCount: Number(clan.member_count ?? 0),
+    }))
+
+    setClanDirectory(nextDirectory)
+    return nextDirectory
+  }, [user?.id])
+
+  const fetchMyClanMembership = useCallback(async () => {
+    if (!user?.id) {
+      setMyClanMembership(null)
+      return null
+    }
+
+    const { data, error: clanMembershipError } = await supabase
+      .from('clan_members')
+      .select(`clan_id, user_id, role, joined_at, added_by, clans (${clanSelect})`)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (clanMembershipError) {
+      throw clanMembershipError
+    }
+
+    const nextMembership = data
+      ? {
+          ...data,
+          clan: data.clans,
+        }
+      : null
+
+    setMyClanMembership(nextMembership)
+    return nextMembership
+  }, [user?.id, user?.id])
+
+  const fetchClanMembers = useCallback(async (clanId, nextProfiles = profiles) => {
+    if (!clanId || !user?.id) {
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+    const roleRank = {
+      owner: 0,
+      officer: 1,
+      member: 2,
+    }
+
+    const { data, error: clanMembersError } = await supabase
+      .from('clan_members')
+      .select('clan_id, user_id, role, joined_at, added_by')
+      .eq('clan_id', clanId)
+      .order('joined_at', { ascending: true })
+
+    if (clanMembersError) {
+      throw clanMembersError
+    }
+
+    return (data ?? [])
+      .map((member) => ({
+        ...member,
+        profile: profileById.get(member.user_id),
+        addedByProfile: profileById.get(member.added_by),
+      }))
+      .sort((first, second) => {
+        return (
+          roleRank[first.role] - roleRank[second.role] ||
+          (first.profile?.display_name || '').localeCompare(second.profile?.display_name || '')
+        )
+      })
+  }, [profiles, user?.id])
+
+  const fetchMyClanMembers = useCallback(async (clanId, nextProfiles = profiles) => {
+    if (!clanId) {
+      setMyClanMembers([])
+      return []
+    }
+
+    const nextMembers = await fetchClanMembers(clanId, nextProfiles)
+    setMyClanMembers(nextMembers)
+    return nextMembers
+  }, [fetchClanMembers, profiles])
+
+  const fetchVisibleClanRequests = useCallback(async (nextProfiles = profiles) => {
+    if (!user?.id) {
+      setClanJoinRequests([])
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+
+    const { data, error: clanRequestsError } = await supabase
+      .from('clan_join_requests')
+      .select(`id, clan_id, user_id, message, status, created_at, responded_at, responded_by, clans (${clanSelect})`)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (clanRequestsError) {
+      throw clanRequestsError
+    }
+
+    const nextRequests = (data ?? []).map((request) => ({
+      ...request,
+      clan: request.clans,
+      profile: profileById.get(request.user_id),
+      respondedByProfile: profileById.get(request.responded_by),
+    }))
+
+    setClanJoinRequests(nextRequests)
+    return nextRequests
+  }, [profiles, user?.id])
+
+  const fetchVisibleClanInvites = useCallback(async (nextProfiles = profiles) => {
+    if (!user?.id) {
+      setClanInvites([])
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+
+    const { data, error: clanInvitesError } = await supabase
+      .from('clan_invites')
+      .select(`id, clan_id, invitee_user_id, invited_by_user_id, message, status, created_at, responded_at, responded_by, clans (${clanSelect})`)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (clanInvitesError) {
+      throw clanInvitesError
+    }
+
+    const nextInvites = (data ?? []).map((invite) => ({
+      ...invite,
+      clan: invite.clans,
+      inviteeProfile: profileById.get(invite.invitee_user_id),
+      invitedByProfile: profileById.get(invite.invited_by_user_id),
+      respondedByProfile: profileById.get(invite.responded_by),
+    }))
+
+    setClanInvites(nextInvites)
+    return nextInvites
+  }, [profiles, user?.id])
+
+  const refreshClanState = useCallback(async (nextProfiles = profiles) => {
+    if (!user?.id) {
+      setClanDirectory([])
+      setMyClanMembership(null)
+      setMyClanMembers([])
+      setClanJoinRequests([])
+      setClanInvites([])
+      return null
+    }
+
+    const [nextDirectory, nextMembership] = await Promise.all([
+      fetchClanDirectory(),
+      fetchMyClanMembership(),
+      fetchVisibleClanRequests(nextProfiles),
+      fetchVisibleClanInvites(nextProfiles),
+    ]).then(([directory, membership]) => [directory, membership])
+
+    if (nextMembership?.clan_id) {
+      await fetchMyClanMembers(nextMembership.clan_id, nextProfiles)
+    } else {
+      setMyClanMembers([])
+    }
+
+    return {
+      directory: nextDirectory,
+      membership: nextMembership,
+    }
+  }, [fetchClanDirectory, fetchMyClanMembers, fetchMyClanMembership, fetchVisibleClanInvites, fetchVisibleClanRequests, profiles, user?.id])
+
+  const fetchClanMessages = useCallback(async (clanId, nextProfiles = profiles) => {
+    if (!clanId || !user?.id) {
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+
+    const { data, error: clanMessagesError } = await supabase
+      .from('clan_messages')
+      .select('id, clan_id, user_id, body, created_at, deleted_at, deleted_by')
+      .eq('clan_id', clanId)
+      .order('created_at', { ascending: true })
+      .limit(200)
+
+    if (clanMessagesError) {
+      throw clanMessagesError
+    }
+
+    return (data ?? []).map((message) => ({
+      ...message,
+      profile: profileById.get(message.user_id),
+      deletedByProfile: profileById.get(message.deleted_by),
+    }))
+  }, [profiles, user?.id])
+
+  const fetchClanAuditEvents = useCallback(async (clanId, nextProfiles = profiles) => {
+    if (!clanId || !user?.id) {
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+
+    const { data, error: clanAuditError } = await supabase
+      .from('clan_audit_events')
+      .select('id, clan_id, actor_user_id, target_user_id, event_type, details, created_at')
+      .eq('clan_id', clanId)
+      .order('created_at', { ascending: false })
+      .limit(40)
+
+    if (clanAuditError) {
+      throw clanAuditError
+    }
+
+    return (data ?? []).map((event) => ({
+      ...event,
+      actorProfile: profileById.get(event.actor_user_id),
+      targetProfile: profileById.get(event.target_user_id),
+    }))
+  }, [profiles, user?.id])
+
   const refresh = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -139,13 +378,14 @@ function IntelProvider({ children }) {
       await Promise.all([
         fetchPublicMessages(nextProfiles),
         fetchDirectMessages(user?.id, nextProfiles),
+        refreshClanState(nextProfiles),
       ])
     } catch (refreshError) {
       setError(refreshError.message)
     } finally {
       setLoading(false)
     }
-  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, user?.id])
+  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
 
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) {
@@ -166,6 +406,10 @@ function IntelProvider({ children }) {
     setProfile(data)
     return data
   }, [])
+
+  const refreshAfterClanMutation = useCallback(async () => {
+    await Promise.all([fetchProfile(user?.id), refresh()])
+  }, [fetchProfile, refresh, user?.id])
 
   useEffect(() => {
     let isMounted = true
@@ -227,12 +471,32 @@ function IntelProvider({ children }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
         refresh()
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clans' }, () => {
+        fetchProfiles()
+          .then((nextProfiles) => refreshClanState(nextProfiles))
+          .catch((clanError) => setError(clanError.message))
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clan_members' }, () => {
+        fetchProfiles()
+          .then((nextProfiles) => refreshClanState(nextProfiles))
+          .catch((clanError) => setError(clanError.message))
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clan_join_requests' }, () => {
+        fetchProfiles()
+          .then((nextProfiles) => refreshClanState(nextProfiles))
+          .catch((clanError) => setError(clanError.message))
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clan_invites' }, () => {
+        fetchProfiles()
+          .then((nextProfiles) => refreshClanState(nextProfiles))
+          .catch((clanError) => setError(clanError.message))
+      })
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refresh, user?.id])
+  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refresh, refreshClanState, user?.id])
 
   useEffect(() => {
     if (!user?.id) {
@@ -245,6 +509,7 @@ function IntelProvider({ children }) {
           Promise.all([
             fetchPublicMessages(nextProfiles),
             fetchDirectMessages(user.id, nextProfiles),
+            refreshClanState(nextProfiles),
           ]),
         )
         .catch((messagesError) => setError(messagesError.message))
@@ -252,7 +517,7 @@ function IntelProvider({ children }) {
 
     const intervalId = window.setInterval(pollMessages, 3000)
     return () => window.clearInterval(intervalId)
-  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, user?.id])
+  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
 
   useEffect(() => {
     if (!user) {
@@ -338,7 +603,6 @@ function IntelProvider({ children }) {
       .from('profiles')
       .update({
         display_name: updates.displayName?.trim() ?? '',
-        clan_tag: updates.clanTag?.trim() ?? '',
         activision_ids: gameAccountIds(normalizedGameAccounts),
         game_accounts: normalizedGameAccounts,
       })
@@ -352,6 +616,236 @@ function IntelProvider({ children }) {
 
     setProfile(data)
     await refresh()
+  }
+
+  async function createClan({ name, tag, description }) {
+    if (!user) {
+      throw new Error('You must be logged in to create a clan.')
+    }
+
+    const { data, error: createClanError } = await supabase.rpc('create_clan', {
+      clan_name: name,
+      clan_tag: tag,
+      clan_description: description,
+    })
+
+    if (createClanError) {
+      throw createClanError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function requestClanJoin(clanId, message = '') {
+    if (!user) {
+      throw new Error('You must be logged in to request a clan invite.')
+    }
+
+    const { data, error: clanRequestError } = await supabase.rpc('request_clan_join', {
+      target_clan_id: clanId,
+      request_message: message,
+    })
+
+    if (clanRequestError) {
+      throw clanRequestError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function cancelClanJoinRequest(requestId) {
+    const { data, error: cancelClanRequestError } = await supabase.rpc('cancel_clan_join_request', {
+      target_request_id: requestId,
+    })
+
+    if (cancelClanRequestError) {
+      throw cancelClanRequestError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function approveClanJoinRequest(requestId) {
+    const { data, error: approveClanRequestError } = await supabase.rpc('approve_clan_join_request', {
+      target_request_id: requestId,
+    })
+
+    if (approveClanRequestError) {
+      throw approveClanRequestError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function rejectClanJoinRequest(requestId) {
+    const { data, error: rejectClanRequestError } = await supabase.rpc('reject_clan_join_request', {
+      target_request_id: requestId,
+    })
+
+    if (rejectClanRequestError) {
+      throw rejectClanRequestError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function inviteClanMember(clanId, userId, message = '') {
+    const { data, error: inviteClanMemberError } = await supabase.rpc('invite_clan_member', {
+      target_clan_id: clanId,
+      target_user_id: userId,
+      invite_message: message,
+    })
+
+    if (inviteClanMemberError) {
+      throw inviteClanMemberError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function acceptClanInvite(inviteId) {
+    const { data, error: acceptClanInviteError } = await supabase.rpc('accept_clan_invite', {
+      target_invite_id: inviteId,
+    })
+
+    if (acceptClanInviteError) {
+      throw acceptClanInviteError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function declineClanInvite(inviteId) {
+    const { data, error: declineClanInviteError } = await supabase.rpc('decline_clan_invite', {
+      target_invite_id: inviteId,
+    })
+
+    if (declineClanInviteError) {
+      throw declineClanInviteError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function removeClanMember(clanId, userId) {
+    const { data, error: removeClanMemberError } = await supabase.rpc('remove_clan_member', {
+      target_clan_id: clanId,
+      target_user_id: userId,
+    })
+
+    if (removeClanMemberError) {
+      throw removeClanMemberError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function leaveClan(clanId) {
+    const { data, error: leaveClanError } = await supabase.rpc('leave_clan', {
+      target_clan_id: clanId,
+    })
+
+    if (leaveClanError) {
+      throw leaveClanError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function updateClanMemberRole(clanId, userId, nextRole) {
+    const { data, error: clanRoleError } = await supabase.rpc('update_clan_member_role', {
+      target_clan_id: clanId,
+      target_user_id: userId,
+      next_role: nextRole,
+    })
+
+    if (clanRoleError) {
+      throw clanRoleError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function transferClanOwnership(clanId, userId) {
+    const { data, error: transferClanOwnershipError } = await supabase.rpc('transfer_clan_ownership', {
+      target_clan_id: clanId,
+      target_user_id: userId,
+    })
+
+    if (transferClanOwnershipError) {
+      throw transferClanOwnershipError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function updateClan(clanId, { name, tag, description }) {
+    const { data, error: updateClanError } = await supabase.rpc('update_clan', {
+      target_clan_id: clanId,
+      clan_name: name,
+      clan_tag: tag,
+      clan_description: description,
+    })
+
+    if (updateClanError) {
+      throw updateClanError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function archiveClan(clanId) {
+    const { data, error: archiveClanError } = await supabase.rpc('archive_clan', {
+      target_clan_id: clanId,
+    })
+
+    if (archiveClanError) {
+      throw archiveClanError
+    }
+
+    await refreshAfterClanMutation()
+    return data
+  }
+
+  async function sendClanMessage(clanId, body) {
+    if (!user) {
+      throw new Error('You must be logged in to send clan chat.')
+    }
+
+    const { error: clanMessageError } = await supabase.from('clan_messages').insert({
+      clan_id: clanId,
+      user_id: user.id,
+      body: body.trim(),
+    })
+
+    if (clanMessageError) {
+      throw clanMessageError
+    }
+  }
+
+  async function deleteClanMessage(messageId) {
+    const { data, error: deleteClanMessageError } = await supabase.rpc('delete_clan_message', {
+      target_message_id: messageId,
+    })
+
+    if (deleteClanMessageError) {
+      throw deleteClanMessageError
+    }
+
+    return data
   }
 
   async function sendPublicMessage(body) {
@@ -479,6 +973,33 @@ function IntelProvider({ children }) {
 
     if (deleteError) {
       throw deleteError
+    }
+
+    await refresh()
+  }
+
+  async function updatePlayer(playerId, updates) {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can edit entries.')
+    }
+
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({
+        name: updates.name.trim(),
+        clan: updates.clan?.trim() ?? '',
+        threat_level: updates.threatLevel,
+        initial_trust_score: Number(updates.trustScore),
+        tags: updates.tags ?? [],
+        evidence_url: updates.evidenceUrl?.trim() ?? '',
+        notes: updates.notes?.trim() ?? '',
+        moderated_at: new Date().toISOString(),
+        moderated_by: user?.id,
+      })
+      .eq('id', playerId)
+
+    if (updateError) {
+      throw updateError
     }
 
     await refresh()
@@ -655,6 +1176,13 @@ function IntelProvider({ children }) {
     players,
     publicMessages,
     directMessages,
+    clanDirectory,
+    myClanMembership,
+    myClan: myClanMembership?.clan ?? null,
+    myClanRole: myClanMembership?.role ?? '',
+    myClanMembers,
+    clanJoinRequests,
+    clanInvites,
     pushSummary,
     pushEvents,
     unreadDirectMessageCount,
@@ -672,15 +1200,35 @@ function IntelProvider({ children }) {
     signUp,
     signOut,
     addPlayer,
+    updatePlayer,
     deletePlayer,
     deleteProfileAccount,
     claimAdmin,
     setProfileRole,
     updateProfile,
+    createClan,
+    requestClanJoin,
+    cancelClanJoinRequest,
+    approveClanJoinRequest,
+    rejectClanJoinRequest,
+    inviteClanMember,
+    acceptClanInvite,
+    declineClanInvite,
+    removeClanMember,
+    leaveClan,
+    updateClanMemberRole,
+    transferClanOwnership,
+    updateClan,
+    archiveClan,
     sendPublicMessage,
     sendDirectMessage,
+    sendClanMessage,
     markDirectMessageRead,
     deletePublicMessage,
+    deleteClanMessage,
+    fetchClanMembers,
+    fetchClanMessages,
+    fetchClanAuditEvents,
     reorderPlayers,
     broadcastOnline,
     enablePushNotifications,

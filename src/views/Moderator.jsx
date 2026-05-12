@@ -1,6 +1,7 @@
 import { MessageSquare, Search, ShieldAlert, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import EditPlayerModal from '../components/EditPlayerModal.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
@@ -22,6 +23,8 @@ function Moderator() {
   const [error, setError] = useState('')
   const [workingId, setWorkingId] = useState('')
   const [query, setQuery] = useState('')
+  const [editingPlayer, setEditingPlayer] = useState(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
   const normalizedQuery = query.trim().toLowerCase()
 
@@ -50,6 +53,16 @@ function Moderator() {
           .some((value) => value.toLowerCase().includes(normalizedQuery))
       })
   }, [normalizedQuery, publicMessages])
+
+  async function handleEdit(player) {
+    setEditingPlayer(player)
+    setEditModalOpen(true)
+  }
+
+  function closeEditModal() {
+    setEditingPlayer(null)
+    setEditModalOpen(false)
+  }
 
   async function handleDelete(playerId) {
     setStatus('')
@@ -150,12 +163,12 @@ function Moderator() {
 
         <div className="mb-4 border-b border-white/10 pb-4">
           <p className="intel-label mb-2">Operator Records</p>
-          <p className="text-sm text-gray-500">Delete fake, duplicate, or abusive entries.</p>
+          <p className="text-sm text-gray-500">Edit or delete fake, duplicate, or abusive entries.</p>
         </div>
 
         <div className="grid gap-3">
           {filteredPlayers.length ? (
-            filteredPlayers.map((player) => {
+            filteredPlayers.map((player, index) => {
               const threat = getThreatStyle(player.threatLevel)
 
               return (
@@ -163,8 +176,11 @@ function Moderator() {
                   key={player.id}
                   className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-gray-700 px-2 py-0.5 text-xs font-black text-gray-400">
+                        #{index + 1}
+                      </span>
                       <h2 className="truncate text-lg font-black uppercase tracking-[0.04em] text-white">
                         {player.name}
                       </h2>
@@ -178,15 +194,25 @@ function Moderator() {
                     <p className="mt-2 text-sm text-gray-500">{player.notes || 'No notes.'}</p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(player.id)}
-                    disabled={workingId === player.id}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    {workingId === player.id ? 'Deleting' : 'Delete'}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(player)}
+                      disabled={workingId === `edit-${player.id}`}
+                      className="inline-flex min-h-10 items-center justify-center rounded-full border border-orange-500/50 bg-orange-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-100 transition hover:bg-orange-500/20 disabled:opacity-60"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(player.id)}
+                      disabled={workingId === player.id}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      {workingId === player.id ? 'Deleting' : 'Delete'}
+                    </button>
+                  </div>
                 </article>
               )
             })
@@ -244,6 +270,8 @@ function Moderator() {
           )}
         </div>
       </section>
+
+      <EditPlayerModal open={editModalOpen} onClose={closeEditModal} player={editingPlayer} />
     </div>
   )
 }
