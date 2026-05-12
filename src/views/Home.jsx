@@ -29,32 +29,54 @@ const threatFilters = [
   ['friendly', 'Friendly'],
 ]
 
-function getCooldownRemainingLabel(cooldownEndsAt, nowMs) {
-  if (!cooldownEndsAt) {
-    return ''
+const killCooldownMs = 10 * 60 * 1000
+
+function formatCooldownLabel(remainingMs) {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function getKillCooldownState(player, nowMs) {
+  if (!player?.myKillCooldownEndsAt) {
+    return {
+      active: false,
+      label: '',
+      progressPercent: 0,
+    }
   }
 
-  const cooldownEndMs = new Date(cooldownEndsAt).getTime()
+  const cooldownEndMs = new Date(player.myKillCooldownEndsAt).getTime()
 
   if (Number.isNaN(cooldownEndMs)) {
-    return ''
+    return {
+      active: false,
+      label: '',
+      progressPercent: 0,
+    }
   }
 
   const remainingMs = cooldownEndMs - nowMs
 
   if (remainingMs <= 0) {
-    return ''
+    return {
+      active: false,
+      label: '',
+      progressPercent: 100,
+    }
   }
 
-  const totalMinutes = Math.ceil(remainingMs / 60000)
+  const lastKillMs = player.myLastKillAt ? new Date(player.myLastKillAt).getTime() : NaN
+  const cooldownStartMs = Number.isNaN(lastKillMs) ? cooldownEndMs - killCooldownMs : lastKillMs
+  const elapsedMs = Math.min(Math.max(nowMs - cooldownStartMs, 0), killCooldownMs)
 
-  if (totalMinutes >= 60) {
-    const hours = Math.floor(totalMinutes / 60)
-    const minutes = totalMinutes % 60
-    return minutes ? `${hours}h ${minutes}m` : `${hours}h`
+  return {
+    active: true,
+    label: formatCooldownLabel(remainingMs),
+    progressPercent: (elapsedMs / killCooldownMs) * 100,
   }
-
-  return `${totalMinutes}m`
 }
 
 function SortablePlayerRow({
@@ -134,7 +156,7 @@ function Home() {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setNow(Date.now())
-    }, 30000)
+    }, 1000)
 
     return () => {
       window.clearInterval(intervalId)
@@ -191,11 +213,7 @@ function Home() {
                   myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
                   myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
                 }
-              : {
-                  ...currentPlayer,
-                  myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
-                  myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
-                },
+              : currentPlayer,
           )
         : currentPlayers,
     )
@@ -218,7 +236,13 @@ function Home() {
 
       try {
         const result = await registerPlayerKill(player.id)
-        const remaining = getCooldownRemainingLabel(result.cooldown_ends_at, Date.now())
+        const cooldownState = getKillCooldownState(
+          {
+            myLastKillAt: result.recorded_at,
+            myKillCooldownEndsAt: result.cooldown_ends_at,
+          },
+          Date.now(),
+        )
 
         applyKillResultToLocalPlayers(player.id, result)
 
@@ -227,11 +251,11 @@ function Home() {
           [player.id]: result.accepted
             ? {
                 tone: 'success',
-                message: remaining ? `Kill logged. Cooldown ${remaining}.` : 'Kill logged.',
+                message: cooldownState.active ? `Kill logged. Ready again in ${cooldownState.label}.` : 'Kill logged.',
               }
             : {
                 tone: 'warning',
-                message: remaining ? `Cooldown active. ${remaining} left.` : result.reason,
+                message: cooldownState.active ? `Cooldown active. ${cooldownState.label} left.` : result.reason,
               },
         }))
       } catch (killError) {
@@ -265,8 +289,17 @@ function Home() {
         <p className="intel-label mb-3 text-red-100">21rats Intel Board</p>
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <h1 className="text-5xl font-black uppercase leading-none tracking-[0.04em] text-white sm:text-6xl">
-              2̴̡̩̘͇̝̤͕̾̾͜1̵̨̼̦̗̔̇̉͝R̷͉͔̜̎͆̊͒̓̓́̚̚A̸͚̰͐̐͆̇͊̕͠Ț̵̨̖̖̱̰͙̥̯̾̆̊́̑̿̾͝ͅṠ̸̢͍̼͉̜̥͖̘̞̮̏̕̚
+            <h1 className="flex flex-col gap-3 text-white">
+              <span className="text-[0.68rem] font-black uppercase tracking-[0.42em] text-red-200/80 sm:text-[0.76rem]">
+                B21 Watchlist
+              </span>
+              <span className="inline-flex flex-wrap items-center gap-2 text-5xl font-black uppercase leading-none tracking-[0.08em] sm:text-6xl">
+                <span className="text-red-500/80">[</span>
+                <span className="drop-shadow-[0_0_24px_rgba(239,68,68,0.22)] home-title-number">21</span>
+                <span className="text-red-400/75">//</span>
+                <span className="drop-shadow-[0_0_28px_rgba(239,68,68,0.26)] home-title-word">RATS</span>
+                <span className="text-red-500/80">]</span>
+              </span>
             </h1>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
@@ -372,7 +405,7 @@ function Home() {
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={filteredPlayers.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                   {filteredPlayers.map((player, index) => {
-                    const cooldownLabel = getCooldownRemainingLabel(player.myKillCooldownEndsAt, now)
+                    const cooldown = getKillCooldownState(player, now)
                     const feedback = killFeedbackByPlayer[player.id]
 
                     return (
@@ -382,10 +415,13 @@ function Home() {
                         number={index + 1}
                         onLogKill={isAuthenticated ? handleRegisterKill : undefined}
                         killPending={pendingKillId === player.id}
-                        killDisabled={pendingKillId === player.id || Boolean(cooldownLabel)}
-                        killButtonLabel={cooldownLabel ? `Ready in ${cooldownLabel}` : 'Log Kill'}
+                        killDisabled={pendingKillId === player.id || cooldown.active}
+                        killButtonLabel={cooldown.active ? 'Cooldown' : 'Log Kill'}
                         killMessage={feedback?.message ?? ''}
                         killTone={feedback?.tone ?? 'success'}
+                        cooldownActive={cooldown.active}
+                        cooldownLabel={cooldown.label}
+                        cooldownProgress={cooldown.progressPercent}
                       />
                     )
                   })}
@@ -393,7 +429,7 @@ function Home() {
               </DndContext>
             ) : (
               filteredPlayers.map((player, index) => {
-                const cooldownLabel = getCooldownRemainingLabel(player.myKillCooldownEndsAt, now)
+                const cooldown = getKillCooldownState(player, now)
                 const feedback = killFeedbackByPlayer[player.id]
 
                 return (
@@ -403,10 +439,13 @@ function Home() {
                     number={index + 1}
                     onLogKill={isAuthenticated ? handleRegisterKill : undefined}
                     killPending={pendingKillId === player.id}
-                    killDisabled={pendingKillId === player.id || Boolean(cooldownLabel)}
-                    killButtonLabel={cooldownLabel ? `Ready in ${cooldownLabel}` : 'Log Kill'}
+                    killDisabled={pendingKillId === player.id || cooldown.active}
+                    killButtonLabel={cooldown.active ? 'Cooldown' : 'Log Kill'}
                     killMessage={feedback?.message ?? ''}
                     killTone={feedback?.tone ?? 'success'}
+                    cooldownActive={cooldown.active}
+                    cooldownLabel={cooldown.label}
+                    cooldownProgress={cooldown.progressPercent}
                   />
                 )
               })

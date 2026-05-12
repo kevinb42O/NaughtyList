@@ -18,6 +18,9 @@ function PlayerRow({
   killButtonLabel = 'Log Kill',
   killMessage = '',
   killTone = 'success',
+  cooldownActive = false,
+  cooldownLabel = '',
+  cooldownProgress = 0,
 }) {
   const threat = getThreatStyle(player.threatLevel)
   const killFeedbackToneClass = killFeedbackToneClasses[killTone] ?? 'text-gray-300'
@@ -88,6 +91,21 @@ function PlayerRow({
           <p className={`mt-3 text-[0.72rem] font-black uppercase tracking-[0.16em] ${killFeedbackToneClass}`}>
             {killMessage}
           </p>
+        ) : null}
+
+        {cooldownActive ? (
+          <div className="mt-3 rounded-[1rem] border border-white/10 bg-black/25 p-3">
+            <div className="flex items-center justify-between gap-3 text-[0.68rem] font-black uppercase tracking-[0.18em]">
+              <span className="text-red-100">Kill cooldown</span>
+              <span className="text-gray-300">{cooldownLabel}</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full border border-white/10 bg-black/35">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,rgba(239,68,68,0.85),rgba(248,113,113,0.95),rgba(254,202,202,0.9))] transition-[width] duration-1000 ease-linear"
+                style={{ width: `${cooldownProgress}%` }}
+              />
+            </div>
+          </div>
         ) : null}
 
         {player.tags.length ? (

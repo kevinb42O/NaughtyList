@@ -1041,11 +1041,7 @@ function IntelProvider({ children }) {
               myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
               myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
             }
-          : {
-              ...currentPlayer,
-              myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
-              myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
-            },
+          : currentPlayer,
       ),
     )
 
