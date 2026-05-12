@@ -38,26 +38,6 @@ function formatDayLabel(value) {
   })
 }
 
-function isGroupedWithNeighbor(message, neighborMessage) {
-  if (!neighborMessage) {
-    return false
-  }
-
-  if (message.sender_id !== neighborMessage.sender_id) {
-    return false
-  }
-
-  if (!isSameDay(message.created_at, neighborMessage.created_at)) {
-    return false
-  }
-
-  const current = new Date(message.created_at).getTime()
-  const neighbor = new Date(neighborMessage.created_at).getTime()
-  const diffMs = Math.abs(current - neighbor)
-
-  return diffMs <= 5 * 60 * 1000
-}
-
 function Messages() {
   const {
     isAuthenticated,
@@ -241,15 +221,12 @@ function Messages() {
                   thread.map((directMessage, index) => {
                     const mine = directMessage.sender_id === user.id
                     const previousMessage = thread[index - 1]
-                    const nextMessage = thread[index + 1]
-                    const startsGroup = !isGroupedWithNeighbor(directMessage, previousMessage)
-                    const endsGroup = !isGroupedWithNeighbor(directMessage, nextMessage)
                     const showDateDivider = !previousMessage || !isSameDay(previousMessage.created_at, directMessage.created_at)
 
                     return (
-                      <div key={directMessage.id} className="space-y-2 py-0.5">
+                      <div key={directMessage.id} className="py-0.5">
                         {showDateDivider ? (
-                          <div className="sticky top-0 z-[1] flex justify-center py-1">
+                          <div className="sticky top-0 z-[1] flex justify-center py-2">
                             <span className="rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.2em] text-gray-400 backdrop-blur">
                               {formatDayLabel(directMessage.created_at)}
                             </span>
@@ -257,43 +234,19 @@ function Messages() {
                         ) : null}
 
                         <article className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[89%] ${startsGroup ? '' : mine ? 'mr-10' : 'ml-10'}`}>
-                            {startsGroup ? (
-                              <div className={`mb-1.5 flex flex-wrap items-center gap-2 ${mine ? 'justify-end' : ''}`}>
-                                <span className="text-[0.58rem] font-bold uppercase tracking-[0.16em] text-gray-600">
-                                  {new Date(directMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                            ) : null}
-
+                          <div className="max-w-[82%]">
+                            <p className={`mb-1 text-[0.58rem] font-bold uppercase tracking-[0.16em] text-gray-600 ${mine ? 'text-right' : ''}`}>
+                              {new Date(directMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
                             <div
-                              className={[
-                                'rounded-2xl border px-3.5 py-2.5 text-sm leading-6',
+                              className={`rounded-2xl border px-3.5 py-2.5 text-sm leading-6 ${
                                 mine
                                   ? 'border-red-500/35 bg-red-500/12 text-red-50'
-                                  : 'border-white/10 bg-black/25 text-gray-200',
-                                startsGroup
-                                  ? mine
-                                    ? 'rounded-tr-md'
-                                    : 'rounded-tl-md'
-                                  : mine
-                                    ? 'rounded-tr-2xl'
-                                    : 'rounded-tl-2xl',
-                                !endsGroup
-                                  ? mine
-                                    ? 'rounded-br-md'
-                                    : 'rounded-bl-md'
-                                  : '',
-                              ].join(' ')}
+                                  : 'border-white/10 bg-black/25 text-gray-200'
+                              }`}
                             >
                               <p className="whitespace-pre-wrap">{directMessage.body}</p>
                             </div>
-
-                            {endsGroup && !startsGroup ? (
-                              <p className={`mt-1 text-[0.58rem] font-bold uppercase tracking-[0.16em] text-gray-600 ${mine ? 'text-right' : ''}`}>
-                                {new Date(directMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            ) : null}
                           </div>
                         </article>
                       </div>
