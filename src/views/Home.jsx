@@ -334,9 +334,8 @@ function Home() {
         <div className="flex flex-col gap-4 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="intel-label">Intel Board</p>
-              <h2 className="mt-2 text-2xl font-black uppercase tracking-[0.04em] text-white">
-                Enemy Watchlist
+              <h2 className="text-[1.95rem] font-black uppercase italic leading-none tracking-[0.18em] text-transparent bg-gradient-to-r from-white via-red-100 to-red-400 bg-clip-text sm:text-[2.3rem]">
+                MOST WANTED
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
