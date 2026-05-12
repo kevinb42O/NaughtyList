@@ -89,6 +89,7 @@ function Clans() {
     updateClan,
     archiveClan,
     fetchClanAuditEvents,
+    fetchClanMessages,
     fetchClanMembers,
     onlineUserIds,
   } = useIntel()
