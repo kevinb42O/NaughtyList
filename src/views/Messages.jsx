@@ -39,10 +39,29 @@ function formatDayLabel(value) {
   })
 }
 
+function formatMessageTime(value) {
+  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function ProfileInitial({ profile, online }) {
+  const name = displayProfileName(profile)
+  const initial = name.charAt(0).toUpperCase() || '?'
+
+  return (
+    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10 bg-zinc-900 shadow-lg shadow-black/25">
+      <div className="flex h-full w-full items-center justify-center bg-white/8 text-sm font-black text-gray-200">
+        {initial}
+      </div>
+      <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 ${online ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+    </div>
+  )
+}
+
 function Messages() {
   const {
     isAuthenticated,
     user,
+    profile,
     profiles,
     directMessages,
     onlineUserIds,
@@ -167,14 +186,17 @@ function Messages() {
 
   return (
     <div>
-      <PageHeader eyebrow="Direct Messages" title="Personal Messaging">
-        Message specific people without cluttering the public chat.
+      <PageHeader eyebrow="Direct Messages" title="Private Comms">
+        Clean one-on-one threads with fast reactions and quiet unread tracking.
       </PageHeader>
 
-      <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="panel rounded-[1.8rem] p-4">
-          <p className="intel-label mb-3">People</p>
-          <div className="space-y-2">
+      <section className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <aside className="panel max-h-[72vh] rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
+          <div className="border-b border-white/10 bg-black/20 px-4 py-3">
+            <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">People</p>
+            <h2 className="text-base font-black uppercase tracking-[0.04em] text-white">Direct Lines</h2>
+          </div>
+          <div className="max-h-[calc(72vh-4rem)] space-y-1 overflow-y-auto p-2">
             {contacts.length ? (
               contacts.map((contact) => {
                 const online = isProfileOnline(contact, onlineUserIds)
@@ -185,28 +207,28 @@ function Messages() {
                     key={contact.id}
                     type="button"
                     onClick={() => setSearchParams({ to: contact.id })}
-                    className={`w-full rounded-2xl border p-3 text-left transition ${
+                    className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
                       active
-                        ? 'border-red-500/50 bg-red-500/12'
-                        : 'border-white/10 bg-black/25 hover:border-white/20'
+                        ? 'border-red-400/45 bg-red-500/14 shadow-lg shadow-red-950/20'
+                        : 'border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.04]'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-black uppercase tracking-[0.08em] text-white">
+                    <ProfileInitial profile={contact} online={online} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-black uppercase tracking-[0.04em] text-white">
                         {clanPrefix(contact)} {displayProfileName(contact)}
-                      </p>
-                      <div className="flex items-center gap-2">
+                        </p>
                         {unreadCountsBySender[contact.id] ? (
                           <span className="rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-red-100">
                             {unreadCountsBySender[contact.id]}
                           </span>
                         ) : null}
-                        <OnlineDot online={online} label={false} />
                       </div>
+                      <p className="mt-1 truncate text-xs font-bold text-gray-500">
+                        {online ? 'Online now' : contact.activision_ids?.[0] || 'No Activision ID'}
+                      </p>
                     </div>
-                    <p className="mt-1 truncate text-xs font-bold text-gray-500">
-                      {contact.activision_ids?.[0] || 'No Activision ID'}
-                    </p>
                   </button>
                 )
               })
@@ -218,20 +240,23 @@ function Messages() {
           </div>
         </aside>
 
-        <div className="panel flex h-[62vh] flex-col rounded-[1.8rem] p-4">
+        <div className="panel flex h-[72vh] min-h-[34rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
           {selectedProfile ? (
             <>
-              <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
-                <div>
-                  <p className="intel-label mb-1">Thread</p>
-                  <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">
+              <div className="flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
+                <div className="flex min-w-0 items-center gap-3">
+                  <ProfileInitial profile={selectedProfile} online={isProfileOnline(selectedProfile, onlineUserIds)} />
+                  <div className="min-w-0">
+                    <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">Thread</p>
+                    <h2 className="truncate text-base font-black uppercase tracking-[0.04em] text-white">
                     {clanPrefix(selectedProfile)} {displayProfileName(selectedProfile)}
-                  </h2>
+                    </h2>
+                  </div>
                 </div>
                 <OnlineDot online={isProfileOnline(selectedProfile, onlineUserIds)} />
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.08),transparent_18rem),linear-gradient(180deg,rgba(255,255,255,0.025),transparent)] px-3 py-4 sm:px-4">
                 {thread.length ? (
                   thread.map((directMessage, index) => {
                     const mine = directMessage.sender_id === user.id
@@ -239,28 +264,29 @@ function Messages() {
                     const showDateDivider = !previousMessage || !isSameDay(previousMessage.created_at, directMessage.created_at)
 
                     return (
-                      <div key={directMessage.id} className="py-0.5">
+                      <div key={directMessage.id} className="mb-3">
                         {showDateDivider ? (
                           <div className="sticky top-0 z-[1] flex justify-center py-2">
-                            <span className="rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.2em] text-gray-400 backdrop-blur">
+                            <span className="rounded-full border border-white/10 bg-zinc-950/80 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-400 shadow-lg shadow-black/30 backdrop-blur">
                               {formatDayLabel(directMessage.created_at)}
                             </span>
                           </div>
                         ) : null}
 
-                        <article className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                          <div className="max-w-[82%]">
-                            <p className={`mb-1 text-[0.58rem] font-bold uppercase tracking-[0.16em] text-gray-600 ${mine ? 'text-right' : ''}`}>
-                              {new Date(directMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                        <article className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+                          {!mine ? <ProfileInitial profile={selectedProfile} online={isProfileOnline(selectedProfile, onlineUserIds)} /> : null}
+                          <div className="max-w-[86%] sm:max-w-[72%]">
                             <div
-                              className={`relative rounded-2xl border px-3.5 py-2.5 text-sm leading-6 ${
+                              className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
                                 mine
-                                  ? 'border-red-500/35 bg-red-500/12 text-red-50'
-                                  : 'border-white/10 bg-black/25 text-gray-200'
+                                  ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
+                                  : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
                               }`}
                             >
                               <p className="whitespace-pre-wrap">{directMessage.body}</p>
+                              <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
+                                {formatMessageTime(directMessage.created_at)}
+                              </span>
                               <MessageReactions
                                 align={mine ? 'right' : 'left'}
                                 currentUserId={user?.id}
@@ -269,36 +295,39 @@ function Messages() {
                               />
                             </div>
                           </div>
+                          {mine ? <ProfileInitial profile={profile} online /> : null}
                         </article>
                       </div>
                     )
                   })
                 ) : (
-                  <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm text-gray-500">
+                  <p className="mx-auto max-w-sm rounded-2xl border border-dashed border-white/10 bg-black/35 p-5 text-center text-sm text-gray-500">
                     No messages yet.
                   </p>
                 )}
                 <div ref={bottomRef} />
               </div>
 
-              <form onSubmit={handleSend} className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <form onSubmit={handleSend} className="border-t border-white/10 bg-black/30 p-3 backdrop-blur sm:p-4">
+                <div className="grid gap-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/80 p-1.5 shadow-inner shadow-black/40 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <input
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
-                  className="field min-h-12"
+                  className="min-h-11 rounded-2xl border-0 bg-transparent px-3 text-[0.95rem] text-gray-100 outline-none placeholder:text-gray-600"
                   placeholder={`Message ${displayProfileName(selectedProfile)}`}
                   maxLength="1000"
                 />
                 <button
                   type="submit"
                   disabled={sending || !message.trim()}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/18 px-4 text-sm font-black uppercase tracking-[0.12em] text-red-50 transition hover:bg-red-500/28 disabled:opacity-45"
                 >
                   <Send className="h-4 w-4" aria-hidden="true" />
                   Send
                 </button>
+                </div>
               </form>
-              {error ? <p className="mt-2 text-sm font-bold text-red-200">{error}</p> : null}
+              {error ? <p className="px-4 pb-3 text-sm font-bold text-red-200">{error}</p> : null}
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center text-sm font-bold text-gray-500">

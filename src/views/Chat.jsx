@@ -2,7 +2,6 @@ import { Crown, Eye, MessageSquare, Send, Shield } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MessageReactions from '../components/MessageReactions.jsx'
-import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
@@ -38,6 +37,24 @@ function formatDayLabel(value) {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+function formatMessageTime(value) {
+  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function ProfileInitial({ profile, mine, online }) {
+  const name = displayProfileName(profile)
+  const initial = name.charAt(0).toUpperCase() || '?'
+
+  return (
+    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10 bg-zinc-900 shadow-lg shadow-black/25">
+      <div className={`flex h-full w-full items-center justify-center text-xs font-black ${mine ? 'bg-red-500/20 text-red-50' : 'bg-white/8 text-gray-200'}`}>
+        {initial}
+      </div>
+      <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 ${online ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+    </div>
+  )
 }
 
 function Chat() {
@@ -233,8 +250,8 @@ function Chat() {
 
   return (
     <div>
-      <PageHeader eyebrow="Chat Network" title="Who's Playing?">
-        Use the public room for pickup runs and the clan room for private squad traffic.
+      <PageHeader eyebrow="Chat Network" title="Squad Comms">
+        Fast public calls, private clan traffic, clean reactions.
       </PageHeader>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -317,9 +334,16 @@ function Chat() {
         </section>
       ) : null}
 
-      <section className="panel flex h-[62vh] flex-col rounded-[1.8rem] p-4">
-        <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
-          <p className="intel-label">{activeRoom === 'clan' ? 'Clan Chat' : 'Public Chat'}</p>
+      <section className="panel flex h-[72vh] min-h-[34rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
+        <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
+          <div className="mr-auto min-w-0">
+            <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">
+              {activeRoom === 'clan' ? 'Clan Chat' : 'Public Chat'}
+            </p>
+            <h2 className="truncate text-base font-black uppercase tracking-[0.04em] text-white">
+              {activeRoom === 'clan' && selectedClan ? `[${selectedClan.tag}] ${selectedClan.name}` : 'Live Room'}
+            </h2>
+          </div>
           {activeRoom === 'clan' && selectedClan ? (
             <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
               [{selectedClan.tag}] {selectedClan.name}
@@ -345,9 +369,9 @@ function Chat() {
           ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.08),transparent_18rem),linear-gradient(180deg,rgba(255,255,255,0.025),transparent)] px-3 py-4 sm:px-4">
           {showClanLoading ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
+            <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-white/10 bg-black/35 p-5 text-center text-sm font-bold text-gray-500">
               Loading clan room…
             </div>
           ) : activeMessages.length ? (
@@ -359,37 +383,38 @@ function Chat() {
               const showDateDivider = !previousMessage || !isSameDay(previousMessage.created_at, chatMessage.created_at)
 
               return (
-                <div key={chatMessage.id} className="mb-2">
+                <div key={chatMessage.id} className="mb-3">
                   {showDateDivider ? (
                     <div className="sticky top-0 z-[1] flex justify-center py-2">
-                      <span className="rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.2em] text-gray-400 backdrop-blur">
+                      <span className="rounded-full border border-white/10 bg-zinc-950/80 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-400 shadow-lg shadow-black/30 backdrop-blur">
                         {formatDayLabel(chatMessage.created_at)}
                       </span>
                     </div>
                   ) : null}
 
-                  <article>
-                    <div className="mb-0.5 flex flex-wrap items-center gap-2">
-                      <OnlineDot online={online} label={false} />
-                      <span className={`text-[0.68rem] font-black uppercase tracking-[0.14em] ${mine ? 'text-red-300' : 'text-gray-300'}`}>
-                        {clanPrefix(chatMessage.profile)} {displayProfileName(chatMessage.profile)}
-                        {chatMessage.profile?.role === 'admin' ? (
-                          <Crown className="ml-1.5 inline h-3.5 w-3.5 text-yellow-300" aria-hidden="true" />
-                        ) : null}
-                      </span>
-                      <RoleBadge role={chatMessage.profile?.role} compact />
-                      <span className="ml-auto text-[0.58rem] font-bold uppercase tracking-[0.16em] text-gray-600">
-                        {new Date(chatMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className={`relative rounded-xl border px-3.5 py-2 text-sm leading-relaxed ${
-                      mine
-                        ? 'border-red-500/25 bg-red-950/40 text-gray-100'
-                        : 'border-white/[0.08] bg-white/[0.04] text-gray-200'
-                    }`}>
+                  <article className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+                    {!mine ? <ProfileInitial profile={chatMessage.profile} mine={mine} online={online} /> : null}
+                    <div className={`max-w-[86%] sm:max-w-[72%] ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
+                      <div className={`mb-1 flex max-w-full items-center gap-2 px-1 ${mine ? 'justify-end' : 'justify-start'}`}>
+                        <span className={`truncate text-[0.64rem] font-black uppercase tracking-[0.1em] ${mine ? 'text-red-200' : 'text-gray-300'}`}>
+                          {mine ? 'You' : `${clanPrefix(chatMessage.profile)} ${displayProfileName(chatMessage.profile)}`}
+                          {chatMessage.profile?.role === 'admin' ? (
+                            <Crown className="ml-1.5 inline h-3.5 w-3.5 text-yellow-300" aria-hidden="true" />
+                          ) : null}
+                        </span>
+                        {!mine ? <RoleBadge role={chatMessage.profile?.role} compact /> : null}
+                      </div>
+                      <div className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
+                        mine
+                          ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
+                          : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
+                      }`}>
                       <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-400' : ''}`}>
                         {wasDeleted ? 'Message removed.' : chatMessage.body}
                       </p>
+                      <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
+                        {formatMessageTime(chatMessage.created_at)}
+                      </span>
                       {!wasDeleted ? (
                         <MessageReactions
                           align={mine ? 'right' : 'left'}
@@ -398,24 +423,27 @@ function Chat() {
                           onReact={handleReaction}
                         />
                       ) : null}
+                      </div>
                     </div>
+                    {mine ? <ProfileInitial profile={chatMessage.profile} mine={mine} online={online} /> : null}
                   </article>
                 </div>
               )
             })
           ) : (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
+            <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-white/10 bg-black/35 p-5 text-center text-sm font-bold text-gray-500">
               {activeRoom === 'clan' ? 'No clan messages yet.' : 'No chat yet. Ask who is playing.'}
             </div>
           )}
           <div ref={bottomRef} />
         </div>
 
-        <form onSubmit={handleSend} className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <form onSubmit={handleSend} className="border-t border-white/10 bg-black/30 p-3 backdrop-blur sm:p-4">
+          <div className="grid gap-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/80 p-1.5 shadow-inner shadow-black/40 sm:grid-cols-[minmax(0,1fr)_auto]">
           <input
             value={message}
             onChange={(event) => setMessage(event.target.value)}
-            className="field min-h-12"
+            className="min-h-11 rounded-2xl border-0 bg-transparent px-3 text-[0.95rem] text-gray-100 outline-none placeholder:text-gray-600"
             placeholder={
               activeRoom === 'clan'
                 ? canSendClanRoomMessage
@@ -429,20 +457,21 @@ function Chat() {
           <button
             type="submit"
             disabled={sending || !message.trim() || (activeRoom === 'clan' && !canSendClanRoomMessage)}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/18 px-4 text-sm font-black uppercase tracking-[0.12em] text-red-50 transition hover:bg-red-500/28 disabled:opacity-45"
           >
             <Send className="h-4 w-4" aria-hidden="true" />
             Send
           </button>
+          </div>
         </form>
         {activeRoom === 'clan' && !canSendClanRoomMessage && selectedClan ? (
-          <p className="mt-2 text-sm font-bold text-gray-500">
+          <p className="px-4 pb-3 text-sm font-bold text-gray-500">
             {selectedClan.id === myClanId
               ? 'You need an active clan membership to send here.'
               : 'Admin inspector mode is read-only for clans you are not a member of.'}
           </p>
         ) : null}
-        {error ? <p className="mt-2 text-sm font-bold text-red-200">{error}</p> : null}
+        {error ? <p className="px-4 pb-3 text-sm font-bold text-red-200">{error}</p> : null}
       </section>
     </div>
   )
