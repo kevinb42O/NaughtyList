@@ -157,12 +157,15 @@ function Chat() {
   async function handleSend(event) {
     event.preventDefault()
 
-    if (!message.trim()) {
+    const nextMessage = message.trim()
+
+    if (sending || !nextMessage) {
       return
     }
 
     setSending(true)
     setError('')
+    setMessage('')
 
     try {
       if (activeRoom === 'clan') {
@@ -174,17 +177,16 @@ function Chat() {
           throw new Error('Only active clan members can send in this room.')
         }
 
-        await sendClanMessage(resolvedSelectedClanId, message)
+        await sendClanMessage(resolvedSelectedClanId, nextMessage)
         setClanMessageState({
           clanId: resolvedSelectedClanId,
           messages: await fetchClanMessages(resolvedSelectedClanId),
         })
       } else {
-        await sendPublicMessage(message)
+        await sendPublicMessage(nextMessage)
       }
-
-      setMessage('')
     } catch (chatError) {
+      setMessage(nextMessage)
       setError(chatError.message)
     } finally {
       setSending(false)
@@ -396,7 +398,7 @@ function Chat() {
           />
           <button
             type="submit"
-            disabled={sending || (activeRoom === 'clan' && !canSendClanRoomMessage)}
+            disabled={sending || !message.trim() || (activeRoom === 'clan' && !canSendClanRoomMessage)}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
           >
             <Send className="h-4 w-4" aria-hidden="true" />

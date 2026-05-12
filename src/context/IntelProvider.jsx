@@ -879,19 +879,42 @@ function IntelProvider({ children }) {
       throw new Error('You must be logged in to send messages.')
     }
 
-    const { error: messageError } = await supabase.from('direct_messages').insert({
-      sender_id: user.id,
-      recipient_id: recipientId,
-      body: body.trim(),
-    })
+    const trimmedBody = body.trim()
+
+    const { data: sentMessage, error: messageError } = await supabase
+      .from('direct_messages')
+      .insert({
+        sender_id: user.id,
+        recipient_id: recipientId,
+        body: trimmedBody,
+      })
+      .select('id, sender_id, recipient_id, body, read_at, created_at')
+      .single()
 
     if (messageError) {
       throw messageError
     }
 
+    const profileById = new Map(profilesRef.current.map((nextProfile) => [nextProfile.id, nextProfile]))
+    setDirectMessages((currentMessages) => {
+      if (currentMessages.some((currentMessage) => currentMessage.id === sentMessage.id)) {
+        return currentMessages
+      }
+
+      return [
+        ...currentMessages,
+        {
+          ...sentMessage,
+          sender: profileById.get(sentMessage.sender_id),
+          recipient: profileById.get(sentMessage.recipient_id),
+        },
+      ].sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
+    })
+
     const displayName = profile?.display_name || profileDisplayName(user)
     const clanTag = profile?.clan_tag || ''
-    const { data: pushResult, error: pushError } = await withTimeout(
+
+    withTimeout(
       supabase.functions.invoke('send-push', {
         body: {
           type: 'direct-message',
@@ -899,23 +922,27 @@ function IntelProvider({ children }) {
           recipientUserId: recipientId,
           displayName,
           clanTag,
-          message: body.trim(),
+          message: trimmedBody,
         },
       }),
       12000,
       'Push notification request timed out.',
     )
+      .then(({ data: pushResult, error: pushError }) => {
+        if (pushError) {
+          console.warn(`[push] DM delivered in-app but push failed: ${pushError.message}`)
+          return
+        }
 
-    if (pushError) {
-      throw new Error(`Message sent, but push failed: ${pushError.message}`)
-    }
+        if (!pushResult?.sent) {
+          console.warn('[push] DM delivered in-app but recipient has no active push subscription.')
+        }
+      })
+      .catch((pushError) => {
+        console.warn(`[push] DM delivered in-app but push failed: ${pushError.message}`)
+      })
 
-    if (!pushResult?.sent) {
-      console.warn('[push] DM delivered in-app but recipient has no active push subscription.')
-    }
-
-    const nextProfiles = await fetchProfiles()
-    await fetchDirectMessages(user.id, nextProfiles)
+    return sentMessage
   }
 
   async function markDirectMessageRead(messageId) {

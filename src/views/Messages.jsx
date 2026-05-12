@@ -117,17 +117,20 @@ function Messages() {
   async function handleSend(event) {
     event.preventDefault()
 
-    if (!selectedProfile || !message.trim()) {
+    const nextMessage = message.trim()
+
+    if (sending || !selectedProfile || !nextMessage) {
       return
     }
 
     setSending(true)
     setError('')
+    setMessage('')
 
     try {
-      await sendDirectMessage(selectedProfile.id, message)
-      setMessage('')
+      await sendDirectMessage(selectedProfile.id, nextMessage)
     } catch (messageError) {
+      setMessage(nextMessage)
       setError(messageError.message)
     } finally {
       setSending(false)
@@ -270,7 +273,7 @@ function Messages() {
                 />
                 <button
                   type="submit"
-                  disabled={sending}
+                  disabled={sending || !message.trim()}
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
                 >
                   <Send className="h-4 w-4" aria-hidden="true" />
