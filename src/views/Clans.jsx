@@ -1,4 +1,4 @@
-import { Check, Crown, LogIn, Send, Shield, UsersRound, X } from 'lucide-react'
+import { Check, Crown, LogIn, Send, Shield, Star, UsersRound, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
@@ -32,6 +32,18 @@ function roleBadgeTone(role) {
 
   if (role === 'officer') {
     return 'border-orange-400/40 bg-orange-400/10 text-orange-100'
+  }
+
+  if (role === 'veteran') {
+    return 'border-sky-400/40 bg-sky-400/10 text-sky-100'
+  }
+
+  if (role === 'sergeant') {
+    return 'border-teal-400/40 bg-teal-400/10 text-teal-100'
+  }
+
+  if (role === 'recruit') {
+    return 'border-white/5 bg-white/[0.03] text-gray-500'
   }
 
   return 'border-white/10 bg-white/5 text-gray-300'
@@ -563,30 +575,26 @@ function Clans() {
                       const online = isProfileOnline(msg.profile, onlineUserIds)
                       const wasDeleted = Boolean(msg.deleted_at)
                       return (
-                        <div key={msg.id} className={`mb-3 flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                          <div className="max-w-[82%]">
-                            <div className={`mb-1 flex flex-wrap items-center gap-1.5 ${mine ? 'justify-end' : ''}`}>
-                              {!mine ? <OnlineDot online={online} label={false} /> : null}
-                              <span className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-gray-300">
-                                {clanPrefix(msg.profile)} {displayProfileName(msg.profile)}
-                                {msg.profile?.role === 'admin' ? (
-                                  <Crown className="ml-1 inline h-3 w-3 text-yellow-300" aria-hidden="true" />
-                                ) : null}
-                              </span>
-                              {!mine ? <RoleBadge role={msg.profile?.role} compact /> : null}
-                              <span className="text-[0.55rem] font-bold uppercase tracking-[0.14em] text-gray-600">
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <div className={`rounded-2xl border px-3 py-2 text-sm leading-6 ${
-                              mine
-                                ? 'border-red-500/35 bg-red-500/12 text-red-50'
-                                : 'border-white/10 bg-black/25 text-gray-200'
-                            }`}>
-                              <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-400' : ''}`}>
-                                {wasDeleted ? 'Message removed.' : msg.body}
-                              </p>
-                            </div>
+                        <div key={msg.id} className="mb-3">
+                          <div className="mb-0.5 flex flex-wrap items-center gap-2">
+                            <OnlineDot online={online} label={false} />
+                            <span className={`text-[0.63rem] font-black uppercase tracking-[0.12em] ${mine ? 'text-red-300' : 'text-gray-400'}`}>
+                              {clanPrefix(msg.profile)} {displayProfileName(msg.profile)}
+                              {msg.profile?.role === 'admin' ? (
+                                <Crown className="ml-1 inline h-3 w-3 text-yellow-300" aria-hidden="true" />
+                              ) : null}
+                            </span>
+                            <RoleBadge role={msg.profile?.role} compact />
+                            <span className="ml-auto text-[0.55rem] font-bold uppercase tracking-[0.12em] text-gray-700">
+                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                            mine ? 'bg-red-950/50 text-gray-100' : 'bg-white/[0.05] text-gray-200'
+                          }`}>
+                            <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-500' : ''}`}>
+                              {wasDeleted ? 'Message removed.' : msg.body}
+                            </p>
                           </div>
                         </div>
                       )
@@ -633,7 +641,7 @@ function Clans() {
                   const canRemove =
                     member.role !== 'owner' &&
                     member.user_id !== user?.id &&
-                    (isAdmin || myClanRole === 'owner' || (myClanRole === 'officer' && member.role === 'member'))
+                    (isAdmin || myClanRole === 'owner' || (myClanRole === 'officer' && ['recruit', 'member', 'veteran', 'sergeant'].includes(member.role)))
 
                   return (
                     <article
@@ -648,6 +656,8 @@ function Clans() {
                             </p>
                             {member.role === 'owner' ? <Crown className="h-4 w-4 text-yellow-300" aria-hidden="true" /> : null}
                             {member.role === 'officer' ? <Shield className="h-4 w-4 text-orange-200" aria-hidden="true" /> : null}
+                            {member.role === 'veteran' ? <Star className="h-4 w-4 text-sky-200" aria-hidden="true" /> : null}
+                            {member.role === 'sergeant' ? <Star className="h-4 w-4 text-teal-200" aria-hidden="true" /> : null}
                             <RolePill role={member.role} />
                           </div>
                           <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
@@ -657,20 +667,26 @@ function Clans() {
 
                         <div className="flex flex-wrap gap-2">
                           {canToggleRole ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                runAction(
-                                  `role-${member.user_id}`,
-                                  'Clan role updated.',
-                                  () => updateClanMemberRole(myClan.id, member.user_id, member.role === 'member' ? 'officer' : 'member'),
-                                )
-                              }
-                              disabled={workingKey === `role-${member.user_id}`}
-                              className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/20 hover:text-white disabled:opacity-60"
+                            <select
+                              value={member.role}
+                              onChange={(e) => {
+                                if (e.target.value !== member.role) {
+                                  runAction(
+                                    `role-${member.user_id}`,
+                                    'Clan role updated.',
+                                    () => updateClanMemberRole(myClan.id, member.user_id, e.target.value),
+                                  )
+                                }
+                              }}
+                              disabled={!!workingKey}
+                              className="field min-h-10 text-[0.68rem] font-black uppercase tracking-[0.18em]"
                             >
-                              {member.role === 'member' ? 'Promote to Officer' : 'Demote to Member'}
-                            </button>
+                              <option value="recruit">Recruit</option>
+                              <option value="member">Member</option>
+                              <option value="sergeant">Sergeant</option>
+                              <option value="veteran">Veteran</option>
+                              <option value="officer">Officer</option>
+                            </select>
                           ) : null}
 
                           {canTransfer ? (

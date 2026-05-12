@@ -182,7 +182,10 @@ function IntelProvider({ children }) {
     const roleRank = {
       owner: 0,
       officer: 1,
-      member: 2,
+      veteran: 2,
+      sergeant: 3,
+      member: 4,
+      recruit: 5,
     }
 
     const { data, error: clanMembersError } = await supabase

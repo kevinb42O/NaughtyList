@@ -335,7 +335,7 @@ function Chat() {
               const showDateDivider = !previousMessage || !isSameDay(previousMessage.created_at, chatMessage.created_at)
 
               return (
-                <div key={chatMessage.id} className="py-0.5">
+                <div key={chatMessage.id} className="mb-2">
                   {showDateDivider ? (
                     <div className="sticky top-0 z-[1] flex justify-center py-2">
                       <span className="rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.2em] text-gray-400 backdrop-blur">
@@ -344,33 +344,28 @@ function Chat() {
                     </div>
                   ) : null}
 
-                  <article className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                    <div className="max-w-[82%]">
-                      <div className={`mb-1 flex flex-wrap items-center gap-2 ${mine ? 'justify-end' : ''}`}>
-                        {!mine ? <OnlineDot online={online} label={false} /> : null}
-                        <span className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-gray-300">
-                          {clanPrefix(chatMessage.profile)} {displayProfileName(chatMessage.profile)}
-                          {chatMessage.profile?.role === 'admin' ? (
-                            <Crown className="ml-1.5 inline h-3.5 w-3.5 text-yellow-300" aria-hidden="true" />
-                          ) : null}
-                        </span>
-                        {!mine ? <RoleBadge role={chatMessage.profile?.role} compact /> : null}
-                        <span className="text-[0.58rem] font-bold uppercase tracking-[0.16em] text-gray-600">
-                          {new Date(chatMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`rounded-2xl border px-3.5 py-2.5 text-sm leading-6 ${
-                          mine
-                            ? 'border-red-500/35 bg-red-500/12 text-red-50'
-                            : 'border-white/10 bg-black/25 text-gray-200'
-                        }`}
-                      >
-                        <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-400' : ''}`}>
-                          {wasDeleted ? 'Message removed.' : chatMessage.body}
-                        </p>
-                      </div>
+                  <article>
+                    <div className="mb-0.5 flex flex-wrap items-center gap-2">
+                      <OnlineDot online={online} label={false} />
+                      <span className={`text-[0.68rem] font-black uppercase tracking-[0.14em] ${mine ? 'text-red-300' : 'text-gray-300'}`}>
+                        {clanPrefix(chatMessage.profile)} {displayProfileName(chatMessage.profile)}
+                        {chatMessage.profile?.role === 'admin' ? (
+                          <Crown className="ml-1.5 inline h-3.5 w-3.5 text-yellow-300" aria-hidden="true" />
+                        ) : null}
+                      </span>
+                      <RoleBadge role={chatMessage.profile?.role} compact />
+                      <span className="ml-auto text-[0.58rem] font-bold uppercase tracking-[0.16em] text-gray-600">
+                        {new Date(chatMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className={`rounded-xl border px-3.5 py-2 text-sm leading-relaxed ${
+                      mine
+                        ? 'border-red-500/25 bg-red-950/40 text-gray-100'
+                        : 'border-white/[0.08] bg-white/[0.04] text-gray-200'
+                    }`}>
+                      <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-400' : ''}`}>
+                        {wasDeleted ? 'Message removed.' : chatMessage.body}
+                      </p>
                     </div>
                   </article>
                 </div>

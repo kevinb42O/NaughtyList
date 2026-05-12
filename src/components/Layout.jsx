@@ -63,8 +63,19 @@ function Layout() {
     : navItems
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-gray-100">
-      <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-28 pt-5 sm:px-6 lg:px-8">
+    <div className="min-h-screen text-gray-100">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          backgroundImage: 'url(/ratslogo.png)',
+          backgroundSize: '38vmin',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.04,
+        }}
+      />
+      <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-28 pt-5 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between rounded-full border border-white/10 bg-black/30 px-4 py-2.5 backdrop-blur">
           <div className="flex items-center gap-3">
             <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-red-500/20 bg-white/5 shadow-[0_0_24px_rgba(239,68,68,0.14)]">
