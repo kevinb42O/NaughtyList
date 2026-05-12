@@ -94,6 +94,7 @@ function Messages() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const sendingRef = useRef(false)
+  const scrollRef = useRef(null)
   const markedReadIdsRef = useRef(new Set())
   const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
   const setMessageReactionRef = useRef(setMessageReaction)
@@ -105,6 +106,17 @@ function Messages() {
   useEffect(() => {
     setMessageReactionRef.current = setMessageReaction
   }, [setMessageReaction])
+
+  const scrollToLatestMessage = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const scrollElement = scrollRef.current
+        if (scrollElement) {
+          scrollElement.scrollTop = scrollElement.scrollHeight
+        }
+      })
+    })
+  }, [])
 
   const contacts = useMemo(() => {
     return profiles
@@ -202,6 +214,7 @@ function Messages() {
 
     try {
       await sendDirectMessage(selectedProfile.id, nextMessage)
+      scrollToLatestMessage()
     } catch (messageError) {
       setMessage(nextMessage)
       setError(messageError.message)
@@ -298,7 +311,7 @@ function Messages() {
                 <OnlineDot online={isProfileOnline(selectedProfile, onlineUserIds)} />
               </div>
 
-              <div className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+              <div ref={scrollRef} className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
                 {thread.length ? (
                   thread.map((directMessage, index) => {
                     const mine = directMessage.sender_id === user.id

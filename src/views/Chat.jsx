@@ -1,5 +1,5 @@
 import { Crown, Eye, MessageSquare, Send, Shield } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MessageReactions from '../components/MessageReactions.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -136,6 +136,7 @@ function Chat() {
   const [selectedClanId, setSelectedClanId] = useState(searchParams.get('clan') || '')
   const [clanMessageState, setClanMessageState] = useState({ clanId: '', messages: [] })
   const [clanLoading, setClanLoading] = useState(false)
+  const scrollRef = useRef(null)
   const myClanId = myClan?.id ?? ''
 
   const availableClanRooms = useMemo(() => {
@@ -177,6 +178,17 @@ function Chat() {
   const showClanLoading =
     activeRoom === 'clan' && clanLoading && clanMessageState.clanId !== resolvedSelectedClanId
   const activeMessages = activeRoom === 'clan' ? clanMessages : publicMessages
+
+  const scrollToLatestMessage = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const scrollElement = scrollRef.current
+        if (scrollElement) {
+          scrollElement.scrollTop = scrollElement.scrollHeight
+        }
+      })
+    })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -261,8 +273,10 @@ function Chat() {
               ? mergeClanMessages(currentState.messages, [...currentState.messages, sentMessage])
               : [sentMessage],
         }))
+        scrollToLatestMessage()
       } else {
         await sendPublicMessage(nextMessage)
+        scrollToLatestMessage()
       }
     } catch (chatError) {
       setMessage(nextMessage)
@@ -429,7 +443,7 @@ function Chat() {
           ) : null}
         </div>
 
-        <div className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+        <div ref={scrollRef} className="chat-scroll-surface min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
           {showClanLoading ? (
             <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-white/10 bg-black/35 p-5 text-center text-sm font-bold text-gray-500">
               Loading clan room…
