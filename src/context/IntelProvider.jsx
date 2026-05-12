@@ -103,6 +103,50 @@ function mergeMessageRecords(currentMessages, nextMessages, limit) {
   return limitedMessages
 }
 
+function profileRecordMatches(currentProfile, nextProfile) {
+  if (currentProfile === nextProfile) return true
+  if (!currentProfile || !nextProfile) return false
+  return (
+    currentProfile.id === nextProfile.id &&
+    currentProfile.display_name === nextProfile.display_name &&
+    currentProfile.bio === nextProfile.bio &&
+    currentProfile.avatar_icon === nextProfile.avatar_icon &&
+    currentProfile.role === nextProfile.role &&
+    currentProfile.clan_tag === nextProfile.clan_tag &&
+    currentProfile.last_seen === nextProfile.last_seen &&
+    currentProfile.updated_at === nextProfile.updated_at &&
+    JSON.stringify(currentProfile.activision_ids ?? null) === JSON.stringify(nextProfile.activision_ids ?? null) &&
+    JSON.stringify(currentProfile.game_accounts ?? null) === JSON.stringify(nextProfile.game_accounts ?? null)
+  )
+}
+
+function mergeProfileRecords(currentProfiles, nextProfiles) {
+  if (currentProfiles.length !== nextProfiles.length) {
+    const currentById = new Map(currentProfiles.map((profile) => [profile.id, profile]))
+    return nextProfiles.map((nextProfile) => {
+      const currentProfile = currentById.get(nextProfile.id)
+      return currentProfile && profileRecordMatches(currentProfile, nextProfile) ? currentProfile : nextProfile
+    })
+  }
+
+  const currentById = new Map(currentProfiles.map((profile) => [profile.id, profile]))
+  let changed = false
+  const merged = nextProfiles.map((nextProfile) => {
+    const currentProfile = currentById.get(nextProfile.id)
+    if (currentProfile && profileRecordMatches(currentProfile, nextProfile)) {
+      return currentProfile
+    }
+    changed = true
+    return nextProfile
+  })
+
+  if (!changed && merged.every((profile, index) => profile === currentProfiles[index])) {
+    return currentProfiles
+  }
+
+  return merged
+}
+
 function upsertMessageRecord(currentMessages, nextMessage, limit) {
   const exists = currentMessages.some((currentMessage) => currentMessage.id === nextMessage.id)
   let changed = !exists
@@ -202,8 +246,14 @@ function IntelProvider({ children }) {
       throw profilesError
     }
 
-    setProfiles(data ?? [])
-    return data ?? []
+    const incoming = data ?? []
+    let resolved = incoming
+    setProfiles((current) => {
+      const merged = mergeProfileRecords(current, incoming)
+      resolved = merged
+      return merged
+    })
+    return resolved
   }, [])
 
   const fetchPublicMessages = useCallback(async (nextProfiles = []) => {
@@ -498,27 +548,30 @@ function IntelProvider({ children }) {
     }))
   }, [user?.id])
 
+  const fetchPlayers = useCallback(async (nextProfiles = profilesRef.current) => {
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+    const { data, error: playersError } = await supabase
+      .from('players_with_scores')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
+
+    if (playersError) {
+      throw playersError
+    }
+
+    const nextPlayers = (data ?? [])
+      .map((row) => mapPlayerFromSupabase(row, profileById))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+    setPlayers(nextPlayers)
+  }, [])
+
   const refresh = useCallback(async () => {
-    setLoading(true)
     setError('')
 
     try {
       const nextProfiles = await fetchProfiles()
-      const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
-      const { data, error: playersError } = await supabase
-        .from('players_with_scores')
-        .select('*')
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false })
-
-      if (playersError) {
-        throw playersError
-      }
-
-      const nextPlayers = (data ?? [])
-        .map((row) => mapPlayerFromSupabase(row, profileById))
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-      setPlayers(nextPlayers)
+      await fetchPlayers(nextProfiles)
 
       await Promise.all([
         fetchPublicMessages(nextProfiles),
@@ -530,7 +583,7 @@ function IntelProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
+  }, [fetchDirectMessages, fetchPlayers, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
 
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) {
@@ -601,7 +654,7 @@ function IntelProvider({ children }) {
     const channel = supabase
       .channel('21rats-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        refresh()
+        fetchProfiles().catch((profilesError) => setError(profilesError.message))
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'public_chat_messages' }, (payload) => {
         if (payload.eventType === 'DELETE') {
@@ -661,7 +714,7 @@ function IntelProvider({ children }) {
         )
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
-        refresh()
+        fetchPlayers().catch((playersError) => setError(playersError.message))
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clans' }, () => {
         fetchProfiles()
@@ -688,7 +741,7 @@ function IntelProvider({ children }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchProfiles, refresh, refreshClanState, user?.id])
+  }, [fetchPlayers, fetchProfiles, refreshClanState, user?.id])
 
   useEffect(() => {
     if (!user?.id) {
@@ -696,6 +749,9 @@ function IntelProvider({ children }) {
     }
 
     const pollMessages = () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        return
+      }
       fetchProfiles()
         .then((nextProfiles) =>
           Promise.all([
@@ -707,8 +763,8 @@ function IntelProvider({ children }) {
         .catch((messagesError) => setError(messagesError.message))
     }
 
-    // Realtime subscriptions already keep state fresh; this is a slow safety-net poll.
-    const intervalId = window.setInterval(pollMessages, 15000)
+    // Realtime keeps state fresh; this is a slow visibility-gated safety net.
+    const intervalId = window.setInterval(pollMessages, 60000)
     return () => window.clearInterval(intervalId)
   }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
 

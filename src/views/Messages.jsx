@@ -95,6 +95,7 @@ function Messages() {
   const [error, setError] = useState('')
   const sendingRef = useRef(false)
   const scrollRef = useRef(null)
+  const bottomRef = useRef(null)
   const markedReadIdsRef = useRef(new Set())
   const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
   const setMessageReactionRef = useRef(setMessageReaction)
@@ -114,6 +115,7 @@ function Messages() {
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight
         }
+        bottomRef.current?.scrollIntoView({ block: 'end' })
       })
     })
   }, [])
@@ -129,9 +131,15 @@ function Messages() {
       })
   }, [onlineUserIds, profiles, user?.id])
 
+  const fallbackContactId = useMemo(() => {
+    return profiles.find((nextProfile) => nextProfile.id !== user?.id)?.id ?? ''
+  }, [profiles, user?.id])
+
   const selectedProfile = useMemo(() => {
-    return profiles.find((nextProfile) => nextProfile.id === selectedId) ?? contacts[0]
-  }, [contacts, profiles, selectedId])
+    const targetId = selectedId || fallbackContactId
+    if (!targetId) return null
+    return profiles.find((nextProfile) => nextProfile.id === targetId) ?? null
+  }, [fallbackContactId, profiles, selectedId])
   const selectedProfileId = selectedProfile?.id ?? ''
   const userId = user?.id ?? ''
 
@@ -297,7 +305,7 @@ function Messages() {
 
         <div className="chat-stable-panel flex h-[72vh] min-h-[34rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
           {selectedProfile ? (
-            <>
+            <div key={selectedProfileId} className="flex h-full min-h-0 flex-col">
               <div className="flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
                 <div className="flex min-w-0 items-center gap-3">
                   <ProfileInitial profile={selectedProfile} online={isProfileOnline(selectedProfile, onlineUserIds)} />
@@ -345,6 +353,7 @@ function Messages() {
                     No messages yet.
                   </p>
                 )}
+                <div ref={bottomRef} aria-hidden="true" />
               </div>
 
               <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">
@@ -367,7 +376,7 @@ function Messages() {
                 </div>
               </form>
               {error ? <p className="px-4 pb-3 text-sm font-bold text-red-200">{error}</p> : null}
-            </>
+            </div>
           ) : (
             <div className="flex flex-1 items-center justify-center text-sm font-bold text-gray-500">
               Pick a person to message.

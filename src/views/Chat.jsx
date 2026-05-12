@@ -137,6 +137,7 @@ function Chat() {
   const [clanMessageState, setClanMessageState] = useState({ clanId: '', messages: [] })
   const [clanLoading, setClanLoading] = useState(false)
   const scrollRef = useRef(null)
+  const bottomRef = useRef(null)
   const myClanId = myClan?.id ?? ''
 
   const availableClanRooms = useMemo(() => {
@@ -186,6 +187,7 @@ function Chat() {
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight
         }
+        bottomRef.current?.scrollIntoView({ block: 'end' })
       })
     })
   }, [])
@@ -509,6 +511,7 @@ function Chat() {
               {activeRoom === 'clan' ? 'No clan messages yet.' : 'No chat yet. Ask who is playing.'}
             </div>
           )}
+          <div ref={bottomRef} aria-hidden="true" />
         </div>
 
         <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">
