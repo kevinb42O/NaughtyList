@@ -1,5 +1,5 @@
 import { Send } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MessageReactions from '../components/MessageReactions.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
@@ -48,6 +48,35 @@ function ProfileInitial({ profile, online }) {
   return <ProfileAvatar profile={profile} online={online} showOnline size="sm" />
 }
 
+const DirectMessageBubble = memo(function DirectMessageBubble({ directMessage, mine, online, onReact, ownProfile, selectedProfile, userId }) {
+  return (
+    <article className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+      {!mine ? <ProfileInitial profile={selectedProfile} online={online} /> : null}
+      <div className="max-w-[86%] sm:max-w-[72%]">
+        <div
+          className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
+            mine
+              ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
+              : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
+          }`}
+        >
+          <p className="whitespace-pre-wrap">{directMessage.body}</p>
+          <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
+            {formatMessageTime(directMessage.created_at)}
+          </span>
+          <MessageReactions
+            align={mine ? 'right' : 'left'}
+            currentUserId={userId}
+            message={directMessage}
+            onReact={onReact}
+          />
+        </div>
+      </div>
+      {mine ? <ProfileInitial profile={ownProfile} online /> : null}
+    </article>
+  )
+})
+
 function Messages() {
   const {
     isAuthenticated,
@@ -64,10 +93,19 @@ function Messages() {
   const selectedId = searchParams.get('to')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [sending, setSending] = useState(false)
+  const sendingRef = useRef(false)
   const scrollRef = useRef(null)
-  const bottomRef = useRef(null)
   const markedReadIdsRef = useRef(new Set())
+  const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
+  const setMessageReactionRef = useRef(setMessageReaction)
+
+  useEffect(() => {
+    markDirectMessagesReadRef.current = markDirectMessagesRead
+  }, [markDirectMessagesRead])
+
+  useEffect(() => {
+    setMessageReactionRef.current = setMessageReaction
+  }, [setMessageReaction])
 
   const contacts = useMemo(() => {
     return profiles
@@ -83,6 +121,8 @@ function Messages() {
   const selectedProfile = useMemo(() => {
     return profiles.find((nextProfile) => nextProfile.id === selectedId) ?? contacts[0]
   }, [contacts, profiles, selectedId])
+  const selectedProfileId = selectedProfile?.id ?? ''
+  const userId = user?.id ?? ''
 
   const unreadCountsBySender = useMemo(() => {
     return directMessages.reduce((counts, directMessage) => {
@@ -129,35 +169,47 @@ function Messages() {
     window.requestAnimationFrame(() => {
       scrollElement.scrollTop = scrollElement.scrollHeight
     })
-  }, [selectedProfile?.id, threadMessageIds])
+  }, [selectedProfileId, threadMessageIds])
 
   useEffect(() => {
-    if (!selectedProfile || !user || !unreadThreadMessageIds.length) {
+    if (!selectedProfileId || !userId || !unreadThreadMessageIds.length) {
       return
     }
 
-    const idsToMark = unreadThreadMessageIds.filter((id) => !markedReadIdsRef.current.has(id))
+    const idsToMark = unreadThreadMessageIdsKey
+      .split('|')
+      .filter((id) => id && !markedReadIdsRef.current.has(id))
 
     if (!idsToMark.length) {
       return
     }
 
     idsToMark.forEach((id) => markedReadIdsRef.current.add(id))
-    markDirectMessagesRead(idsToMark).catch(() => {
+    markDirectMessagesReadRef.current(idsToMark).catch(() => {
       idsToMark.forEach((id) => markedReadIdsRef.current.delete(id))
     })
-  }, [markDirectMessagesRead, selectedProfile, unreadThreadMessageIds, unreadThreadMessageIdsKey, user])
+  }, [selectedProfileId, unreadThreadMessageIds.length, unreadThreadMessageIdsKey, userId])
+
+  const handleReaction = useCallback(async (directMessage, reaction) => {
+    setError('')
+
+    try {
+      await setMessageReactionRef.current('direct', directMessage.id, reaction)
+    } catch (reactionError) {
+      setError(reactionError.message)
+    }
+  }, [])
 
   async function handleSend(event) {
     event.preventDefault()
 
     const nextMessage = message.trim()
 
-    if (sending || !selectedProfile || !nextMessage) {
+    if (sendingRef.current || !selectedProfile || !nextMessage) {
       return
     }
 
-    setSending(true)
+    sendingRef.current = true
     setError('')
     setMessage('')
 
@@ -167,17 +219,7 @@ function Messages() {
       setMessage(nextMessage)
       setError(messageError.message)
     } finally {
-      setSending(false)
-    }
-  }
-
-  async function handleReaction(directMessage, reaction) {
-    setError('')
-
-    try {
-      await setMessageReaction('direct', directMessage.id, reaction)
-    } catch (reactionError) {
-      setError(reactionError.message)
+      sendingRef.current = false
     }
   }
 
@@ -286,30 +328,15 @@ function Messages() {
                           </div>
                         ) : null}
 
-                        <article className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
-                          {!mine ? <ProfileInitial profile={selectedProfile} online={isProfileOnline(selectedProfile, onlineUserIds)} /> : null}
-                          <div className="max-w-[86%] sm:max-w-[72%]">
-                            <div
-                              className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
-                                mine
-                                  ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
-                                  : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
-                              }`}
-                            >
-                              <p className="whitespace-pre-wrap">{directMessage.body}</p>
-                              <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
-                                {formatMessageTime(directMessage.created_at)}
-                              </span>
-                              <MessageReactions
-                                align={mine ? 'right' : 'left'}
-                                currentUserId={user?.id}
-                                message={directMessage}
-                                onReact={handleReaction}
-                              />
-                            </div>
-                          </div>
-                          {mine ? <ProfileInitial profile={profile} online /> : null}
-                        </article>
+                        <DirectMessageBubble
+                          directMessage={directMessage}
+                          mine={mine}
+                          online={isProfileOnline(selectedProfile, onlineUserIds)}
+                          onReact={handleReaction}
+                          ownProfile={profile}
+                          selectedProfile={selectedProfile}
+                          userId={user?.id}
+                        />
                       </div>
                     )
                   })
@@ -318,7 +345,6 @@ function Messages() {
                     No messages yet.
                   </p>
                 )}
-                <div ref={bottomRef} />
               </div>
 
               <form onSubmit={handleSend} className="border-t border-white/10 bg-black/30 p-3 backdrop-blur sm:p-4">
@@ -332,7 +358,7 @@ function Messages() {
                 />
                 <button
                   type="submit"
-                  disabled={sending || !message.trim()}
+                  disabled={!message.trim()}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/18 px-4 text-sm font-black uppercase tracking-[0.12em] text-red-50 transition hover:bg-red-500/28 disabled:opacity-45"
                 >
                   <Send className="h-4 w-4" aria-hidden="true" />
