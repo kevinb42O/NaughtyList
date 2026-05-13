@@ -23,6 +23,7 @@ import {
   UserRound,
   Zap,
 } from 'lucide-react'
+import { avatarStreakRequirement } from '../utils/streaks.js'
 
 export const avatarIconOptions = [
   { key: 'skull', label: 'Skull', Icon: Skull, accent: 'text-red-100', glow: 'from-red-500/28 to-zinc-950' },
@@ -54,8 +55,13 @@ export function getAvatarIconOption(key) {
   return avatarIconOptions.find((option) => option.key === key) ?? avatarIconOptions[0]
 }
 
-export function canUseAvatarIcon(iconOrKey, role) {
+export function canUseAvatarIcon(iconOrKey, role, loginStreak = 0) {
   const option = typeof iconOrKey === 'string' ? getAvatarIconOption(iconOrKey) : iconOrKey
+  const requiredStreak = avatarStreakRequirement(option?.key)
+
+  if (requiredStreak && loginStreak < requiredStreak) {
+    return false
+  }
 
   if (!option?.accessRole) {
     return true
@@ -66,6 +72,11 @@ export function canUseAvatarIcon(iconOrKey, role) {
 
 export function getAvatarIconLockLabel(iconOrKey) {
   const option = typeof iconOrKey === 'string' ? getAvatarIconOption(iconOrKey) : iconOrKey
+  const requiredStreak = avatarStreakRequirement(option?.key)
+
+  if (requiredStreak) {
+    return `${requiredStreak} day streak`
+  }
 
   if (option?.accessRole === 'admin') {
     return 'Admins only'

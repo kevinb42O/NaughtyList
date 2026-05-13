@@ -11,7 +11,7 @@ import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
 import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } from '../utils/gameAccounts.js'
 import { clanPrefix } from '../utils/profiles.js'
-import { currentStreakReward, nextStreakReward, profileLoginStreak, profileLongestLoginStreak, streakRewards } from '../utils/streaks.js'
+import { avatarStreakRequirement, currentStreakReward, formatDaysUntilReward, nextStreakReward, profileLoginStreak, profileLongestLoginStreak, streakRewards } from '../utils/streaks.js'
 
 function ProfileSectionHeader({ step, eyebrow, title, description }) {
   return (
@@ -87,6 +87,7 @@ function Profile() {
   const nextRewardProgress = upcomingStreakReward
     ? Math.min(100, ((loginStreak - previousRewardDays) / (upcomingStreakReward.days - previousRewardDays)) * 100)
     : 100
+  const nextRewardRemaining = upcomingStreakReward ? formatDaysUntilReward(loginStreak, upcomingStreakReward) : 'All avatar badges unlocked'
 
   function addGameAccount() {
     const trimmed = newId.trim()
@@ -138,8 +139,8 @@ function Profile() {
     setSaveStatus('')
     setSaveError('')
 
-    if (!canUseAvatarIcon(avatarIcon, viewerRole) && avatarIcon !== currentProfileAvatar) {
-      setSaveError(`${getAvatarIconLockLabel(avatarIcon)} can use that avatar.`)
+    if (!canUseAvatarIcon(avatarIcon, viewerRole, loginStreak) && avatarIcon !== currentProfileAvatar) {
+      setSaveError(`That avatar is locked: ${getAvatarIconLockLabel(avatarIcon)}.`)
       setSaving(false)
       return
     }
@@ -236,12 +237,24 @@ function Profile() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <p className="intel-label mb-3">Avatar Icon</p>
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="intel-label">Avatar Badges</p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-600">
+                      {upcomingStreakReward ? `Next: ${upcomingStreakReward.unlockLabel}` : 'All streak avatars unlocked'}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-400">
+                    {upcomingStreakReward ? nextRewardRemaining : 'Maxed'}
+                  </span>
+                </div>
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-10">
                   {avatarIconOptions.map((option) => {
                     const selected = avatarIcon === option.key
-                    const unlocked = canUseAvatarIcon(option, viewerRole)
+                    const earnedByStreak = canUseAvatarIcon(option, viewerRole, loginStreak)
+                    const unlocked = earnedByStreak || option.key === currentProfileAvatar
                     const lockLabel = getAvatarIconLockLabel(option)
+                    const requiredStreak = avatarStreakRequirement(option.key)
 
                     return (
                       <button
@@ -259,7 +272,7 @@ function Profile() {
                             ? 'border-red-400/60 bg-red-500/16 shadow-[0_0_22px_rgba(239,68,68,0.18)]'
                             : unlocked
                               ? 'border-white/10 bg-black/25 hover:border-red-400/35 hover:bg-white/[0.04]'
-                              : 'border-white/10 bg-black/20 opacity-70'
+                              : 'border-white/10 bg-black/20 opacity-60'
                         }`}
                         aria-disabled={!unlocked}
                       >
@@ -274,7 +287,11 @@ function Profile() {
                         <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-red-100' : unlocked ? 'text-gray-500 group-hover:text-gray-300' : 'text-gray-500'}`}>
                           {option.label}
                         </span>
-                        {!unlocked ? <span className="text-[0.5rem] font-black uppercase tracking-[0.14em] text-gray-600">{lockLabel}</span> : null}
+                        {requiredStreak ? (
+                          <span className={`text-[0.5rem] font-black uppercase tracking-[0.14em] ${unlocked ? 'text-emerald-200/80' : 'text-gray-600'}`}>
+                            {earnedByStreak ? 'Earned' : unlocked ? 'Equipped' : `${requiredStreak}D`}
+                          </span>
+                        ) : !unlocked ? <span className="text-[0.5rem] font-black uppercase tracking-[0.14em] text-gray-600">{lockLabel}</span> : null}
                       </button>
                     )
                   })}
@@ -473,61 +490,58 @@ function Profile() {
             <ProfileSectionHeader
               step="3"
               eyebrow="Daily Streak"
-              title="Unlock Name Badges"
-              description="Open the app once per day to build your streak. Higher streaks unlock louder badges beside your name across the roster."
+              title="Unlock Profile Badges"
+              description="Each daily check-in moves you toward avatar badges that newer users cannot equip."
             />
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-[0.8fr_1.2fr]">
               <div className="rounded-[1.4rem] border border-red-400/30 bg-red-500/10 p-4">
                 <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">Current</p>
                 <p className="mt-2 text-4xl font-black text-white">{loginStreak}</p>
                 <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Day streak</p>
               </div>
               <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
-                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Best Run</p>
-                <p className="mt-2 text-4xl font-black text-white">{longestLoginStreak}</p>
-                <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Days held</p>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="intel-label mb-2">Equipped Badge</p>
-                  <StreakBadge profile={profile} />
-                </div>
-                {upcomingStreakReward ? (
-                  <div className="text-right">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
                     <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Next Unlock</p>
-                    <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
-                      {upcomingStreakReward.days}D {upcomingStreakReward.shortLabel}
+                    <p className="mt-2 text-lg font-black uppercase tracking-[0.04em] text-white">
+                      {upcomingStreakReward ? upcomingStreakReward.unlockLabel : 'All avatar badges unlocked'}
                     </p>
                   </div>
-                ) : (
-                  <p className="text-sm font-black uppercase tracking-[0.12em] text-yellow-100">All rewards unlocked</p>
-                )}
-              </div>
-
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
-                <div className="h-full rounded-full bg-gradient-to-r from-red-500 via-yellow-300 to-emerald-300" style={{ width: `${nextRewardProgress}%` }} />
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300">
+                    Best {longestLoginStreak}D
+                  </span>
+                </div>
+                <p className="mt-3 text-sm font-bold text-gray-400">
+                  {upcomingStreakReward ? nextRewardRemaining : 'You have every streak badge tier.'}
+                </p>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
+                  <div className="h-full rounded-full bg-red-300/80" style={{ width: `${nextRewardProgress}%` }} />
+                </div>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {streakRewards.map((reward) => {
                 const unlocked = loginStreak >= reward.days
+                const remainingLabel = formatDaysUntilReward(loginStreak, reward)
 
                 return (
                   <div
                     key={reward.key}
                     className={`rounded-[1.1rem] border p-3 ${unlocked ? reward.tone : 'border-white/10 bg-black/20 text-gray-600'}`}
                   >
-                    <p className="text-lg font-black text-white">{reward.days}D</p>
-                    <p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.14em]">
-                      {reward.shortLabel}
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`text-lg font-black ${unlocked ? 'text-white' : 'text-gray-500'}`}>{reward.days}D</p>
+                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[0.5rem] font-black uppercase tracking-[0.12em]">
+                        {unlocked ? 'Unlocked' : 'Locked'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-white/90">
+                      {reward.unlockLabel}
                     </p>
                     <p className="mt-2 text-[0.55rem] font-black uppercase tracking-[0.14em] text-gray-500">
-                      {unlocked ? 'Unlocked' : 'Locked'}
+                      {remainingLabel}
                     </p>
                   </div>
                 )

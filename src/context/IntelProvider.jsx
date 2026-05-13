@@ -881,8 +881,8 @@ function IntelProvider({ children }) {
     const nextAvatarIcon = updates.avatarIcon || defaultAvatarIconKey
     const currentAvatarIcon = profile?.avatar_icon ?? defaultAvatarIconKey
 
-    if (!canUseAvatarIcon(nextAvatarIcon, role) && nextAvatarIcon !== currentAvatarIcon) {
-      throw new Error(`${getAvatarIconLockLabel(nextAvatarIcon)} can use that avatar.`)
+    if (!canUseAvatarIcon(nextAvatarIcon, role, Number(profile?.login_streak_count ?? 0)) && nextAvatarIcon !== currentAvatarIcon) {
+      throw new Error(`That avatar is locked: ${getAvatarIconLockLabel(nextAvatarIcon)}.`)
     }
 
     const { data, error: updateError } = await supabase
