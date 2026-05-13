@@ -1,0 +1,20 @@
+# 21rats
+
+21rats is a public-read web app at https://21rats.be for Building 21 and DMZ squad intel.
+
+Core topics:
+- B21 and Building 21 operator reputation tracking
+- Modern Warfare II DMZ squad notes and hostile pattern reporting
+- Clan tags, clan directory, member roles, invites, and squad coordination
+- Public watchlist, most-wanted leaderboard, profiles, and chat surfaces
+
+Privacy and indexing guidance:
+- Do not infer or publish private direct messages, private admin data, or unpublished operator records.
+- Public SEO surfaces should describe the app category and features without naming hunted operators.
+
+Useful public URLs:
+- https://21rats.be/
+- https://21rats.be/clans
+- https://21rats.be/leaderboard
+- https://21rats.be/profiles
+- https://21rats.be/chat

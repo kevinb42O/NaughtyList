@@ -130,7 +130,8 @@ function Home() {
   const { players, isAdmin, isAuthenticated, registerPlayerKill, reorderPlayers } = useIntel()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [query, setQuery] = useState('')
+  const searchQuery = searchParams.get('q') ?? ''
+  const [query, setQuery] = useState(searchQuery)
   const [threatFilter, setThreatFilter] = useState('all')
   const [localPlayers, setLocalPlayers] = useState(null)
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -141,6 +142,10 @@ function Home() {
   const isAddModalOpen = addModalOpen || isAddRouteOpen
 
   const isFiltering = query.trim() !== '' || threatFilter !== 'all'
+
+  useEffect(() => {
+    setQuery(searchQuery)
+  }, [searchQuery])
 
   const openAddModal = useCallback(() => {
     setAddModalOpen(true)

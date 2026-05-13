@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
+import Seo from './components/Seo.jsx'
 import IntelProvider from './context/IntelProvider.jsx'
 import Admin from './views/Admin.jsx'
 import Auth from './views/Auth.jsx'
@@ -17,6 +18,7 @@ function App() {
   return (
     <IntelProvider>
       <BrowserRouter>
+        <Seo />
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />

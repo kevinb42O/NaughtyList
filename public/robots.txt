@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /profiles$
+Disallow: /admin
+Disallow: /moderator
+Disallow: /messages
+Disallow: /profile$
+Disallow: /auth
+Disallow: /profiles/
+
+Sitemap: https://21rats.be/sitemap.xml

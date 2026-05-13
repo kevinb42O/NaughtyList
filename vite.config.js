@@ -20,7 +20,7 @@ export default defineConfig({
         name: '21rats',
         short_name: '21rats',
         description:
-          'A local-first Building 21 reputation tracker for operators, clans, and repeat problems.',
+          'A B21 and Building 21 DMZ reputation tracker for operators, clans, hostile patterns, and squad intel.',
         theme_color: '#111827',
         background_color: '#030712',
         display: 'standalone',
