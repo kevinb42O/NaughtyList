@@ -2,6 +2,8 @@
 import { Check, Crown, Eye, LogIn, MessageSquare, Search, Settings, Shield, Star, UsersRound, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import ClanBadge from '../components/ClanBadge.jsx'
+import { clanBadgeIconOptions, defaultClanBadgeIconKey, getClanBadgeIconOption } from '../components/ProfileAvatar.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { clanPrefix, displayProfileName } from '../utils/profiles.js'
@@ -84,6 +86,7 @@ function Clans() {
   const [inviteUserId, setInviteUserId] = useState('')
   const [inviteMessage, setInviteMessage] = useState('')
   const [adminClanId, setAdminClanId] = useState('')
+  const [clanBadgeIcon, setClanBadgeIcon] = useState(defaultClanBadgeIconKey)
   const [utilitiesOpen, setUtilitiesOpen] = useState(false)
   const [adminClanState, setAdminClanState] = useState({
     clanId: '',
@@ -219,6 +222,10 @@ function Clans() {
     }
   }, [utilitiesOpen])
 
+  useEffect(() => {
+    setClanBadgeIcon(myClan?.badge_icon ?? defaultClanBadgeIconKey)
+  }, [myClan?.badge_icon, myClan?.id, utilitiesOpen])
+
   async function runAction(key, successMessage, action) {
     setWorkingKey(key)
     setStatus('')
@@ -259,6 +266,7 @@ function Clans() {
         name: String(formData.get('name') ?? ''),
         tag: String(formData.get('tag') ?? ''),
         description: String(formData.get('description') ?? ''),
+        badgeIcon: String(formData.get('badgeIcon') ?? defaultClanBadgeIconKey),
       })
       setUtilitiesOpen(false)
     })
@@ -341,23 +349,26 @@ function Clans() {
             return (
               <article key={clan.id} className={`rounded-2xl border bg-black/25 p-4 ${isSelectedByAdmin ? 'border-red-500/40' : 'border-white/10'}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-black uppercase tracking-[0.04em] text-white">
-                        [{clan.tag}] {clan.name}
-                      </h3>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                        {clan.memberCount} members
-                      </span>
-                      {clan.is_member ? (
-                        <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">
-                          Yours
+                  <div className="flex min-w-0 items-start gap-3">
+                    <ClanBadge clan={clan} size="md" className="mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-black uppercase tracking-[0.04em] text-white">
+                          [{clan.tag}] {clan.name}
+                        </h3>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                          {clan.memberCount} members
                         </span>
+                        {clan.is_member ? (
+                          <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">
+                            Yours
+                          </span>
+                        ) : null}
+                      </div>
+                      {clan.description ? (
+                        <p className="mt-2 text-sm leading-6 text-gray-400">{clan.description}</p>
                       ) : null}
                     </div>
-                    {clan.description ? (
-                      <p className="mt-2 text-sm leading-6 text-gray-400">{clan.description}</p>
-                    ) : null}
                   </div>
 
                   <div className="flex shrink-0 flex-wrap gap-2">
@@ -425,9 +436,12 @@ function Clans() {
           <p className="intel-label mb-2">Admin Clan Inspect</p>
           {adminSelectedClan ? (
             <>
-              <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
-                [{adminSelectedClan.tag}] {adminSelectedClan.name}
-              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <ClanBadge clan={adminSelectedClan} size="lg" />
+                <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
+                  [{adminSelectedClan.tag}] {adminSelectedClan.name}
+                </h2>
+              </div>
               <p className="mt-2 text-sm leading-6 text-gray-400">
                 {adminSelectedClan.description || 'No clan description yet.'}
               </p>
@@ -540,9 +554,12 @@ function Clans() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="intel-label mb-2">Utilities</p>
-            <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
-              [{myClan.tag}] Controls
-            </h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <ClanBadge clan={myClan} size="lg" />
+              <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
+                [{myClan.tag}] Controls
+              </h2>
+            </div>
             <p className="mt-2 text-sm leading-6 text-gray-500">
               Settings and destructive actions live here so the main HQ stays focused.
             </p>
@@ -561,6 +578,7 @@ function Clans() {
           <SectionCard className="mb-4">
             <p className="intel-label mb-3">Clan Settings</p>
             <form key={myClan.id} onSubmit={handleSaveClan} className="grid gap-4">
+              <input type="hidden" name="badgeIcon" value={clanBadgeIcon} />
               <div>
                 <label htmlFor="clan-name" className="intel-label mb-2 block">
                   Clan Name
@@ -599,6 +617,46 @@ function Clans() {
                   className="field min-h-28"
                   maxLength="280"
                 />
+              </div>
+              <div>
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="intel-label">Clan Badge Icon</p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-600">
+                      Pick from the existing player badge icon set.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-3 py-2">
+                    <ClanBadge iconKey={clanBadgeIcon} size="md" />
+                    <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300">
+                      {getClanBadgeIconOption(clanBadgeIcon).label}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+                  {clanBadgeIconOptions.map((option) => {
+                    const selected = clanBadgeIcon === option.key
+
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => setClanBadgeIcon(option.key)}
+                        className={`group flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 transition ${
+                          selected
+                            ? 'border-red-400/60 bg-red-500/16 shadow-[0_0_22px_rgba(239,68,68,0.18)]'
+                            : 'border-white/10 bg-black/25 hover:border-red-400/35 hover:bg-white/[0.04]'
+                        }`}
+                        aria-pressed={selected}
+                      >
+                        <ClanBadge iconKey={option.key} size="md" />
+                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-red-100' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                          {option.label}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               <button
                 type="submit"
@@ -884,20 +942,23 @@ function Clans() {
           <div className="grid gap-5">
             <SectionCard>
               <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <p className="intel-label mb-3">Ready Room</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-3xl font-black uppercase tracking-[0.04em] text-white">
-                      [{myClan.tag}] {myClan.name}
-                    </h2>
-                    <RolePill role={myClanRole} />
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                      {myClanMembers.length} members
-                    </span>
+                <div className="flex min-w-0 items-start gap-3">
+                  <ClanBadge clan={myClan} size="xl" className="mt-1" />
+                  <div className="min-w-0">
+                    <p className="intel-label mb-3">Ready Room</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-3xl font-black uppercase tracking-[0.04em] text-white">
+                        [{myClan.tag}] {myClan.name}
+                      </h2>
+                      <RolePill role={myClanRole} />
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                        {myClanMembers.length} members
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      {myClan.description || 'No clan description yet.'}
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-gray-400">
-                    {myClan.description || 'No clan description yet.'}
-                  </p>
                 </div>
                 <button
                   type="button"

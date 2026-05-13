@@ -2,6 +2,7 @@
 import { KeyRound, Lock, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import ClanBadge from '../components/ClanBadge.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
@@ -316,9 +317,12 @@ function Profile() {
                 <p className="intel-label mb-2">Clan Access</p>
                 {myClan ? (
                   <>
-                    <p className="text-lg font-black uppercase tracking-[0.04em] text-white">
-                      [{myClan.tag}] {myClan.name}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <ClanBadge clan={myClan} size="md" />
+                      <p className="text-lg font-black uppercase tracking-[0.04em] text-white">
+                        [{myClan.tag}] {myClan.name}
+                      </p>
+                    </div>
                     <p className="mt-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-500">
                       Role: {myClanRole}
                     </p>

@@ -12,6 +12,7 @@ import {
   Ghost,
   Lock,
   Radar,
+  Rat,
   Radio,
   ScanFace,
   Shield,
@@ -50,9 +51,18 @@ export const avatarIconOptions = [
 ]
 
 export const defaultAvatarIconKey = 'skull'
+export const defaultClanBadgeIconKey = 'shield'
+export const clanBadgeIconOptions = [
+  ...avatarIconOptions.filter((option) => !option.accessRole),
+  { key: 'rat', label: 'Rat', Icon: Rat, accent: 'text-red-100', glow: 'from-red-500/24 to-zinc-950' },
+]
 
 export function getAvatarIconOption(key) {
   return avatarIconOptions.find((option) => option.key === key) ?? avatarIconOptions[0]
+}
+
+export function getClanBadgeIconOption(key) {
+  return clanBadgeIconOptions.find((option) => option.key === key) ?? getAvatarIconOption(defaultClanBadgeIconKey)
 }
 
 export function canUseAvatarIcon(iconOrKey, role, loginStreak = 0) {

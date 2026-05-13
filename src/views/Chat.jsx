@@ -1,6 +1,7 @@
 import { Crown, Eye, MessageSquare, Send, Shield } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import ClanBadge from '../components/ClanBadge.jsx'
 import MessageReactions from '../components/MessageReactions.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
@@ -401,9 +402,12 @@ function Chat() {
           <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-gray-400">
             {selectedClan ? (
               <>
-                <p className="font-black uppercase tracking-[0.08em] text-white">
-                  [{selectedClan.tag}] {selectedClan.name}
-                </p>
+                <div className="flex items-center gap-3">
+                  <ClanBadge clan={selectedClan} size="sm" />
+                  <p className="font-black uppercase tracking-[0.08em] text-white">
+                    [{selectedClan.tag}] {selectedClan.name}
+                  </p>
+                </div>
                 <p className="mt-1 leading-6">
                   {selectedClan.id === myClanId
                     ? `Your active clan room. Role: ${myClanRole}.`
@@ -440,9 +444,16 @@ function Chat() {
             <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">
               {activeRoom === 'clan' ? 'Clan Chat' : 'Public Chat'}
             </p>
-            <h2 className="truncate text-base font-black uppercase tracking-[0.04em] text-white">
-              {activeRoom === 'clan' && selectedClan ? `[${selectedClan.tag}] ${selectedClan.name}` : 'Live Room'}
-            </h2>
+            {activeRoom === 'clan' && selectedClan ? (
+              <div className="flex items-center gap-2">
+                <ClanBadge clan={selectedClan} size="sm" />
+                <h2 className="truncate text-base font-black uppercase tracking-[0.04em] text-white">
+                  [{selectedClan.tag}] {selectedClan.name}
+                </h2>
+              </div>
+            ) : (
+              <h2 className="truncate text-base font-black uppercase tracking-[0.04em] text-white">Live Room</h2>
+            )}
           </div>
           {activeRoom === 'clan' && selectedClan ? (
             <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">

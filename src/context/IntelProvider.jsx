@@ -9,7 +9,7 @@ import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
 const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, last_seen, created_at, updated_at'
-const clanSelect = 'id, name, tag, description, created_by, created_at, updated_at, archived_at'
+const clanSelect = 'id, name, tag, description, badge_icon, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
   direct: 'direct_message_reactions',
@@ -1080,12 +1080,13 @@ function IntelProvider({ children }) {
     return data
   }
 
-  async function updateClan(clanId, { name, tag, description }) {
+  async function updateClan(clanId, { name, tag, description, badgeIcon }) {
     const { data, error: updateClanError } = await supabase.rpc('update_clan', {
       target_clan_id: clanId,
       clan_name: name,
       clan_tag: tag,
       clan_description: description,
+      clan_badge_icon: badgeIcon,
     })
 
     if (updateClanError) {
