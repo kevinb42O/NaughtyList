@@ -336,7 +336,7 @@ function Chat() {
   if (!isAuthenticated) {
     return (
       <div>
-        <PageHeader eyebrow="Chat Network" title="Login Required">
+        <PageHeader eyebrow="Chat Network" code="B21 // COMMS" title="Login Required">
           Public chat and clan rooms are available to signed-in users.
         </PageHeader>
         <Link
@@ -351,7 +351,7 @@ function Chat() {
 
   return (
     <div>
-      <PageHeader eyebrow="Chat Network" title="Squad Comms">
+      <PageHeader eyebrow="Chat Network" code="B21 // COMMS" title="Squad Comms">
         Fast public calls, private clan traffic, clean reactions.
       </PageHeader>
 

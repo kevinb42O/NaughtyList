@@ -97,7 +97,7 @@ function Moderator() {
   if (!isAuthenticated) {
     return (
       <div>
-        <PageHeader eyebrow="Moderator Login" title="Login Required">
+        <PageHeader eyebrow="Moderator Login" code="B21 // MOD" title="Login Required">
           Moderator tools are only available to signed-in moderators and the admin.
         </PageHeader>
         <Link
@@ -113,7 +113,7 @@ function Moderator() {
   if (!isModerator) {
     return (
       <div>
-        <PageHeader eyebrow="Moderator Screen" title="No Moderator Role">
+        <PageHeader eyebrow="Moderator Screen" code="B21 // MOD" title="No Moderator Role">
           Ask the admin to promote your account before you can moderate entries.
         </PageHeader>
         <section className="panel rounded-[1.8rem] p-5">
@@ -130,7 +130,7 @@ function Moderator() {
 
   return (
     <div>
-      <PageHeader eyebrow="Moderator Screen" title="Moderation Queue">
+      <PageHeader eyebrow="Moderator Screen" code="B21 // MOD" title="Moderation Queue">
         Remove bad or duplicate operator records. Admins and moderators share this queue.
       </PageHeader>
 

@@ -291,7 +291,7 @@ function Messages() {
   if (!isAuthenticated) {
     return (
       <div>
-        <PageHeader eyebrow="Direct Messages" title="Login Required">
+        <PageHeader eyebrow="Direct Messages" code="B21 // DM" title="Login Required">
           Personal messaging is available to signed-in users.
         </PageHeader>
         <Link
@@ -306,7 +306,7 @@ function Messages() {
 
   return (
     <div>
-      <PageHeader eyebrow="Direct Messages" title="Private Comms">
+      <PageHeader eyebrow="Direct Messages" code="B21 // DM" title="Private Comms">
         Clean one-on-one threads with fast reactions and quiet unread tracking.
       </PageHeader>
 

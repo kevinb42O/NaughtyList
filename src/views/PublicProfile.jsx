@@ -25,7 +25,7 @@ function PublicProfile() {
   if (loading && !profile) {
     return (
       <div>
-        <PageHeader eyebrow="Operator Profile" title="Loading Profile">
+        <PageHeader eyebrow="Operator Profile" code="B21 // PROFILE" title="Loading Profile">
           Pulling operator details from the roster.
         </PageHeader>
       </div>
@@ -35,7 +35,7 @@ function PublicProfile() {
   if (!profile) {
     return (
       <div>
-        <PageHeader eyebrow="Operator Profile" title="Profile Not Found">
+        <PageHeader eyebrow="Operator Profile" code="B21 // PROFILE" title="Profile Not Found">
           That operator is not in the current roster.
         </PageHeader>
         <Link
@@ -66,7 +66,7 @@ function PublicProfile() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader eyebrow="Operator Profile" title={`${clanPrefix(profile)} ${displayProfileName(profile)}`}>
+      <PageHeader eyebrow="Operator Profile" code="B21 // PROFILE" title={`${clanPrefix(profile)} ${displayProfileName(profile)}`}>
         Review operator details before you squad up, message them, or check which account they are running.
       </PageHeader>
 

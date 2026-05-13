@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import AddPlayerModal from '../components/AddPlayerModal.jsx'
 import PlayerRow from '../components/PlayerRow.jsx'
+import SignalTitle from '../components/SignalTitle.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { comparePlayersByPriority } from '../utils/threat.js'
 
@@ -281,21 +282,9 @@ function Home() {
   return (
     <div className="flex flex-1 flex-col gap-6">
       <section className="panel overflow-hidden rounded-[2rem] px-5 py-6 sm:px-7 sm:py-7">
-        <p className="intel-label mb-3 text-red-100">21rats Intel Board</p>
         <div className="flex flex-col gap-6">
           <div className="max-w-3xl">
-            <h1 className="flex flex-col gap-3 text-white">
-              <span className="text-[0.68rem] font-black uppercase tracking-[0.42em] text-red-200/80 sm:text-[0.76rem]">
-                B21 Watchlist
-              </span>
-              <span className="inline-flex flex-wrap items-center gap-2 text-5xl font-black uppercase leading-none tracking-[0.08em] sm:text-6xl">
-                <span className="text-red-500/80">[</span>
-                <span className="drop-shadow-[0_0_24px_rgba(239,68,68,0.22)] home-title-number">21</span>
-                <span className="text-red-400/75">//</span>
-                <span className="drop-shadow-[0_0_28px_rgba(239,68,68,0.26)] home-title-word">RATS</span>
-                <span className="text-red-500/80">]</span>
-              </span>
-            </h1>
+            <SignalTitle code="B21 Watchlist" title="RATS" size="hero" bracketed />
           </div>
         </div>
       </section>

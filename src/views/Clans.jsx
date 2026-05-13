@@ -745,7 +745,7 @@ function Clans() {
 
   return (
     <div>
-      <PageHeader eyebrow="Clan Network" title="Clan HQ">
+      <PageHeader eyebrow="Clan Network" code="B21 // CLANS" title="Clan HQ">
         Clan status, roster, and access.
       </PageHeader>
 
