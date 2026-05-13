@@ -1,4 +1,4 @@
-import { Plus, Search, ShieldX } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -273,21 +273,11 @@ function Home() {
     [applyKillResultToLocalPlayers, isAuthenticated, pendingKillId, registerPlayerKill],
   )
 
-  const stats = useMemo(
-    () => [
-      { label: 'Operators', value: players.length, tone: 'text-white' },
-      { label: 'KOS', value: players.filter((p) => p.threatLevel === 'hostile').length, tone: 'text-red-300' },
-      { label: 'Caution', value: players.filter((p) => p.threatLevel === 'caution').length, tone: 'text-orange-200' },
-      { label: 'Clips', value: players.filter((p) => p.evidenceUrl).length, tone: 'text-cyan-200' },
-    ],
-    [players],
-  )
-
   return (
     <div className="flex flex-1 flex-col gap-6">
       <section className="panel overflow-hidden rounded-[2rem] px-5 py-6 sm:px-7 sm:py-7">
         <p className="intel-label mb-3 text-red-100">21rats Intel Board</p>
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex flex-col gap-6">
           <div className="max-w-3xl">
             <h1 className="flex flex-col gap-3 text-white">
               <span className="text-[0.68rem] font-black uppercase tracking-[0.42em] text-red-200/80 sm:text-[0.76rem]">
@@ -301,31 +291,6 @@ function Home() {
                 <span className="text-red-500/80">]</span>
               </span>
             </h1>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                type="button"
-                onClick={openAddModal}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/60 bg-red-500/15 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 shadow-[0_0_28px_rgba(239,68,68,0.16)] transition hover:bg-red-500/25"
-              >
-                <Plus className="h-5 w-5" aria-hidden="true" />
-                Add Intel
-              </button>
-              <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
-                <ShieldX className="h-4 w-4 text-red-200" aria-hidden="true" />
-                Live squad intel
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:max-w-[420px]">
-            {stats.map((stat) => (
-              <div key={stat.label} className="metric-card min-w-24">
-                <p className={`text-2xl font-black ${stat.tone}`}>{stat.value}</p>
-                <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.2em] text-gray-500">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
