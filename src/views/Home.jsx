@@ -19,7 +19,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import AddPlayerModal from '../components/AddPlayerModal.jsx'
 import PlayerRow from '../components/PlayerRow.jsx'
-import SignalTitle from '../components/SignalTitle.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { comparePlayersByPriority } from '../utils/threat.js'
 
@@ -280,16 +279,26 @@ function Home() {
   )
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <section className="panel overflow-hidden rounded-[2rem] px-5 py-6 sm:px-7 sm:py-7">
-        <div className="flex flex-col gap-6">
-          <div className="max-w-3xl">
-            <SignalTitle eyebrow="B21 Watchlist" title="RATS" size="hero" bracketed />
-          </div>
-        </div>
+    <div className="flex flex-1 flex-col gap-0">
+      <section
+        className="relative z-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black shadow-[0_24px_70px_rgba(0,0,0,0.42)] sm:rounded-[2rem]"
+        aria-labelledby="home-hero-title"
+      >
+        <h1 id="home-hero-title" className="sr-only">
+          21 RATS
+        </h1>
+        <img
+          src="/final_header.png"
+          alt="21 RATS squad lineup"
+          className="aspect-[1672/941] w-full object-cover"
+          width="1672"
+          height="941"
+          decoding="async"
+          fetchPriority="high"
+        />
       </section>
 
-      <section className="watchlist-shell rounded-[1.8rem] p-4 sm:p-5">
+      <section className="watchlist-shell relative z-10 -mt-[clamp(4.5rem,22.5vw,16.25rem)] rounded-[1.8rem] p-4 sm:p-5">
         <div className="flex flex-col gap-4 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

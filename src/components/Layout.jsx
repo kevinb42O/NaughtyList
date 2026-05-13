@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   Crown,
   CircleHelp,
@@ -26,6 +26,7 @@ const navItems = [
 ]
 
 function Layout() {
+  const location = useLocation()
   const {
     isAuthenticated,
     isAdmin,
@@ -62,6 +63,7 @@ function Layout() {
   const bottomNavItems = roleNavItem
     ? [...navItems.slice(0, -1), roleNavItem, navItems[navItems.length - 1]]
     : navItems
+  const isHome = location.pathname === '/'
 
   function navClass({ isActive }, item) {
     const isRoleItem = item.tone === 'admin' || item.tone === 'moderator'
@@ -114,88 +116,90 @@ function Layout() {
         className="app-watermark pointer-events-none fixed inset-0 z-0"
       />
       <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-24 pt-4 sm:px-6 lg:px-8">
-        <header className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-xl sm:px-4">
-          <Link to="/" className="flex min-w-0 items-center gap-3">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5">
-              <img
-                src="/ratslogo.png?v=20260511-ratslogo"
-                alt="21rats logo"
-                className="relative h-10 w-10 object-contain"
-              />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.24em] text-red-100 sm:text-xs">
-                21rats
-              </p>
-              <p className="truncate text-[0.62rem] font-bold uppercase tracking-[0.14em] text-gray-500 sm:text-[0.68rem]">
-                Building 21 Intel Network
-              </p>
-            </div>
-          </Link>
-
-          <div className="flex min-w-0 items-center justify-end gap-2">
-            <Link
-              to="/help"
-              title="Help and FAQ"
-              aria-label="Open Help and FAQ"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition hover:border-red-500/40 hover:text-red-100 sm:w-auto sm:px-3"
-            >
-              <CircleHelp className="h-4.5 w-4.5" aria-hidden="true" />
-              <span className="hidden pl-2 text-[0.62rem] font-black uppercase tracking-[0.16em] sm:inline">Help</span>
+        <div className={isHome ? 'pointer-events-none absolute inset-x-0 top-4 z-20 px-4 sm:px-6 lg:px-8' : ''}>
+          <header className={`${isHome ? 'pointer-events-auto mb-0 bg-black/38 shadow-2xl shadow-black/35' : 'mb-5 bg-black/30 shadow-lg shadow-black/20'} flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2 backdrop-blur-xl sm:px-4`}>
+            <Link to="/" className="flex min-w-0 items-center gap-3">
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5">
+                <img
+                  src="/ratslogo.png?v=20260511-ratslogo"
+                  alt="21rats logo"
+                  className="relative h-10 w-10 object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.24em] text-red-100 sm:text-xs">
+                  21rats
+                </p>
+                <p className="truncate text-[0.62rem] font-bold uppercase tracking-[0.14em] text-gray-500 sm:text-[0.68rem]">
+                  Building 21 Intel Network
+                </p>
+              </div>
             </Link>
 
-            {isAuthenticated ? (
-              <Link to="/profile" className="hidden min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 hover:border-red-400/30 sm:flex">
-                <ProfileAvatar profile={profile} size="sm" />
-                <div className="min-w-0 text-right">
-                  <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.14em] text-gray-300">
-                    {`${clanPrefix(profile)} ${displayProfileName(profile)}`}
-                  </p>
-                </div>
-              </Link>
-            ) : null}
-
-            {isAuthenticated ? (
-              <button
-                type="button"
-                onClick={handleDropIn}
-                disabled={dropping || dropStatus === 'sent'}
-                title="Ping everyone — you just dropped in"
-                className={[
-                  'inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] transition active:scale-95 disabled:scale-100',
-                  dropStatus === 'sent'
-                    ? 'border-green-500/50 bg-green-500/12 text-green-200'
-                    : dropStatus === 'error'
-                      ? 'border-red-500/50 bg-red-500/12 text-red-100'
-                    : dropping
-                      ? 'border-white/10 bg-white/5 text-gray-500 opacity-60'
-                      : 'border-yellow-400/40 bg-yellow-400/10 text-yellow-100 hover:bg-yellow-400/20',
-                ].join(' ')}
-              >
-                <Zap className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="hidden sm:inline">{dropStatus === 'sent' ? 'Pinged!' : dropStatus === 'error' ? 'Failed' : dropping ? 'Sending...' : 'Drop In'}</span>
-              </button>
-            ) : null}
-
-            {isAuthenticated ? (
-              <button
-                type="button"
-                onClick={signOut}
-                className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-400 hover:text-gray-100 md:inline-flex"
-              >
-                Logout
-              </button>
-            ) : (
+            <div className="flex min-w-0 items-center justify-end gap-2">
               <Link
-                to="/auth"
-                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300 hover:border-red-500/40 hover:text-red-100"
+                to="/help"
+                title="Help and FAQ"
+                aria-label="Open Help and FAQ"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition hover:border-red-500/40 hover:text-red-100 sm:w-auto sm:px-3"
               >
-                <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
-                Login
+                <CircleHelp className="h-4.5 w-4.5" aria-hidden="true" />
+                <span className="hidden pl-2 text-[0.62rem] font-black uppercase tracking-[0.16em] sm:inline">Help</span>
               </Link>
-            )}
-          </div>
-        </header>
+
+              {isAuthenticated ? (
+                <Link to="/profile" className="hidden min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 hover:border-red-400/30 sm:flex">
+                  <ProfileAvatar profile={profile} size="sm" />
+                  <div className="min-w-0 text-right">
+                    <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.14em] text-gray-300">
+                      {`${clanPrefix(profile)} ${displayProfileName(profile)}`}
+                    </p>
+                  </div>
+                </Link>
+              ) : null}
+
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={handleDropIn}
+                  disabled={dropping || dropStatus === 'sent'}
+                  title="Ping everyone — you just dropped in"
+                  className={[
+                    'inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] transition active:scale-95 disabled:scale-100',
+                    dropStatus === 'sent'
+                      ? 'border-green-500/50 bg-green-500/12 text-green-200'
+                      : dropStatus === 'error'
+                        ? 'border-red-500/50 bg-red-500/12 text-red-100'
+                      : dropping
+                        ? 'border-white/10 bg-white/5 text-gray-500 opacity-60'
+                        : 'border-yellow-400/40 bg-yellow-400/10 text-yellow-100 hover:bg-yellow-400/20',
+                  ].join(' ')}
+                >
+                  <Zap className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">{dropStatus === 'sent' ? 'Pinged!' : dropStatus === 'error' ? 'Failed' : dropping ? 'Sending...' : 'Drop In'}</span>
+                </button>
+              ) : null}
+
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-400 hover:text-gray-100 md:inline-flex"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300 hover:border-red-500/40 hover:text-red-100"
+                >
+                  <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
+                  Login
+                </Link>
+              )}
+            </div>
+          </header>
+        </div>
 
         <Outlet />
       </main>
