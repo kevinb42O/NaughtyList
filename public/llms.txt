@@ -18,3 +18,4 @@ Useful public URLs:
 - https://21rats.be/leaderboard
 - https://21rats.be/profiles
 - https://21rats.be/chat
+- https://21rats.be/help

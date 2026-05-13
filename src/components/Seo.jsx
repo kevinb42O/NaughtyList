@@ -71,6 +71,12 @@ const routeSeo = {
       'Coordinate DMZ runs, clan operations, Building 21 intel, and squad updates through the 21rats chat network.',
     keywords: ['DMZ chat', 'Building 21 chat', 'clan chat', 'squad coordination'],
   },
+  '/help': {
+    title: 'Help and FAQ | 21rats',
+    description:
+      'Learn how to install 21rats on iPhone and Android, enable phone notifications, use clans, chat, direct messages, profiles, and Building 21 intel tools.',
+    keywords: ['21rats help', 'install 21rats', '21rats notifications', 'DMZ clan help', 'Building 21 FAQ'],
+  },
   '/auth': {
     title: 'Login | 21rats',
     description: 'Log in to submit 21rats intel, manage your profile, and coordinate with DMZ clans.',
@@ -157,6 +163,64 @@ function Seo() {
     const canonicalUrl = `${siteUrl}${location.pathname === '/' ? '/' : location.pathname}`
     const keywords = [...defaultKeywords, ...(seo.keywords ?? [])].join(', ')
     const robots = seo.noindex ? 'noindex, nofollow, noarchive' : 'index, follow, max-image-preview:large'
+    const structuredGraph = [
+      {
+        '@type': 'WebSite',
+        '@id': `${siteUrl}/#website`,
+        name: siteName,
+        url: `${siteUrl}/`,
+        description: routeSeo['/'].description,
+        inLanguage: 'en',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${siteUrl}/?q={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'WebApplication',
+        '@id': `${siteUrl}/#app`,
+        name: siteName,
+        url: `${siteUrl}/`,
+        applicationCategory: 'GameApplication',
+        operatingSystem: 'Web',
+        image: defaultImage,
+        description: routeSeo['/'].description,
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'EUR',
+        },
+      },
+      {
+        '@type': 'Organization',
+        '@id': `${siteUrl}/#organization`,
+        name: siteName,
+        url: `${siteUrl}/`,
+        logo: defaultImage,
+      },
+    ]
+
+    if (location.pathname === '/help') {
+      structuredGraph.push({
+        '@type': 'FAQPage',
+        '@id': `${siteUrl}/help#faq`,
+        name: '21rats Help and FAQ',
+        mainEntity: [
+          ['How do I install 21rats on my home screen?', 'On iPhone, use Safari, tap Share, choose Add to Home Screen, then Add. On Android, use Chrome, open the three-dot menu, choose Install app or Add to Home screen, then confirm.'],
+          ['How do I enable notifications?', 'Install the app, log in, open Profile, tap Enable On This Device, then allow the phone permission prompt. Repeat this on each phone where you want alerts.'],
+          ['How do I make a clan?', 'Log in, open Clan HQ, and use Create Clan. Add a clan name, tag, and short description so people know who you are recruiting.'],
+          ['What is 21rats for?', '21rats is a Building 21 intel board for tracking operator reputation, hostile patterns, clans, squad profiles, chat, direct messages, and phone alerts.'],
+        ].map(([name, text]) => ({
+          '@type': 'Question',
+          name,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text,
+          },
+        })),
+      })
+    }
 
     document.title = seo.title
     upsertLink('link[rel="canonical"]', { rel: 'canonical', href: canonicalUrl })
@@ -178,43 +242,7 @@ function Seo() {
     upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: defaultImage })
     upsertJsonLd('site-structured-data', {
       '@context': 'https://schema.org',
-      '@graph': [
-        {
-          '@type': 'WebSite',
-          '@id': `${siteUrl}/#website`,
-          name: siteName,
-          url: `${siteUrl}/`,
-          description: routeSeo['/'].description,
-          inLanguage: 'en',
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: `${siteUrl}/?q={search_term_string}`,
-            'query-input': 'required name=search_term_string',
-          },
-        },
-        {
-          '@type': 'WebApplication',
-          '@id': `${siteUrl}/#app`,
-          name: siteName,
-          url: `${siteUrl}/`,
-          applicationCategory: 'GameApplication',
-          operatingSystem: 'Web',
-          image: defaultImage,
-          description: routeSeo['/'].description,
-          offers: {
-            '@type': 'Offer',
-            price: '0',
-            priceCurrency: 'EUR',
-          },
-        },
-        {
-          '@type': 'Organization',
-          '@id': `${siteUrl}/#organization`,
-          name: siteName,
-          url: `${siteUrl}/`,
-          logo: defaultImage,
-        },
-      ],
+      '@graph': structuredGraph,
     })
   }, [location.pathname, seo])
 

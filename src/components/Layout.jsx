@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import {
   Crown,
+  CircleHelp,
   House,
   LogIn,
   MessageSquare,
@@ -136,6 +137,16 @@ function Layout() {
           </Link>
 
           <div className="flex min-w-0 items-center justify-end gap-2">
+            <Link
+              to="/help"
+              title="Help and FAQ"
+              aria-label="Open Help and FAQ"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition hover:border-red-500/40 hover:text-red-100 sm:w-auto sm:px-3"
+            >
+              <CircleHelp className="h-4.5 w-4.5" aria-hidden="true" />
+              <span className="hidden pl-2 text-[0.62rem] font-black uppercase tracking-[0.16em] sm:inline">Help</span>
+            </Link>
+
             {isAuthenticated ? (
               <Link to="/profile" className="hidden min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 hover:border-red-400/30 sm:flex">
                 <ProfileAvatar profile={profile} size="sm" />

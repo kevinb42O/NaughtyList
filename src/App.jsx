@@ -6,6 +6,7 @@ import Admin from './views/Admin.jsx'
 import Auth from './views/Auth.jsx'
 import Chat from './views/Chat.jsx'
 import Clans from './views/Clans.jsx'
+import Help from './views/Help.jsx'
 import Home from './views/Home.jsx'
 import Leaderboard from './views/Leaderboard.jsx'
 import Messages from './views/Messages.jsx'
@@ -30,6 +31,8 @@ function App() {
             <Route path="/profiles/:profileId" element={<PublicProfile />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/faq" element={<Navigate to="/help" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/moderator" element={<Moderator />} />
             <Route path="/admin" element={<Admin />} />
