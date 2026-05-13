@@ -68,18 +68,18 @@ function Layout() {
   function navClass({ isActive }, item) {
     const isRoleItem = item.tone === 'admin' || item.tone === 'moderator'
     const activeTone = item.tone === 'admin'
-      ? 'border-yellow-300/70 bg-yellow-400/18 text-yellow-100 shadow-[0_0_28px_rgba(250,204,21,0.24)]'
+      ? 'border-yellow-400/35 bg-yellow-400/10 text-yellow-100'
       : item.tone === 'moderator'
-        ? 'border-orange-300/70 bg-orange-400/18 text-orange-100 shadow-[0_0_28px_rgba(251,146,60,0.22)]'
-        : 'border-red-300/70 bg-red-500/18 text-red-50 shadow-[0_0_30px_rgba(239,68,68,0.28)]'
+        ? 'border-orange-400/35 bg-orange-400/10 text-orange-100'
+        : 'border-white/12 bg-white/[0.07] text-white'
     const idleTone = isRoleItem
       ? item.tone === 'admin'
-        ? 'border-yellow-400/25 bg-yellow-400/8 text-yellow-200'
-        : 'border-orange-400/25 bg-orange-400/8 text-orange-100'
-      : 'border-white/8 bg-white/[0.03] text-gray-500'
+        ? 'border-transparent text-yellow-200/80'
+        : 'border-transparent text-orange-100/80'
+      : 'border-transparent text-gray-500'
 
     return [
-      'group relative isolate flex min-h-[4.25rem] flex-col items-center justify-center overflow-hidden rounded-[1.1rem] border px-1.5 text-[0.56rem] font-black uppercase tracking-[0.1em] transition duration-200 active:scale-95 sm:text-[0.62rem] sm:tracking-[0.14em]',
+      'group relative isolate flex min-h-[3.45rem] flex-col items-center justify-center rounded-xl border px-1 text-[0.56rem] font-black uppercase tracking-[0.08em] transition-colors duration-150 active:bg-white/[0.08] sm:min-h-[3.65rem] sm:text-[0.6rem] sm:tracking-[0.12em]',
       isActive ? activeTone : idleTone,
     ].join(' ')
   }
@@ -91,21 +91,17 @@ function Layout() {
       <NavLink key={item.to} to={item.to} className={(state) => navClass(state, item)}>
         {({ isActive }) => (
           <>
-            <span
-              aria-hidden="true"
-              className={`pointer-events-none absolute inset-x-2 top-1 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent transition ${isActive ? 'opacity-100' : 'opacity-0'}`}
-            />
-            <span className={`mb-1 flex h-8 w-8 items-center justify-center rounded-2xl border transition ${isActive ? 'border-white/20 bg-white/12 text-white' : 'border-transparent bg-transparent text-current'}`}>
-              <Icon className="h-5 w-5" aria-hidden="true" />
+            <span className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-lg transition-colors ${isActive ? 'text-white' : 'text-current'}`}>
+              <Icon className="h-4.5 w-4.5" aria-hidden="true" />
             </span>
             <span>{item.label}</span>
             {item.to === '/messages' && unreadDirectMessageCount ? (
-              <span className="absolute right-1.5 top-1.5 min-w-5 rounded-full border border-red-300/70 bg-red-500/25 px-1.5 py-0.5 text-[0.55rem] leading-none text-red-50 shadow-lg shadow-red-500/20">
+              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-red-400/50 bg-red-500/18 px-1 py-0.5 text-[0.5rem] leading-none text-red-100">
                 {unreadDirectMessageCount > 9 ? '9+' : unreadDirectMessageCount}
               </span>
             ) : null}
             {isActive ? (
-              <span className="absolute bottom-1.5 h-1 w-7 rounded-full bg-current opacity-70 shadow-[0_0_16px_currentColor]" aria-hidden="true" />
+              <span className="absolute bottom-1 h-0.5 w-5 rounded-full bg-red-300/80" aria-hidden="true" />
             ) : null}
           </>
         )}
@@ -119,11 +115,10 @@ function Layout() {
         aria-hidden="true"
         className="app-watermark pointer-events-none fixed inset-0 z-0"
       />
-      <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-32 pt-4 sm:px-6 lg:px-8">
-        <header className="mb-5 flex items-center justify-between gap-3 rounded-[1.35rem] border border-white/10 bg-black/35 px-3 py-2.5 shadow-xl shadow-black/25 backdrop-blur-xl sm:px-4">
+      <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-24 pt-4 sm:px-6 lg:px-8">
+        <header className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-xl sm:px-4">
           <Link to="/" className="flex min-w-0 items-center gap-3">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-red-500/25 bg-white/5 shadow-[0_0_24px_rgba(239,68,68,0.16)]">
-              <span className="absolute inset-0 bg-gradient-to-br from-red-500/16 to-emerald-400/8" aria-hidden="true" />
+            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5">
               <img
                 src="/ratslogo.png?v=20260511-ratslogo"
                 alt="21rats logo"
@@ -201,9 +196,8 @@ function Layout() {
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/88 px-2 pb-[calc(0.55rem+env(safe-area-inset-bottom))] pt-2 shadow-2xl shadow-black backdrop-blur-2xl" aria-label="Primary navigation">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-300/70 to-transparent" aria-hidden="true" />
-        <div className="mx-auto grid max-w-6xl gap-1.5 rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.45)] sm:gap-2" style={{ gridTemplateColumns: `repeat(${bottomNavItems.length}, minmax(0, 1fr))` }}>
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl" aria-label="Primary navigation">
+        <div className="mx-auto grid max-w-6xl gap-1 rounded-2xl border border-white/8 bg-black/35 p-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${bottomNavItems.length}, minmax(0, 1fr))` }}>
           {bottomNavItems.map((item) => <NavItem key={item.to} item={item} />)}
         </div>
       </nav>
