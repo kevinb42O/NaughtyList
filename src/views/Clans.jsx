@@ -1,28 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { Check, Crown, Eye, LogIn, MessageSquare, Search, Shield, Star, UsersRound, X } from 'lucide-react'
+import { Check, Crown, Eye, LogIn, MessageSquare, Search, Settings, Shield, Star, UsersRound, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { clanPrefix, displayProfileName } from '../utils/profiles.js'
-
-const clanEventLabels = {
-  'clan-created': 'Clan created',
-  'join-requested': 'Join requested',
-  'join-request-approved': 'Join approved',
-  'join-request-rejected': 'Join rejected',
-  'join-request-cancelled': 'Join request cancelled',
-  'member-invited': 'Invite sent',
-  'invite-accepted': 'Invite accepted',
-  'invite-declined': 'Invite declined',
-  'member-removed': 'Member removed',
-  'member-left': 'Member left',
-  'role-updated': 'Role updated',
-  'ownership-transferred': 'Ownership transferred',
-  'clan-updated': 'Clan updated',
-  'clan-archived': 'Clan archived',
-  'message-deleted': 'Message deleted',
-}
 
 function roleBadgeTone(role) {
   if (role === 'owner') {
@@ -87,7 +69,6 @@ function Clans() {
     transferClanOwnership,
     updateClan,
     archiveClan,
-    fetchClanAuditEvents,
     fetchClanMessages,
     fetchClanMembers,
   } = useIntel()
@@ -102,13 +83,12 @@ function Clans() {
 
   const [inviteUserId, setInviteUserId] = useState('')
   const [inviteMessage, setInviteMessage] = useState('')
-  const [auditState, setAuditState] = useState({ clanId: '', events: [] })
   const [adminClanId, setAdminClanId] = useState('')
+  const [utilitiesOpen, setUtilitiesOpen] = useState(false)
   const [adminClanState, setAdminClanState] = useState({
     clanId: '',
     members: [],
     messages: [],
-    events: [],
     error: '',
     loading: false,
   })
@@ -165,33 +145,7 @@ function Clans() {
     if (!isAdmin || !adminClanId) return null
     return sortedDirectory.find((clan) => clan.id === adminClanId) ?? null
   }, [adminClanId, isAdmin, sortedDirectory])
-  const auditEvents = auditState.clanId === myClanId ? auditState.events : []
-  const loadingAudit = Boolean(myClanId && auditState.clanId !== myClanId)
   const adminClanLoading = Boolean(adminSelectedClan?.id && adminClanState.loading)
-
-  useEffect(() => {
-    let cancelled = false
-
-    if (!myClanId) {
-      return undefined
-    }
-
-    fetchClanAuditEvents(myClanId)
-      .then((nextEvents) => {
-        if (!cancelled) {
-          setAuditState({ clanId: myClanId, events: nextEvents })
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAuditState({ clanId: myClanId, events: [] })
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [clanInvites.length, clanJoinRequests.length, fetchClanAuditEvents, myClanId, myClanMembers.length])
 
   useEffect(() => {
     let cancelled = false
@@ -204,7 +158,6 @@ function Clans() {
       clanId: adminSelectedClan.id,
       members: [],
       messages: [],
-      events: [],
       error: '',
       loading: true,
     })
@@ -212,15 +165,13 @@ function Clans() {
     Promise.all([
       fetchClanMembers(adminSelectedClan.id),
       fetchClanMessages(adminSelectedClan.id),
-      fetchClanAuditEvents(adminSelectedClan.id),
     ])
-      .then(([nextMembers, nextMessages, nextEvents]) => {
+      .then(([nextMembers, nextMessages]) => {
         if (!cancelled) {
           setAdminClanState({
             clanId: adminSelectedClan.id,
             members: nextMembers,
             messages: nextMessages,
-            events: nextEvents,
             error: '',
             loading: false,
           })
@@ -232,7 +183,6 @@ function Clans() {
             clanId: adminSelectedClan.id,
             members: [],
             messages: [],
-            events: [],
             error: nextError.message,
             loading: false,
           })
@@ -242,7 +192,25 @@ function Clans() {
     return () => {
       cancelled = true
     }
-  }, [adminSelectedClan?.id, fetchClanAuditEvents, fetchClanMembers, fetchClanMessages, isAdmin])
+  }, [adminSelectedClan?.id, fetchClanMembers, fetchClanMessages, isAdmin])
+
+  useEffect(() => {
+    if (!utilitiesOpen) {
+      return undefined
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setUtilitiesOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [utilitiesOpen])
 
   async function runAction(key, successMessage, action) {
     setWorkingKey(key)
@@ -285,6 +253,7 @@ function Clans() {
         tag: String(formData.get('tag') ?? ''),
         description: String(formData.get('description') ?? ''),
       })
+      setUtilitiesOpen(false)
     })
   }
 
@@ -309,6 +278,7 @@ function Clans() {
 
     await runAction('archive-clan', 'Clan archived.', async () => {
       await archiveClan(myClan.id)
+      setUtilitiesOpen(false)
     })
   }
 
@@ -319,6 +289,7 @@ function Clans() {
 
     await runAction('leave-clan', 'You left the clan.', async () => {
       await leaveClan(myClan.id)
+      setUtilitiesOpen(false)
     })
   }
 
@@ -496,7 +467,7 @@ function Clans() {
           Loading clan interior...
         </p>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-2">
           <div>
             <div className="mb-3 flex items-center justify-between gap-2">
               <p className="intel-label">Roster</p>
@@ -542,40 +513,176 @@ function Clans() {
               )}
             </div>
           </div>
-
-          <div>
-            <p className="intel-label mb-3">Activity</p>
-            <div className="space-y-2">
-              {adminClanState.events.length ? adminClanState.events.slice(0, 10).map((event) => (
-                <article key={event.id} className="rounded-2xl border border-white/10 bg-black/25 p-3">
-                  <p className="text-sm font-black uppercase tracking-[0.08em] text-white">
-                    {clanEventLabels[event.event_type] || event.event_type}
-                  </p>
-                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-600">
-                    {new Date(event.created_at).toLocaleString()}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-gray-400">
-                    {displayProfileName(event.actorProfile)}
-                    {event.targetProfile ? ` -> ${displayProfileName(event.targetProfile)}` : ''}
-                  </p>
-                </article>
-              )) : (
-                <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-3 text-sm font-bold text-gray-500">
-                  No activity visible.
-                </p>
-              )}
-            </div>
-          </div>
         </div>
       )}
     </SectionCard>
   ) : null
 
+  const transferCandidates = myClanMembers.filter((member) => member.role !== 'owner' && member.user_id !== user?.id)
+
+  const utilitiesDrawer = isAuthenticated && myClan && utilitiesOpen ? (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Clan utilities">
+      <button
+        type="button"
+        aria-label="Close clan utilities"
+        className="absolute inset-0 cursor-default"
+        onClick={() => setUtilitiesOpen(false)}
+      />
+      <aside className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-gray-950 p-5 shadow-2xl shadow-black/60 sm:p-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="intel-label mb-2">Utilities</p>
+            <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
+              [{myClan.tag}] Controls
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              Settings and destructive actions live here so the main HQ stays focused.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUtilitiesOpen(false)}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition hover:border-white/20 hover:text-white"
+            aria-label="Close utilities"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        {canEditClan ? (
+          <SectionCard className="mb-4">
+            <p className="intel-label mb-3">Clan Settings</p>
+            <form key={myClan.id} onSubmit={handleSaveClan} className="grid gap-4">
+              <div>
+                <label htmlFor="clan-name" className="intel-label mb-2 block">
+                  Clan Name
+                </label>
+                <input
+                  id="clan-name"
+                  name="name"
+                  defaultValue={myClan.name}
+                  className="field"
+                  maxLength="40"
+                />
+              </div>
+              <div>
+                <label htmlFor="clan-tag" className="intel-label mb-2 block">
+                  Clan Tag
+                </label>
+                <input
+                  id="clan-tag"
+                  name="tag"
+                  defaultValue={myClan.tag}
+                  className="field font-mono uppercase tracking-[0.3em]"
+                  maxLength="16"
+                  onChange={(event) => {
+                    event.currentTarget.value = event.currentTarget.value.toUpperCase()
+                  }}
+                />
+              </div>
+              <div>
+                <label htmlFor="clan-description" className="intel-label mb-2 block">
+                  Description
+                </label>
+                <textarea
+                  id="clan-description"
+                  name="description"
+                  defaultValue={myClan.description}
+                  className="field min-h-28"
+                  maxLength="280"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={workingKey === 'save-clan'}
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+              >
+                {workingKey === 'save-clan' ? 'Saving' : 'Save Clan'}
+              </button>
+            </form>
+          </SectionCard>
+        ) : null}
+
+        {myClanRole === 'owner' ? (
+          <SectionCard className="mb-4">
+            <p className="intel-label mb-3">Transfer Ownership</p>
+            {transferCandidates.length ? (
+              <div className="space-y-2">
+                {transferCandidates.map((member) => (
+                  <button
+                    key={member.user_id}
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm(`Transfer clan ownership to ${displayProfileName(member.profile)}?`)) {
+                        return
+                      }
+
+                      runAction(
+                        `transfer-${member.user_id}`,
+                        'Ownership transferred.',
+                        async () => {
+                          await transferClanOwnership(myClan.id, member.user_id)
+                          setUtilitiesOpen(false)
+                        },
+                      )
+                    }}
+                    disabled={workingKey === `transfer-${member.user_id}`}
+                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border border-yellow-400/30 bg-yellow-400/10 px-4 text-left text-sm font-black uppercase tracking-[0.12em] text-yellow-100 transition hover:bg-yellow-400/20 disabled:opacity-60"
+                  >
+                    <span>{displayProfileName(member.profile)}</span>
+                    <RolePill role={member.role} />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-500">
+                No other members to transfer ownership to.
+              </p>
+            )}
+          </SectionCard>
+        ) : null}
+
+        <SectionCard>
+          <p className="intel-label mb-3">Exit</p>
+          <div className="grid gap-3">
+            {myClanRole === 'owner' ? (
+              <p className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                Owners cannot leave until they transfer ownership or archive the clan.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLeaveClan}
+                disabled={workingKey === 'leave-clan'}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/20 hover:text-white disabled:opacity-60"
+              >
+                {workingKey === 'leave-clan' ? 'Leaving' : 'Leave Clan'}
+              </button>
+            )}
+
+            {canEditClan ? (
+              <button
+                type="button"
+                onClick={handleArchiveClan}
+                disabled={workingKey === 'archive-clan'}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+              >
+                {workingKey === 'archive-clan' ? 'Archiving' : 'Archive Clan'}
+              </button>
+            ) : null}
+          </div>
+        </SectionCard>
+      </aside>
+    </div>
+  ) : null
+
   return (
     <div>
       <PageHeader eyebrow="Clan Network" title="Clan HQ">
-        Browse clans. Manage yours.
+        Clan status, roster, and access.
       </PageHeader>
+
+      {utilitiesDrawer}
 
       {status ? <p className="mb-4 text-sm font-bold text-green-200">{status}</p> : null}
       {error ? <p className="mb-4 text-sm font-bold text-red-200">{error}</p> : null}
@@ -767,20 +874,33 @@ function Clans() {
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div className="grid gap-5">
             <SectionCard>
-              <div className="mb-4">
-                <p className="intel-label mb-3">Your Clan</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-3xl font-black uppercase tracking-[0.04em] text-white">
-                    [{myClan.tag}] {myClan.name}
-                  </h2>
-                  <RolePill role={myClanRole} />
+              <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="intel-label mb-3">Ready Room</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-3xl font-black uppercase tracking-[0.04em] text-white">
+                      [{myClan.tag}] {myClan.name}
+                    </h2>
+                    <RolePill role={myClanRole} />
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                      {myClanMembers.length} members
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-gray-400">
+                    {myClan.description || 'No clan description yet.'}
+                  </p>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-gray-400">
-                  {myClan.description || 'No clan description yet.'}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setUtilitiesOpen(true)}
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/20 hover:text-white"
+                >
+                  <Settings className="h-4 w-4" aria-hidden="true" />
+                  Utilities
+                </button>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center rounded-2xl border border-white/10 bg-black/20 p-5">
                 <div className="flex items-start gap-3">
                   <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-2.5">
                     <MessageSquare className="h-5 w-5 text-red-200" aria-hidden="true" />
@@ -788,16 +908,16 @@ function Clans() {
                   <div className="min-w-0">
                     <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Clan Chat</p>
                     <h3 className="mt-0.5 text-lg font-black uppercase tracking-[0.04em] text-white">
-                      Squad comms live in the chat room
+                      Open comms, no ceremony
                     </h3>
                     <p className="mt-1 text-sm leading-6 text-gray-400">
-                      Reactions, day dividers, and full bubble UI are all in the dedicated clan room.
+                      Jump straight to the clan room when the squad is forming.
                     </p>
                   </div>
                 </div>
                 <Link
                   to="/chat?room=clan"
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
                 >
                   <MessageSquare className="h-4 w-4" aria-hidden="true" />
                   Open Clan Chat
@@ -817,7 +937,6 @@ function Clans() {
               <div className="space-y-3">
                 {myClanMembers.map((member) => {
                   const canToggleRole = member.role !== 'owner' && (isAdmin || myClanRole === 'owner')
-                  const canTransfer = member.role !== 'owner' && myClanRole === 'owner'
                   const canRemove =
                     member.role !== 'owner' &&
                     member.user_id !== user?.id &&
@@ -867,27 +986,6 @@ function Clans() {
                               <option value="veteran">Veteran</option>
                               <option value="officer">Officer</option>
                             </select>
-                          ) : null}
-
-                          {canTransfer ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!window.confirm(`Transfer clan ownership to ${displayProfileName(member.profile)}?`)) {
-                                  return
-                                }
-
-                                runAction(
-                                  `transfer-${member.user_id}`,
-                                  'Ownership transferred.',
-                                  () => transferClanOwnership(myClan.id, member.user_id),
-                                )
-                              }}
-                              disabled={workingKey === `transfer-${member.user_id}`}
-                              className="inline-flex min-h-10 items-center rounded-full border border-yellow-400/40 bg-yellow-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-400/20 disabled:opacity-60"
-                            >
-                              Transfer Ownership
-                            </button>
                           ) : null}
 
                           {canRemove ? (
@@ -975,69 +1073,6 @@ function Clans() {
           <div className="grid gap-5">
             {directoryPanel}
 
-            {canEditClan ? (
-              <SectionCard>
-                <p className="intel-label mb-3">Clan Settings</p>
-                <form key={myClan.id} onSubmit={handleSaveClan} className="grid gap-4">
-                  <div>
-                    <label htmlFor="clan-name" className="intel-label mb-2 block">
-                      Clan Name
-                    </label>
-                    <input
-                      id="clan-name"
-                      name="name"
-                      defaultValue={myClan.name}
-                      className="field"
-                      maxLength="40"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="clan-tag" className="intel-label mb-2 block">
-                      Clan Tag
-                    </label>
-                    <input
-                      id="clan-tag"
-                      name="tag"
-                      defaultValue={myClan.tag}
-                      className="field font-mono uppercase tracking-[0.3em]"
-                      maxLength="16"
-                      onChange={(event) => {
-                        event.currentTarget.value = event.currentTarget.value.toUpperCase()
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="clan-description" className="intel-label mb-2 block">
-                      Description
-                    </label>
-                    <textarea
-                      id="clan-description"
-                      name="description"
-                      defaultValue={myClan.description}
-                      className="field min-h-28"
-                      maxLength="280"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={workingKey === 'save-clan'}
-                    className="inline-flex min-h-12 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-                  >
-                    {workingKey === 'save-clan' ? 'Saving' : 'Save Clan'}
-                  </button>
-                </form>
-
-                <button
-                  type="button"
-                  onClick={handleArchiveClan}
-                  disabled={workingKey === 'archive-clan'}
-                  className="mt-4 inline-flex min-h-11 items-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-                >
-                  {workingKey === 'archive-clan' ? 'Archiving' : 'Archive Clan'}
-                </button>
-              </SectionCard>
-            ) : null}
-
             {canManageClan ? (
               <SectionCard>
                 <p className="intel-label mb-3">Invite Member</p>
@@ -1084,55 +1119,6 @@ function Clans() {
               </SectionCard>
             ) : null}
 
-            <SectionCard>
-              <p className="intel-label mb-3">Activity Feed</p>
-              <div className="space-y-3">
-                {loadingAudit ? (
-                  <p className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-500">
-                    Loading clan activity…
-                  </p>
-                ) : auditEvents.length ? (
-                  auditEvents.map((event) => (
-                    <article key={event.id} className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-black uppercase tracking-[0.08em] text-white">
-                          {clanEventLabels[event.event_type] || event.event_type}
-                        </p>
-                        <span className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-gray-600">
-                          {new Date(event.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-gray-400">
-                        {displayProfileName(event.actorProfile)}
-                        {event.targetProfile ? ` -> ${displayProfileName(event.targetProfile)}` : ''}
-                      </p>
-                    </article>
-                  ))
-                ) : (
-                  <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-500">
-                    No clan activity recorded yet.
-                  </p>
-                )}
-              </div>
-            </SectionCard>
-
-            <SectionCard>
-              <p className="intel-label mb-3">Membership Controls</p>
-              {myClanRole === 'owner' ? (
-                <p className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                  Owners cannot leave until they transfer ownership or archive the clan.
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleLeaveClan}
-                  disabled={workingKey === 'leave-clan'}
-                  className="inline-flex min-h-11 items-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/20 hover:text-white disabled:opacity-60"
-                >
-                  {workingKey === 'leave-clan' ? 'Leaving' : 'Leave Clan'}
-                </button>
-              )}
-            </SectionCard>
           </div>
         </div>
       ) : null}
