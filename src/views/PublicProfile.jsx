@@ -7,6 +7,7 @@ import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import StreakBadge from '../components/StreakBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
+import { formatEuropeanDateTime } from '../utils/dates.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 import { profileLoginStreak, profileLongestLoginStreak } from '../utils/streaks.js'
@@ -124,7 +125,7 @@ function PublicProfile() {
                 {gameAccounts.length} linked account{gameAccounts.length === 1 ? '' : 's'}
               </span>
               <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                Last seen {profile.last_seen ? new Date(profile.last_seen).toLocaleString() : 'never'}
+                Last seen {formatEuropeanDateTime(profile.last_seen)}
               </span>
               <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100">
                 {loginStreak} day streak

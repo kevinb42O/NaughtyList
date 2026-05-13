@@ -7,6 +7,7 @@ import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
+import { formatEuropeanDateTime } from '../utils/dates.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 import { getThreatStyle } from '../utils/threat.js'
 
@@ -390,7 +391,7 @@ function Admin() {
                     IDs {nextProfile.activision_ids?.length || 0}
                   </span>
                   <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                    Seen {nextProfile.last_seen ? new Date(nextProfile.last_seen).toLocaleString() : 'never'}
+                    Seen {formatEuropeanDateTime(nextProfile.last_seen)}
                   </span>
                 </div>
                 <p className="mt-2 truncate text-xs font-bold text-gray-500">{nextProfile.id}</p>

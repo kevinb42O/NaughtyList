@@ -1,5 +1,6 @@
 import { MessageSquare } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { formatEuropeanDateTime } from '../utils/dates.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
 import OnlineDot from './OnlineDot.jsx'
 import ProfileAvatar from './ProfileAvatar.jsx'
@@ -94,7 +95,7 @@ function ProfileCard({ profile, onlineUserIds }) {
       </div>
 
       <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-gray-600">
-        Last seen {profile.last_seen ? new Date(profile.last_seen).toLocaleString() : 'never'}
+        Last seen {formatEuropeanDateTime(profile.last_seen)}
       </p>
     </article>
   )

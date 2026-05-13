@@ -1,4 +1,5 @@
 import { AlertTriangle, ShieldCheck, Users, Video } from 'lucide-react'
+import { formatEuropeanDate } from '../utils/dates.js'
 
 function ClanCard({ clan, compact = false }) {
   const isHostile = clan.hostileCount > clan.friendlyCount
@@ -90,7 +91,7 @@ function ClanCard({ clan, compact = false }) {
           ) : (
             <ShieldCheck className="h-3.5 w-3.5 text-green-300" aria-hidden="true" />
           )}
-          <span>Last seen {new Date(clan.lastSeen).toLocaleDateString()}</span>
+          <span>Last seen {formatEuropeanDate(clan.lastSeen)}</span>
           <Video className="ml-auto h-3.5 w-3.5" aria-hidden="true" />
         </div>
       ) : null}
