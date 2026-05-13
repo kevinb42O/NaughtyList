@@ -14,8 +14,7 @@ import {
 import { useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
 import ProfileAvatar from './ProfileAvatar.jsx'
-import RoleBadge from './RoleBadge.jsx'
-import StreakBadge from './StreakBadge.jsx'
+import { clanPrefix, displayProfileName } from '../utils/profiles.js'
 
 const navItems = [
   { to: '/', label: 'Home', icon: House },
@@ -32,8 +31,6 @@ function Layout() {
     isAdmin,
     isModerator,
     profile,
-    profileDisplayName,
-    role,
     signOut,
     broadcastOnline,
     unreadDirectMessageCount,
@@ -151,13 +148,9 @@ function Layout() {
               <Link to="/profile" className="hidden min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 hover:border-red-400/30 sm:flex">
                 <ProfileAvatar profile={profile} size="sm" />
                 <div className="min-w-0 text-right">
-                  <p className="truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-300">
-                    {profileDisplayName}
+                  <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.14em] text-gray-300">
+                    {`${clanPrefix(profile)} ${displayProfileName(profile)}`}
                   </p>
-                  <div className="mt-1 flex items-center justify-end gap-1.5">
-                    <RoleBadge role={role} compact />
-                    <StreakBadge compact profile={profile} />
-                  </div>
                 </div>
               </Link>
             ) : null}
