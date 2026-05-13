@@ -166,7 +166,7 @@ function Admin() {
   if (!isAuthenticated) {
     return (
       <div>
-        <PageHeader eyebrow="Admin Login" code="B21 // ADMIN" title="Admin Access">
+        <PageHeader eyebrow="Admin Login" title="Admin Access">
           Login first, then claim admin if this is the first admin account.
         </PageHeader>
         <Link
@@ -182,7 +182,7 @@ function Admin() {
   if (!isAdmin) {
     return (
       <div>
-        <PageHeader eyebrow="Admin Login" code="B21 // ADMIN" title="Claim Admin">
+        <PageHeader eyebrow="Admin Login" title="Claim Admin">
           There can only be one admin. If no admin exists yet, claim it here while logged in as your account.
         </PageHeader>
         <section className="panel rounded-[1.8rem] p-5">
@@ -222,7 +222,7 @@ function Admin() {
 
   return (
     <div>
-      <PageHeader eyebrow="Admin Screen" code="B21 // ADMIN" title="Command Center">
+      <PageHeader eyebrow="Admin Screen" title="Command Center">
         Send tactical push alerts, manage tracked operators, and control account access.
       </PageHeader>
 

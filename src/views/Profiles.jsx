@@ -36,7 +36,7 @@ function Profiles() {
 
   return (
     <div>
-      <PageHeader eyebrow="Profiles" code="B21 // ROSTER" title="Squad Directory">
+      <PageHeader eyebrow="Profiles" title="Squad Directory">
         See who is online, open operator bios, copy Activision IDs, and find clan tags fast.
       </PageHeader>
 

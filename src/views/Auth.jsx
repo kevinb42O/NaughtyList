@@ -40,7 +40,7 @@ function Auth() {
   if (isAuthenticated) {
     return (
       <div>
-        <PageHeader eyebrow="Auth Screen" code="B21 // AUTH" title="Logged In">
+        <PageHeader eyebrow="Auth Screen" title="Logged In">
           You can add intel, manage your profile, and access role tools if assigned.
         </PageHeader>
         <section className="panel rounded-[1.8rem] p-5">
@@ -67,7 +67,7 @@ function Auth() {
 
   return (
     <div>
-      <PageHeader eyebrow="Auth Screen" code="B21 // AUTH" title="Login Required">
+      <PageHeader eyebrow="Auth Screen" title="Login Required">
         Everyone can scan 21rats. Adding intel requires an account.
       </PageHeader>
 

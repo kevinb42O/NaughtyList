@@ -204,7 +204,7 @@ function Profile() {
 
   return (
     <div>
-      <PageHeader eyebrow="Settings" code="B21 // PROFILE" title="My Profile">
+      <PageHeader eyebrow="Settings" title="My Profile">
         Update your display name, bio, review your clan status, track game accounts, and manage your password.
       </PageHeader>
 

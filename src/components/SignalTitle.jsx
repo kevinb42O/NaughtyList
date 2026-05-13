@@ -1,6 +1,19 @@
-function SignalTitle({ code, eyebrow, title, mark = '21', divider = '//', size = 'page', bracketed = false, className = '' }) {
+function splitTitle(title) {
+  const words = String(title || '').trim().split(/\s+/).filter(Boolean)
+
+  if (words.length <= 1) {
+    return [words[0] || '', '']
+  }
+
+  return [words[0], words.slice(1).join(' ')]
+}
+
+function SignalTitle({ eyebrow, title, lead, rest, mark = '21', divider = '//', size = 'page', bracketed = false, className = '' }) {
   const isHero = size === 'hero'
-  const label = code || eyebrow
+  const label = eyebrow
+  const [derivedLead, derivedRest] = splitTitle(title)
+  const titleLead = lead || derivedLead
+  const titleRest = rest || derivedRest
 
   if (isHero) {
     const titleLabel = [label, mark, divider, title].filter(Boolean).join(' ')
@@ -26,14 +39,24 @@ function SignalTitle({ code, eyebrow, title, mark = '21', divider = '//', size =
   }
 
   return (
-    <h1 aria-label={[label, title].filter(Boolean).join(' ')} className={`flex min-w-0 flex-col gap-2 text-white ${className}`.trim()}>
+    <h1 aria-label={[label, title].filter(Boolean).join(' ')} className={`flex min-w-0 flex-col gap-3 text-white ${className}`.trim()}>
       {label ? (
         <span className="text-[0.68rem] font-black uppercase tracking-[0.34em] text-red-200/75 sm:text-[0.72rem]">
           {label}
         </span>
       ) : null}
-      <span className="signal-title-gradient max-w-full break-words text-3xl font-black uppercase leading-none tracking-[0.04em] sm:text-4xl">
-        {title}
+      <span className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-[2.05rem] font-black uppercase leading-none tracking-[0.06em] sm:text-4xl">
+        <span className="text-red-500/80">[</span>
+        <span className="signal-title-gradient drop-shadow-[0_0_18px_rgba(239,68,68,0.18)]">{titleLead}</span>
+        {titleRest ? (
+          <>
+            <span className="text-red-400/75">{divider}</span>
+            <span className="signal-title-gradient drop-shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+              {titleRest}
+            </span>
+          </>
+        ) : null}
+        <span className="text-red-500/80">]</span>
       </span>
     </h1>
   )

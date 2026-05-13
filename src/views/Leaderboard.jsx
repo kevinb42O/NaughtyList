@@ -17,7 +17,7 @@ function Leaderboard() {
 
   return (
     <div>
-      <PageHeader eyebrow="Heat Check" code="B21 // HEAT" title="Most Wanted">
+      <PageHeader eyebrow="Heat Check" title="Most Wanted">
         Top five operators ranked by low trust, hostile status, and repeat problem tags.
       </PageHeader>
 

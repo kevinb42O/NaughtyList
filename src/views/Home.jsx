@@ -284,7 +284,7 @@ function Home() {
       <section className="panel overflow-hidden rounded-[2rem] px-5 py-6 sm:px-7 sm:py-7">
         <div className="flex flex-col gap-6">
           <div className="max-w-3xl">
-            <SignalTitle code="B21 Watchlist" title="RATS" size="hero" bracketed />
+            <SignalTitle eyebrow="B21 Watchlist" title="RATS" size="hero" bracketed />
           </div>
         </div>
       </section>
