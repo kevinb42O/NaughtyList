@@ -8,7 +8,7 @@ import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMap
 import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
-const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, last_seen, created_at, updated_at'
+const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, last_seen, created_at, updated_at'
 const clanSelect = 'id, name, tag, description, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
@@ -113,6 +113,9 @@ function profileRecordMatches(currentProfile, nextProfile) {
     currentProfile.avatar_icon === nextProfile.avatar_icon &&
     currentProfile.role === nextProfile.role &&
     currentProfile.clan_tag === nextProfile.clan_tag &&
+    currentProfile.login_streak_count === nextProfile.login_streak_count &&
+    currentProfile.longest_login_streak_count === nextProfile.longest_login_streak_count &&
+    currentProfile.last_streak_login_date === nextProfile.last_streak_login_date &&
     currentProfile.last_seen === nextProfile.last_seen &&
     currentProfile.updated_at === nextProfile.updated_at &&
     JSON.stringify(currentProfile.activision_ids ?? null) === JSON.stringify(nextProfile.activision_ids ?? null) &&
@@ -609,6 +612,26 @@ function IntelProvider({ children }) {
     await Promise.all([fetchProfile(user?.id), refresh()])
   }, [fetchProfile, refresh, user?.id])
 
+  const claimDailyLoginStreak = useCallback(async () => {
+    if (!user?.id) {
+      return null
+    }
+
+    const { data, error: streakError } = await supabase.rpc('claim_daily_login_streak')
+
+    if (streakError) {
+      throw streakError
+    }
+
+    setProfile(data)
+    setProfiles((currentProfiles) =>
+      currentProfiles.map((currentProfile) =>
+        currentProfile.id === data.id ? data : currentProfile,
+      ),
+    )
+    return data
+  }, [user?.id])
+
   useEffect(() => {
     let isMounted = true
 
@@ -645,6 +668,14 @@ function IntelProvider({ children }) {
   useEffect(() => {
     fetchProfile(user?.id).catch((profileError) => setError(profileError.message))
   }, [fetchProfile, user?.id])
+
+  useEffect(() => {
+    if (!user?.id) {
+      return
+    }
+
+    claimDailyLoginStreak().catch((streakError) => setError(streakError.message))
+  }, [claimDailyLoginStreak, user?.id])
 
   useEffect(() => {
     refresh()

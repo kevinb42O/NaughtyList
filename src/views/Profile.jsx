@@ -6,10 +6,12 @@ import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
+import StreakBadge from '../components/StreakBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
 import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } from '../utils/gameAccounts.js'
 import { clanPrefix } from '../utils/profiles.js'
+import { currentStreakReward, nextStreakReward, profileLoginStreak, profileLongestLoginStreak, streakRewards } from '../utils/streaks.js'
 
 function ProfileSectionHeader({ step, eyebrow, title, description }) {
   return (
@@ -77,6 +79,14 @@ function Profile() {
   const currentProfileAvatar = profile?.avatar_icon ?? defaultAvatarIconKey
   const pendingInviteCount = clanInvites.filter((invite) => invite.invitee_user_id === user?.id).length
   const pendingRequestCount = clanJoinRequests.filter((request) => request.user_id === user?.id).length
+  const loginStreak = profileLoginStreak(profile)
+  const longestLoginStreak = profileLongestLoginStreak(profile)
+  const activeStreakReward = currentStreakReward(loginStreak)
+  const upcomingStreakReward = nextStreakReward(loginStreak)
+  const previousRewardDays = activeStreakReward?.days ?? 0
+  const nextRewardProgress = upcomingStreakReward
+    ? Math.min(100, ((loginStreak - previousRewardDays) / (upcomingStreakReward.days - previousRewardDays)) * 100)
+    : 100
 
   function addGameAccount() {
     const trimmed = newId.trim()
@@ -205,6 +215,7 @@ function Profile() {
           <div className="mt-1.5 flex flex-wrap items-center gap-3">
             <OnlineDot online={isOnline} />
             <RoleBadge role={profile?.role} compact />
+            <StreakBadge profile={profile} />
             <span className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">{user?.email}</span>
           </div>
           <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-gray-400">
@@ -461,6 +472,72 @@ function Profile() {
           <section className="panel rounded-[1.8rem] p-5">
             <ProfileSectionHeader
               step="3"
+              eyebrow="Daily Streak"
+              title="Unlock Name Badges"
+              description="Open the app once per day to build your streak. Higher streaks unlock louder badges beside your name across the roster."
+            />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[1.4rem] border border-red-400/30 bg-red-500/10 p-4">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">Current</p>
+                <p className="mt-2 text-4xl font-black text-white">{loginStreak}</p>
+                <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Day streak</p>
+              </div>
+              <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Best Run</p>
+                <p className="mt-2 text-4xl font-black text-white">{longestLoginStreak}</p>
+                <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Days held</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="intel-label mb-2">Equipped Badge</p>
+                  <StreakBadge profile={profile} />
+                </div>
+                {upcomingStreakReward ? (
+                  <div className="text-right">
+                    <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Next Unlock</p>
+                    <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
+                      {upcomingStreakReward.days}D {upcomingStreakReward.shortLabel}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm font-black uppercase tracking-[0.12em] text-yellow-100">All rewards unlocked</p>
+                )}
+              </div>
+
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
+                <div className="h-full rounded-full bg-gradient-to-r from-red-500 via-yellow-300 to-emerald-300" style={{ width: `${nextRewardProgress}%` }} />
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {streakRewards.map((reward) => {
+                const unlocked = loginStreak >= reward.days
+
+                return (
+                  <div
+                    key={reward.key}
+                    className={`rounded-[1.1rem] border p-3 ${unlocked ? reward.tone : 'border-white/10 bg-black/20 text-gray-600'}`}
+                  >
+                    <p className="text-lg font-black text-white">{reward.days}D</p>
+                    <p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.14em]">
+                      {reward.shortLabel}
+                    </p>
+                    <p className="mt-2 text-[0.55rem] font-black uppercase tracking-[0.14em] text-gray-500">
+                      {unlocked ? 'Unlocked' : 'Locked'}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
+          <section className="panel rounded-[1.8rem] p-5">
+            <ProfileSectionHeader
+              step="4"
               eyebrow="Alerts"
               title="Phone Notifications"
               description="Enable push alerts on this device so you catch squad updates without reopening the app."
@@ -480,7 +557,7 @@ function Profile() {
 
           <section className="panel rounded-[1.8rem] p-5">
             <ProfileSectionHeader
-              step="4"
+              step="5"
               eyebrow="Security"
               title="Change Password"
               description="Update your password here without touching the rest of your profile settings."

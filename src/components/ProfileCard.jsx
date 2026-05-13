@@ -4,6 +4,7 @@ import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccount
 import OnlineDot from './OnlineDot.jsx'
 import ProfileAvatar from './ProfileAvatar.jsx'
 import RoleBadge from './RoleBadge.jsx'
+import StreakBadge from './StreakBadge.jsx'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
 function ProfileCard({ profile, onlineUserIds }) {
@@ -49,6 +50,7 @@ function ProfileCard({ profile, onlineUserIds }) {
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <OnlineDot online={online} />
                 <RoleBadge role={profile.role} compact />
+                <StreakBadge compact profile={profile} />
               </div>
             </div>
           </div>

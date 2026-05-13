@@ -5,9 +5,11 @@ import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
+import StreakBadge from '../components/StreakBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
+import { profileLoginStreak, profileLongestLoginStreak } from '../utils/streaks.js'
 
 function PublicProfile() {
   const { profileId } = useParams()
@@ -51,6 +53,8 @@ function PublicProfile() {
   const gameAccounts = profileGameAccounts(profile)
   const bio = profile.bio?.trim()
   const viewingOwnProfile = user?.id === profile.id
+  const loginStreak = profileLoginStreak(profile)
+  const longestLoginStreak = profileLongestLoginStreak(profile)
 
   async function copyGameAccountId(accountId) {
     await navigator.clipboard.writeText(accountId)
@@ -107,6 +111,7 @@ function PublicProfile() {
               </h2>
               <OnlineDot online={online} />
               <RoleBadge role={profile.role} compact />
+              <StreakBadge profile={profile} />
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -115,6 +120,9 @@ function PublicProfile() {
               </span>
               <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
                 Last seen {profile.last_seen ? new Date(profile.last_seen).toLocaleString() : 'never'}
+              </span>
+              <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100">
+                {loginStreak} day streak
               </span>
             </div>
 
@@ -189,6 +197,10 @@ function PublicProfile() {
                 <p className="mt-2 text-lg font-black text-white">
                   {profile.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'Unknown'}
                 </p>
+              </div>
+              <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Best Streak</p>
+                <p className="mt-2 text-lg font-black text-white">{longestLoginStreak} days</p>
               </div>
             </div>
           </section>
