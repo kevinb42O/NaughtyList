@@ -1,4 +1,4 @@
-import { Send } from 'lucide-react'
+import { ArrowLeft, Send } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MessageReactions from '../components/MessageReactions.jsx'
@@ -99,6 +99,7 @@ function Messages() {
   const markedReadIdsRef = useRef(new Set())
   const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
   const setMessageReactionRef = useRef(setMessageReaction)
+  const userId = user?.id ?? ''
 
   useEffect(() => {
     markDirectMessagesReadRef.current = markDirectMessagesRead
@@ -126,16 +127,54 @@ function Messages() {
     stickToBottomRef.current = distanceFromBottom < 80
   }, [])
 
+  const unreadCountsBySender = useMemo(() => {
+    return directMessages.reduce((counts, directMessage) => {
+      if (directMessage.recipient_id !== userId || directMessage.read_at) {
+        return counts
+      }
+
+      counts[directMessage.sender_id] = (counts[directMessage.sender_id] ?? 0) + 1
+      return counts
+    }, {})
+  }, [directMessages, userId])
+
+  const lastMessageByContact = useMemo(() => {
+    if (!userId) {
+      return new Map()
+    }
+
+    return directMessages.reduce((messagesByContact, directMessage) => {
+      const contactId = directMessage.sender_id === userId ? directMessage.recipient_id : directMessage.sender_id
+      const currentMessage = messagesByContact.get(contactId)
+      if (!currentMessage || new Date(directMessage.created_at) > new Date(currentMessage.created_at)) {
+        messagesByContact.set(contactId, directMessage)
+      }
+      return messagesByContact
+    }, new Map())
+  }, [directMessages, userId])
+
   const contacts = useMemo(() => {
     return profiles
       .filter((profile) => profile.id !== user?.id)
       .sort((first, second) => {
+        const firstUnread = unreadCountsBySender[first.id] ?? 0
+        const secondUnread = unreadCountsBySender[second.id] ?? 0
+        if (firstUnread !== secondUnread) {
+          return secondUnread - firstUnread
+        }
+
+        const firstLastMessageTime = lastMessageByContact.get(first.id)?.created_at ?? ''
+        const secondLastMessageTime = lastMessageByContact.get(second.id)?.created_at ?? ''
+        if (firstLastMessageTime || secondLastMessageTime) {
+          return new Date(secondLastMessageTime || 0) - new Date(firstLastMessageTime || 0)
+        }
+
         return (
           Number(isProfileOnline(second, onlineUserIds)) - Number(isProfileOnline(first, onlineUserIds)) ||
           displayProfileName(first).localeCompare(displayProfileName(second))
         )
       })
-  }, [onlineUserIds, profiles, user?.id])
+  }, [lastMessageByContact, onlineUserIds, profiles, unreadCountsBySender, user?.id])
 
   const fallbackContactId = useMemo(() => {
     return profiles.find((nextProfile) => nextProfile.id !== user?.id)?.id ?? ''
@@ -147,18 +186,7 @@ function Messages() {
     return profiles.find((nextProfile) => nextProfile.id === targetId) ?? null
   }, [fallbackContactId, profiles, selectedId])
   const selectedProfileId = selectedProfile?.id ?? ''
-  const userId = user?.id ?? ''
-
-  const unreadCountsBySender = useMemo(() => {
-    return directMessages.reduce((counts, directMessage) => {
-      if (directMessage.recipient_id !== user?.id || directMessage.read_at) {
-        return counts
-      }
-
-      counts[directMessage.sender_id] = (counts[directMessage.sender_id] ?? 0) + 1
-      return counts
-    }, {})
-  }, [directMessages, user?.id])
+  const hasSelectedThread = Boolean(selectedId && selectedProfileId)
 
   const thread = useMemo(() => {
     if (!selectedProfile || !user) {
@@ -192,6 +220,11 @@ function Messages() {
     stickToBottomRef.current = true
     scrollToLatestMessage()
   }, [scrollToLatestMessage, selectedProfileId])
+
+  useEffect(() => {
+    if (!hasSelectedThread || !window.matchMedia('(max-width: 1023px)').matches) return
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [hasSelectedThread, selectedProfileId])
 
   // Auto-scroll on new messages only if user was already near the bottom
   useEffect(() => {
@@ -278,7 +311,7 @@ function Messages() {
       </PageHeader>
 
       <section className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside className="chat-stable-panel max-h-[72vh] rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
+        <aside className={`chat-stable-panel rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:block lg:max-h-[72vh] ${hasSelectedThread ? 'hidden' : 'block'}`}>
           <div className="border-b border-white/10 bg-black/20 px-4 py-3">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">People</p>
             <h2 className="text-base font-black uppercase tracking-[0.04em] text-white">Direct Lines</h2>
@@ -288,6 +321,12 @@ function Messages() {
               contacts.map((contact) => {
                 const online = isProfileOnline(contact, onlineUserIds)
                 const active = selectedProfile?.id === contact.id
+                const lastMessage = lastMessageByContact.get(contact.id)
+                const lastMessagePreview = lastMessage
+                  ? `${lastMessage.sender_id === user?.id ? 'You: ' : ''}${lastMessage.body}`
+                  : online
+                    ? 'Online now'
+                    : contact.activision_ids?.[0] || 'No Activision ID'
 
                 return (
                   <button
@@ -312,9 +351,14 @@ function Messages() {
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-1 truncate text-xs font-bold text-gray-500">
-                        {online ? 'Online now' : contact.activision_ids?.[0] || 'No Activision ID'}
-                      </p>
+                      <div className="mt-1 flex items-center justify-between gap-3">
+                        <p className="min-w-0 truncate text-xs font-bold text-gray-500">{lastMessagePreview}</p>
+                        {lastMessage ? (
+                          <span className="shrink-0 text-[0.62rem] font-black uppercase tracking-[0.12em] text-gray-600">
+                            {formatMessageTime(lastMessage.created_at)}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </button>
                 )
@@ -327,11 +371,19 @@ function Messages() {
           </div>
         </aside>
 
-        <div className="chat-stable-panel flex h-[72vh] min-h-[34rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
+        <div className={`chat-stable-panel h-[calc(100svh-9.5rem)] min-h-[32rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:flex lg:h-[72vh] lg:min-h-[34rem] ${hasSelectedThread ? 'flex' : 'hidden'}`}>
           {selectedProfile ? (
             <div key={selectedProfileId} className="flex h-full min-h-0 flex-col">
               <div className="flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
                 <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSearchParams({})}
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-gray-200 transition hover:border-red-400/40 hover:text-red-100 lg:hidden"
+                    aria-label="Back to direct message contacts"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  </button>
                   <ProfileInitial profile={selectedProfile} online={isProfileOnline(selectedProfile, onlineUserIds)} />
                   <div className="min-w-0">
                     <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">Thread</p>
