@@ -205,9 +205,16 @@ function Clans() {
       }
     }
 
+    const previousBodyOverflow = document.body.style.overflow
+    const previousBodyOverscrollBehavior = document.body.style.overscrollBehavior
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.overscrollBehavior = 'none'
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
+      document.body.style.overflow = previousBodyOverflow
+      document.body.style.overscrollBehavior = previousBodyOverscrollBehavior
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [utilitiesOpen])
@@ -521,14 +528,15 @@ function Clans() {
   const transferCandidates = myClanMembers.filter((member) => member.role !== 'owner' && member.user_id !== user?.id)
 
   const utilitiesDrawer = isAuthenticated && myClan && utilitiesOpen ? (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Clan utilities">
+    <div className="fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] justify-end overflow-hidden bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Clan utilities">
       <button
         type="button"
         aria-label="Close clan utilities"
         className="absolute inset-0 cursor-default"
         onClick={() => setUtilitiesOpen(false)}
       />
-      <aside className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-gray-950 p-5 shadow-2xl shadow-black/60 sm:p-6">
+      <aside className="relative z-10 h-[100dvh] max-h-[100dvh] w-full max-w-xl overflow-y-auto overscroll-contain border-l border-white/10 bg-gray-950 shadow-2xl shadow-black/60 [touch-action:pan-y] [-webkit-overflow-scrolling:touch]">
+        <div className="min-h-full p-5 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="intel-label mb-2">Utilities</p>
@@ -672,6 +680,7 @@ function Clans() {
             ) : null}
           </div>
         </SectionCard>
+        </div>
       </aside>
     </div>
   ) : null
