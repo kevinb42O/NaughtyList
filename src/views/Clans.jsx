@@ -41,7 +41,7 @@ function RolePill({ role }) {
 }
 
 function SectionCard({ children, className = '' }) {
-  return <section className={`panel rounded-[1.8rem] p-5 ${className}`.trim()}>{children}</section>
+  return <section className={`clan-section-panel rounded-[1.8rem] p-5 ${className}`.trim()}>{children}</section>
 }
 
 function Clans() {

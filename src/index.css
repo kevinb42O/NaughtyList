@@ -130,6 +130,44 @@ button:disabled {
     z-index: 1;
   }
 
+  .clan-section-panel {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    contain: layout paint;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    background: linear-gradient(180deg, rgba(19, 19, 23, 0.94), rgba(7, 7, 9, 0.96));
+    box-shadow: 0 22px 60px rgb(0 0 0 / 0.45);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .clan-section-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05),
+      transparent 38%,
+      transparent 65%,
+      rgba(239, 68, 68, 0.05)
+    );
+    pointer-events: none;
+  }
+
+  .clan-section-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (min-width: 641px) {
+    .clan-section-panel {
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
+    }
+  }
+
   .chat-stable-panel {
     position: relative;
     overflow: hidden;

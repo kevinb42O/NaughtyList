@@ -298,7 +298,7 @@ function Home() {
         />
       </section>
 
-      <section className="watchlist-shell relative z-10 -mt-[clamp(4.5rem,22.5vw,16.25rem)] rounded-[1.8rem] p-4 sm:p-5">
+      <section className="watchlist-shell relative z-10 -mt-[clamp(3.5rem,17vw,12.25rem)] rounded-[1.8rem] p-4 sm:p-5">
         <div className="flex flex-col gap-4 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
