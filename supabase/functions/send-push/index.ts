@@ -56,6 +56,19 @@ async function requireAdmin(supabase: ReturnType<typeof createClient>, userId: s
   if (data?.role !== 'admin') throw new Error('Only admins can send custom notifications')
 }
 
+async function requireModerator(supabase: ReturnType<typeof createClient>, userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (data?.role !== 'admin' && data?.role !== 'moderator') {
+    throw new Error('Only moderators and admins can tag @all')
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -76,6 +89,7 @@ Deno.serve(async (req) => {
       senderUserId,
       recipientUserId,
       recipientUserIds,
+      mentionEveryone,
       message,
       title: customTitle,
       body: customBody,
@@ -119,15 +133,20 @@ Deno.serve(async (req) => {
 
     const isCustom = type === 'custom-notification'
     const isPublicMention = type === 'public-mention'
+    const isPublicMentionAll = isPublicMention && mentionEveryone === true
     if (isCustom) {
       await requireAdmin(supabase, requestUser.id)
     }
 
-    const publicMentionRecipientIds = isPublicMention && Array.isArray(recipientUserIds)
+    if (isPublicMentionAll) {
+      await requireModerator(supabase, requestUser.id)
+    }
+
+    const publicMentionRecipientIds = isPublicMention && !isPublicMentionAll && Array.isArray(recipientUserIds)
       ? recipientUserIds.filter((id) => typeof id === 'string' && id !== requestUser.id).slice(0, 20)
       : []
 
-    if (isPublicMention && !publicMentionRecipientIds.length) {
+    if (isPublicMention && !isPublicMentionAll && !publicMentionRecipientIds.length) {
       return new Response(JSON.stringify({ sent: 0, failed: 0 }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
@@ -139,10 +158,13 @@ Deno.serve(async (req) => {
       query.eq('user_id', recipientUserId)
     }
     if (isPublicMention) {
-      if (!Array.isArray(recipientUserIds) || !recipientUserIds.length) {
+      if (isPublicMentionAll) {
+        query.neq('user_id', requestUser.id)
+      } else if (!Array.isArray(recipientUserIds) || !recipientUserIds.length) {
         throw new Error('recipientUserIds is required')
+      } else {
+        query.in('user_id', publicMentionRecipientIds)
       }
-      query.in('user_id', publicMentionRecipientIds)
     }
 
     const { data: rows, error: dbError } = await query
@@ -172,7 +194,7 @@ Deno.serve(async (req) => {
               title: 'TAGGED IN PUBLIC CHAT',
               body: `${name}: ${trimMessage(message)}`,
               url: '/chat',
-              tag: `public-mention-${senderUserId ?? 'new'}`,
+              tag: isPublicMentionAll ? `public-mention-all-${senderUserId ?? 'new'}` : `public-mention-${senderUserId ?? 'new'}`,
             }
         : isCustom
           ? {

@@ -1558,9 +1558,13 @@ function IntelProvider({ children }) {
     setLastReadPublicChatMessageId(latestMessageId)
   }, [publicMessages, user?.id])
 
-  async function sendPublicMessage(body, media = null, mentionedUserIds = []) {
+  async function sendPublicMessage(body, media = null, mentionedUserIds = [], mentionEveryone = false) {
     if (!user) {
       throw new Error('You must be logged in to chat.')
+    }
+
+    if (mentionEveryone && !isModerator) {
+      throw new Error('Only moderators and admins can tag @all.')
     }
 
     if (activePublicChatMute) {
@@ -1599,7 +1603,7 @@ function IntelProvider({ children }) {
       ),
     )
     const mentionRecipientIds = Array.from(new Set(mentionedUserIds)).filter((recipientId) => recipientId && recipientId !== user.id)
-    if (mentionRecipientIds.length) {
+    if (mentionRecipientIds.length || mentionEveryone) {
       const displayName = profile?.display_name || profileDisplayName(user)
       const clanTag = profile?.clan_tag || ''
 
@@ -1609,6 +1613,7 @@ function IntelProvider({ children }) {
             type: 'public-mention',
             senderUserId: user.id,
             recipientUserIds: mentionRecipientIds,
+            mentionEveryone,
             displayName,
             clanTag,
             message: trimmedBody || (mediaType === 'gif' ? 'tagged you with a GIF' : 'tagged you with an image'),

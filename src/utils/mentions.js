@@ -37,6 +37,16 @@ export function insertMentionToken(value, token, profile) {
   return `${beforeMention}@${handle} ${afterMention}`.replace(/\s{2,}/g, ' ')
 }
 
+export function insertMentionEveryoneToken(value, token) {
+  const beforeMention = value.slice(0, token.start)
+  const afterMention = value.slice(token.start).replace(/^@[a-zA-Z0-9_]*/, '')
+  return `${beforeMention}@all ${afterMention}`.replace(/\s{2,}/g, ' ')
+}
+
+export function hasEveryoneMention(value) {
+  return /(^|\s)@all(?=$|\s|[.,!?;:])/i.test(String(value ?? ''))
+}
+
 export function mentionedProfileIds(value, profiles) {
   const tokens = new Set(String(value ?? '').match(/@[a-zA-Z0-9_]+/g)?.map((token) => token.slice(1).toLowerCase()) ?? [])
 

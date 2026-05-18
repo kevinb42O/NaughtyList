@@ -10,7 +10,7 @@ import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
-import { findActiveMentionToken, insertMentionToken, mentionHandle, mentionLabel, mentionedProfileIds } from '../utils/mentions.js'
+import { findActiveMentionToken, hasEveryoneMention, insertMentionEveryoneToken, insertMentionToken, mentionHandle, mentionLabel, mentionedProfileIds } from '../utils/mentions.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
 function isSameDay(firstValue, secondValue) {
@@ -125,6 +125,7 @@ function Chat() {
   const {
     user,
     isAdmin,
+    isModerator,
     isAuthenticated,
     activePublicChatMute,
     publicMessages,
@@ -216,6 +217,11 @@ function Chat() {
       })
       .slice(0, 6)
   }, [activeMentionToken, profiles])
+  const showMentionEveryoneSuggestion = Boolean(
+    activeMentionToken &&
+    isModerator &&
+    'all'.startsWith(activeMentionToken.query.toLowerCase()),
+  )
 
   const scrollToLatestMessage = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -343,7 +349,12 @@ function Chat() {
         }))
         scrollToLatestMessage()
       } else {
-        await sendPublicMessage(nextMessage, nextMedia, mentionedProfileIds(nextMessage, profiles))
+        const mentionEveryone = hasEveryoneMention(nextMessage)
+        if (mentionEveryone && !isModerator) {
+          throw new Error('Only moderators and admins can tag @all.')
+        }
+
+        await sendPublicMessage(nextMessage, nextMedia, mentionedProfileIds(nextMessage, profiles), mentionEveryone)
         scrollToLatestMessage()
       }
     } catch (chatError) {
@@ -383,9 +394,35 @@ function Chat() {
     setMessage((currentMessage) => insertMentionToken(currentMessage, activeMentionToken, nextProfile))
   }
 
-  const mentionAccessory = mentionSuggestions.length ? (
+  function handleMentionEveryoneSelect() {
+    if (!activeMentionToken) {
+      return
+    }
+
+    setMessage((currentMessage) => insertMentionEveryoneToken(currentMessage, activeMentionToken))
+  }
+
+  const mentionAccessory = mentionSuggestions.length || showMentionEveryoneSuggestion ? (
     <div className="mb-2 rounded-2xl border border-white/10 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30">
       <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+        {showMentionEveryoneSuggestion ? (
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={handleMentionEveryoneSelect}
+            className="flex min-w-[11rem] items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/12 px-2.5 py-2 text-left transition hover:border-red-300/60 hover:bg-red-500/18"
+          >
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-300/30 bg-red-500/15 text-[0.62rem] font-black uppercase tracking-[0.12em] text-red-100">
+              All
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+                All operators
+              </span>
+              <span className="block truncate text-[0.62rem] font-bold text-red-200/80">@all</span>
+            </span>
+          </button>
+        ) : null}
         {mentionSuggestions.map((nextProfile) => (
           <button
             key={nextProfile.id}
