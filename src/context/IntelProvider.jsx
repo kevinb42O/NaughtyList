@@ -72,6 +72,8 @@ function messageRecordMatches(currentMessage, nextMessage) {
     currentMessage?.recipient_id === nextMessage?.recipient_id &&
     currentMessage?.clan_id === nextMessage?.clan_id &&
     currentMessage?.body === nextMessage?.body &&
+    currentMessage?.media_url === nextMessage?.media_url &&
+    currentMessage?.media_type === nextMessage?.media_type &&
     currentMessage?.created_at === nextMessage?.created_at &&
     currentMessage?.read_at === nextMessage?.read_at &&
     currentMessage?.deleted_at === nextMessage?.deleted_at &&
@@ -286,7 +288,7 @@ function IntelProvider({ children }) {
 
     const { data, error: messagesError } = await supabase
       .from('public_chat_messages')
-      .select('id, user_id, body, created_at')
+      .select('id, user_id, body, media_url, media_type, created_at')
       .order('created_at', { ascending: false })
       .limit(100)
 
@@ -316,7 +318,7 @@ function IntelProvider({ children }) {
 
     const { data, error: messagesError } = await supabase
       .from('direct_messages')
-      .select('id, sender_id, recipient_id, body, read_at, created_at')
+      .select('id, sender_id, recipient_id, body, media_url, media_type, read_at, created_at')
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order('created_at', { ascending: true })
       .limit(300)
@@ -529,7 +531,7 @@ function IntelProvider({ children }) {
 
     const { data, error: clanMessagesError } = await supabase
       .from('clan_messages')
-      .select('id, clan_id, user_id, body, created_at, deleted_at, deleted_by')
+      .select('id, clan_id, user_id, body, media_url, media_type, created_at, deleted_at, deleted_by')
       .eq('clan_id', clanId)
       .order('created_at', { ascending: true })
       .limit(200)
@@ -1187,19 +1189,25 @@ function IntelProvider({ children }) {
     return data
   }
 
-  async function sendClanMessage(clanId, body) {
+  async function sendClanMessage(clanId, body, media = null) {
     if (!user) {
       throw new Error('You must be logged in to send clan chat.')
     }
+
+    const trimmedBody = body.trim()
+    const mediaUrl = media?.mediaUrl || null
+    const mediaType = media?.mediaType || null
 
     const { data: sentMessage, error: clanMessageError } = await supabase
       .from('clan_messages')
       .insert({
         clan_id: clanId,
         user_id: user.id,
-        body: body.trim(),
+        body: trimmedBody,
+        media_url: mediaUrl,
+        media_type: mediaType,
       })
-      .select('id, clan_id, user_id, body, created_at, deleted_at, deleted_by')
+      .select('id, clan_id, user_id, body, media_url, media_type, created_at, deleted_at, deleted_by')
       .single()
 
     if (clanMessageError) {
@@ -1305,18 +1313,24 @@ function IntelProvider({ children }) {
     return nextReactions
   }
 
-  async function sendPublicMessage(body) {
+  async function sendPublicMessage(body, media = null) {
     if (!user) {
       throw new Error('You must be logged in to chat.')
     }
+
+    const trimmedBody = body.trim()
+    const mediaUrl = media?.mediaUrl || null
+    const mediaType = media?.mediaType || null
 
     const { data: sentMessage, error: messageError } = await supabase
       .from('public_chat_messages')
       .insert({
         user_id: user.id,
-        body: body.trim(),
+        body: trimmedBody,
+        media_url: mediaUrl,
+        media_type: mediaType,
       })
-      .select('id, user_id, body, created_at')
+      .select('id, user_id, body, media_url, media_type, created_at')
       .single()
 
     if (messageError) {
@@ -1338,12 +1352,14 @@ function IntelProvider({ children }) {
     await awardActivityXp('public_message_sent')
   }
 
-  async function sendDirectMessage(recipientId, body) {
+  async function sendDirectMessage(recipientId, body, media = null) {
     if (!user) {
       throw new Error('You must be logged in to send messages.')
     }
 
     const trimmedBody = body.trim()
+    const mediaUrl = media?.mediaUrl || null
+    const mediaType = media?.mediaType || null
 
     const { data: sentMessage, error: messageError } = await supabase
       .from('direct_messages')
@@ -1351,8 +1367,10 @@ function IntelProvider({ children }) {
         sender_id: user.id,
         recipient_id: recipientId,
         body: trimmedBody,
+        media_url: mediaUrl,
+        media_type: mediaType,
       })
-      .select('id, sender_id, recipient_id, body, read_at, created_at')
+      .select('id, sender_id, recipient_id, body, media_url, media_type, read_at, created_at')
       .single()
 
     if (messageError) {
@@ -1388,7 +1406,7 @@ function IntelProvider({ children }) {
           recipientUserId: recipientId,
           displayName,
           clanTag,
-          message: trimmedBody,
+          message: trimmedBody || (mediaType === 'gif' ? 'sent a GIF' : 'sent an image'),
         },
       }),
       12000,

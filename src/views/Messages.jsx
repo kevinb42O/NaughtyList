@@ -1,11 +1,14 @@
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import MediaComposer from '../components/MediaComposer.jsx'
+import MessageMedia from '../components/MessageMedia.jsx'
 import MessageReactions from '../components/MessageReactions.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import { useIntel } from '../context/useIntel.js'
+import { mediaPreviewLabel } from '../utils/media.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
 function isSameDay(firstValue, secondValue) {
@@ -60,6 +63,7 @@ const DirectMessageBubble = memo(function DirectMessageBubble({ directMessage, m
               : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
           }`}
         >
+          <MessageMedia mediaUrl={directMessage.media_url} mediaType={directMessage.media_type} />
           <p className="whitespace-pre-wrap">{directMessage.body}</p>
           <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
             {formatMessageTime(directMessage.created_at)}
@@ -92,7 +96,9 @@ function Messages() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedId = searchParams.get('to')
   const [message, setMessage] = useState('')
+  const [pendingMedia, setPendingMedia] = useState(null)
   const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
   const sendingRef = useRef(false)
   const scrollRef = useRef(null)
   const stickToBottomRef = useRef(true)
@@ -267,24 +273,29 @@ function Messages() {
     event.preventDefault()
 
     const nextMessage = message.trim()
+    const nextMedia = pendingMedia
 
-    if (sendingRef.current || !selectedProfile || !nextMessage) {
+    if (sendingRef.current || !selectedProfile || (!nextMessage && !nextMedia?.mediaUrl)) {
       return
     }
 
     sendingRef.current = true
+    setSending(true)
     setError('')
     setMessage('')
+    setPendingMedia(null)
     stickToBottomRef.current = true
 
     try {
-      await sendDirectMessage(selectedProfile.id, nextMessage)
+      await sendDirectMessage(selectedProfile.id, nextMessage, nextMedia)
       scrollToLatestMessage()
     } catch (messageError) {
       setMessage(nextMessage)
+      setPendingMedia(nextMedia)
       setError(messageError.message)
     } finally {
       sendingRef.current = false
+      setSending(false)
     }
   }
 
@@ -323,7 +334,7 @@ function Messages() {
                 const active = selectedProfile?.id === contact.id
                 const lastMessage = lastMessageByContact.get(contact.id)
                 const lastMessagePreview = lastMessage
-                  ? `${lastMessage.sender_id === user?.id ? 'You: ' : ''}${lastMessage.body}`
+                  ? `${lastMessage.sender_id === user?.id ? 'You: ' : ''}${mediaPreviewLabel(lastMessage)}`
                   : online
                     ? 'Online now'
                     : contact.activision_ids?.[0] || 'No Activision ID'
@@ -431,25 +442,17 @@ function Messages() {
                 )}
               </div>
 
-              <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">
-                <div className="grid gap-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/80 p-1.5 shadow-inner shadow-black/40 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <input
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  className="min-h-11 rounded-2xl border-0 bg-transparent px-3 text-[0.95rem] text-gray-100 outline-none placeholder:text-gray-600"
-                  placeholder={`Message ${displayProfileName(selectedProfile)}`}
-                  maxLength="1000"
-                />
-                <button
-                  type="submit"
-                  disabled={!message.trim()}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/18 px-4 text-sm font-black uppercase tracking-[0.12em] text-red-50 transition hover:bg-red-500/28 disabled:opacity-45"
-                >
-                  <Send className="h-4 w-4" aria-hidden="true" />
-                  Send
-                </button>
-                </div>
-              </form>
+              <MediaComposer
+                value={message}
+                onChange={setMessage}
+                onSubmit={handleSend}
+                pendingMedia={pendingMedia}
+                onPendingMediaChange={setPendingMedia}
+                onError={setError}
+                placeholder={`Message ${displayProfileName(selectedProfile)}`}
+                maxLength={1000}
+                sending={sending}
+              />
               {error ? <p className="px-4 pb-3 text-sm font-bold text-red-200">{error}</p> : null}
             </div>
           ) : (

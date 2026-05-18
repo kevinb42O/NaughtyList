@@ -1,7 +1,9 @@
-import { Crown, Eye, MessageSquare, Send, Shield } from 'lucide-react'
+import { Crown, Eye, MessageSquare, Shield } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
+import MediaComposer from '../components/MediaComposer.jsx'
+import MessageMedia from '../components/MessageMedia.jsx'
 import MessageReactions from '../components/MessageReactions.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
@@ -81,6 +83,8 @@ function clanMessageMatches(currentMessage, nextMessage) {
     currentMessage?.clan_id === nextMessage?.clan_id &&
     currentMessage?.user_id === nextMessage?.user_id &&
     currentMessage?.body === nextMessage?.body &&
+    currentMessage?.media_url === nextMessage?.media_url &&
+    currentMessage?.media_type === nextMessage?.media_type &&
     currentMessage?.created_at === nextMessage?.created_at &&
     currentMessage?.deleted_at === nextMessage?.deleted_at &&
     currentMessage?.deleted_by === nextMessage?.deleted_by &&
@@ -131,6 +135,7 @@ function Chat() {
     setMessageReaction,
   } = useIntel()
   const [message, setMessage] = useState('')
+  const [pendingMedia, setPendingMedia] = useState(null)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const [activeRoom, setActiveRoom] = useState(searchParams.get('room') === 'clan' ? 'clan' : 'public')
@@ -272,14 +277,16 @@ function Chat() {
     event.preventDefault()
 
     const nextMessage = message.trim()
+    const nextMedia = pendingMedia
 
-    if (sending || !nextMessage) {
+    if (sending || (!nextMessage && !nextMedia?.mediaUrl)) {
       return
     }
 
     setSending(true)
     setError('')
     setMessage('')
+    setPendingMedia(null)
     stickToBottomRef.current = true
 
     try {
@@ -292,7 +299,7 @@ function Chat() {
           throw new Error('Only active clan members can send in this room.')
         }
 
-        const sentMessage = await sendClanMessage(resolvedSelectedClanId, nextMessage)
+        const sentMessage = await sendClanMessage(resolvedSelectedClanId, nextMessage, nextMedia)
         setClanMessageState((currentState) => ({
           clanId: resolvedSelectedClanId,
           messages:
@@ -302,11 +309,12 @@ function Chat() {
         }))
         scrollToLatestMessage()
       } else {
-        await sendPublicMessage(nextMessage)
+        await sendPublicMessage(nextMessage, nextMedia)
         scrollToLatestMessage()
       }
     } catch (chatError) {
       setMessage(nextMessage)
+      setPendingMedia(nextMedia)
       setError(chatError.message)
     } finally {
       setSending(false)
@@ -520,6 +528,7 @@ function Chat() {
                           ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
                           : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
                       }`}>
+                      {!wasDeleted ? <MessageMedia mediaUrl={chatMessage.media_url} mediaType={chatMessage.media_type} /> : null}
                       <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-400' : ''}`}>
                         {wasDeleted ? 'Message removed.' : chatMessage.body}
                       </p>
@@ -548,32 +557,24 @@ function Chat() {
           )}
         </div>
 
-        <form onSubmit={handleSend} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">
-          <div className="grid gap-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/80 p-1.5 shadow-inner shadow-black/40 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <input
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            className="min-h-11 rounded-2xl border-0 bg-transparent px-3 text-[0.95rem] text-gray-100 outline-none placeholder:text-gray-600"
-            placeholder={
-              activeRoom === 'clan'
-                ? canSendClanRoomMessage
-                  ? `Message ${selectedClan?.name || 'your clan'}`
-                  : 'Read-only room'
-                : "Yo who's playing?"
-            }
-            maxLength="500"
-            disabled={activeRoom === 'clan' && !canSendClanRoomMessage}
-          />
-          <button
-            type="submit"
-            disabled={sending || !message.trim() || (activeRoom === 'clan' && !canSendClanRoomMessage)}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/18 px-4 text-sm font-black uppercase tracking-[0.12em] text-red-50 transition hover:bg-red-500/28 disabled:opacity-45"
-          >
-            <Send className="h-4 w-4" aria-hidden="true" />
-            Send
-          </button>
-          </div>
-        </form>
+        <MediaComposer
+          value={message}
+          onChange={setMessage}
+          onSubmit={handleSend}
+          pendingMedia={pendingMedia}
+          onPendingMediaChange={setPendingMedia}
+          onError={setError}
+          placeholder={
+            activeRoom === 'clan'
+              ? canSendClanRoomMessage
+                ? `Message ${selectedClan?.name || 'your clan'}`
+                : 'Read-only room'
+              : "Yo who's playing?"
+          }
+          maxLength={activeRoom === 'clan' ? 1000 : 500}
+          disabled={activeRoom === 'clan' && !canSendClanRoomMessage}
+          sending={sending}
+        />
         {activeRoom === 'clan' && !canSendClanRoomMessage && selectedClan ? (
           <p className="px-4 pb-3 text-sm font-bold text-gray-500">
             {selectedClan.id === myClanId
