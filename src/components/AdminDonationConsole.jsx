@@ -48,7 +48,7 @@ function AdminDonationConsole() {
     }
 
     const amountCents = Math.round(Number(amount || 0) * 100)
-    if (!Number.isFinite(amountCents) || amountCents < 100) {
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
       setError('Enter a valid amount.')
       return
     }

@@ -2,11 +2,11 @@ export const donationTiers = [
   {
     key: 'supporter',
     label: 'Supporter',
-    amountCents: 300,
+    amountCents: 100,
     short: 'Signal',
     tone: 'border-emerald-400/45 bg-emerald-400/10 text-emerald-100',
     frame: 'emerald',
-    description: 'Supporter badge and profile signal flair.',
+    description: 'Any confirmed support unlocks the supporter signal.',
   },
   {
     key: 'backer',

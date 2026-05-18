@@ -1,65 +1,115 @@
-import { Banknote, BadgeCheck, CreditCard, EyeOff, HeartHandshake, Lock, ShieldCheck } from 'lucide-react'
+import { Banknote, BadgeCheck, Check, Copy, EyeOff, HeartHandshake, Lock, QrCode, ShieldCheck } from 'lucide-react'
+import QRCode from 'qrcode'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { displayProfileName } from '../utils/profiles.js'
 import { donationTiers, formatDonationAmount, supporterTierMeta } from '../utils/supporters.js'
-import { useState } from 'react'
 
 const bankTransferReferencePrefix = 'NaughtyList'
 const bankTransferIban = 'BE43 7380 0488 6701'
+const bankTransferIbanCompact = bankTransferIban.replace(/\s+/g, '')
 const bankTransferName = 'Kevin Bourguignon'
+
+function parseEuroAmount(value) {
+  const normalized = String(value ?? '').trim().replace(',', '.')
+  if (!normalized) return 0
+  const amount = Number(normalized)
+  if (!Number.isFinite(amount) || amount <= 0) return 0
+  return Math.round(amount * 100)
+}
+
+function buildEpcQrPayload({ amountCents, beneficiaryName, iban, reference }) {
+  const amountLine = amountCents > 0 ? `EUR${(amountCents / 100).toFixed(2)}` : ''
+
+  return [
+    'BCD',
+    '002',
+    '1',
+    'SCT',
+    '',
+    beneficiaryName.slice(0, 70),
+    iban,
+    amountLine,
+    '',
+    reference.slice(0, 140),
+    '',
+  ].join('\n')
+}
 
 function Support() {
   const {
     isAuthenticated,
     profile,
     supporterWall,
-    createDonationCheckout,
   } = useIntel()
   const [selectedTier, setSelectedTier] = useState(donationTiers[1].key)
   const [customAmount, setCustomAmount] = useState('')
-  const [donorMessage, setDonorMessage] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
+  const [transferNote, setTransferNote] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
-  const [working, setWorking] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const currentTier = supporterTierMeta(profile?.supporter_tier)
   const selectedTierMeta = supporterTierMeta(selectedTier)
   const selectedAmountCents = selectedTier === 'custom'
-    ? Math.max(0, Math.round(Number(customAmount || 0) * 100))
+    ? parseEuroAmount(customAmount)
     : selectedTierMeta?.amountCents ?? 0
-  const transferReference = `${bankTransferReferencePrefix} ${profile?.display_name || profile?.id || '@username'}`
+  const transferReference = useMemo(() => {
+    const identity = profile?.display_name || profile?.id || '@username'
+    const note = transferNote.trim()
+    return `${bankTransferReferencePrefix} ${identity}${note ? ` ${note}` : ''}`.slice(0, 140)
+  }, [profile?.display_name, profile?.id, transferNote])
+  const qrPayload = useMemo(() => buildEpcQrPayload({
+    amountCents: selectedAmountCents,
+    beneficiaryName: bankTransferName,
+    iban: bankTransferIbanCompact,
+    reference: transferReference,
+  }), [selectedAmountCents, transferReference])
 
-  async function handleCheckout() {
-    setStatus('')
-    setError('')
+  useEffect(() => {
+    let cancelled = false
+    QRCode.toDataURL(qrPayload, {
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: 320,
+      color: {
+        dark: '#050608',
+        light: '#ffffff',
+      },
+    })
+      .then((dataUrl) => {
+        if (!cancelled) {
+          setQrDataUrl(dataUrl)
+        }
+      })
+      .catch((qrError) => {
+        if (!cancelled) {
+          setQrDataUrl('')
+          setError(qrError.message)
+        }
+      })
 
-    if (!isAuthenticated) {
-      setError('Login first so the supporter reward can be attached to your profile.')
-      return
+    return () => {
+      cancelled = true
     }
+  }, [qrPayload])
 
-    if (selectedAmountCents < 300) {
-      setError('The minimum online support amount is €3.')
-      return
-    }
+  async function copyTransferDetails() {
+    const details = [
+      `Name: ${bankTransferName}`,
+      `IBAN: ${bankTransferIban}`,
+      selectedAmountCents > 0 ? `Amount: ${formatDonationAmount(selectedAmountCents)}` : 'Amount: open',
+      `Reference: ${transferReference}`,
+    ].join('\n')
 
-    setWorking(true)
-    try {
-      const result = await createDonationCheckout({ amountCents: selectedAmountCents, donorMessage, isPublic })
-      if (!result?.url) {
-        throw new Error('Checkout did not return a payment link.')
-      }
-      window.location.assign(result.url)
-    } catch (checkoutError) {
-      setError(checkoutError.message)
-      setStatus('Stripe may still need server keys. Bank transfer is available below.')
-    } finally {
-      setWorking(false)
-    }
+    await navigator.clipboard.writeText(details)
+    setCopied(true)
+    setStatus('Transfer details copied.')
+    window.setTimeout(() => setCopied(false), 1800)
   }
 
   return (
@@ -74,8 +124,8 @@ function Support() {
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <HeartHandshake className="h-6 w-6 text-red-100" aria-hidden="true" />
               <div>
-                <p className="intel-label">Quiet Support</p>
-                <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">Cosmetic rewards only</h2>
+                  <p className="intel-label">Bank App Support</p>
+                  <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">Scan and send</h2>
               </div>
             </div>
 
@@ -111,7 +161,7 @@ function Support() {
             >
               <span>
                 <span className="block text-sm font-black uppercase tracking-[0.16em] text-white">Custom Amount</span>
-                <span className="block text-xs font-bold uppercase tracking-[0.14em] text-gray-500">Minimum €3</span>
+                <span className="block text-xs font-bold uppercase tracking-[0.14em] text-gray-500">Any amount, or leave open</span>
               </span>
               <input
                 value={customAmount}
@@ -126,37 +176,31 @@ function Support() {
 
             <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
               <div>
-                <label htmlFor="support-message" className="intel-label mb-2 block">Supporter Message</label>
+                <label htmlFor="support-message" className="intel-label mb-2 block">Transfer Note</label>
                 <input
                   id="support-message"
-                  value={donorMessage}
-                  onChange={(event) => setDonorMessage(event.target.value)}
+                  value={transferNote}
+                  onChange={(event) => setTransferNote(event.target.value)}
                   className="field"
-                  maxLength="140"
-                  placeholder="Optional note for the supporter wall"
+                  maxLength="80"
+                  placeholder="Optional short note"
                 />
               </div>
-              <label className="flex min-h-12 items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={isPublic}
-                  onChange={(event) => setIsPublic(event.target.checked)}
-                  className="h-4 w-4 accent-red-500"
-                />
-                Public wall
-              </label>
+              <button
+                type="button"
+                onClick={copyTransferDetails}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-emerald-400/40 hover:text-emerald-100"
+              >
+                {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+                {copied ? 'Copied' : 'Copy Details'}
+              </button>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={handleCheckout}
-                disabled={working}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
-              >
-                <CreditCard className="h-4 w-4" aria-hidden="true" />
-                {working ? 'Opening Checkout' : `Support ${formatDonationAmount(selectedAmountCents || 0)}`}
-              </button>
+              <div className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-5 text-sm font-black uppercase tracking-[0.18em] text-emerald-100">
+                <QrCode className="h-4 w-4" aria-hidden="true" />
+                {selectedAmountCents > 0 ? `QR ${formatDonationAmount(selectedAmountCents)}` : 'QR Open Amount'}
+              </div>
               {!isAuthenticated ? (
                 <Link
                   to="/auth"
@@ -182,8 +226,28 @@ function Support() {
                   </p>
                 </>
               ) : (
-                <p className="text-sm leading-6 text-gray-400">No supporter badge yet. Stripe rewards apply automatically after checkout.</p>
+                <p className="text-sm leading-6 text-gray-400">No supporter badge yet. Bank transfers are confirmed manually by admin.</p>
               )}
+            </div>
+
+            <div className="rounded-[1.4rem] border border-white/10 bg-white p-3 text-zinc-950 shadow-xl shadow-black/20">
+              {qrDataUrl ? (
+                <img src={qrDataUrl} alt="Bank transfer QR code" className="mx-auto h-auto w-full max-w-72 rounded-xl" />
+              ) : (
+                <div className="flex aspect-square items-center justify-center rounded-xl border border-zinc-200 text-sm font-black uppercase tracking-[0.16em] text-zinc-500">
+                  Building QR
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+              <p className="intel-label mb-3">QR Transfer</p>
+              <div className="space-y-2 text-sm font-bold text-gray-300">
+                <p>Name: {bankTransferName}</p>
+                <p>IBAN: {bankTransferIban}</p>
+                <p>Amount: {selectedAmountCents > 0 ? formatDonationAmount(selectedAmountCents) : 'open'}</p>
+                <p className="break-words">Reference: {transferReference}</p>
+              </div>
             </div>
 
             <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
@@ -214,7 +278,7 @@ function Support() {
           <Banknote className="h-5 w-5 text-emerald-100" aria-hidden="true" />
           <div>
             <p className="intel-label">Bank Transfer</p>
-            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Manual support path</h2>
+            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Bank transfer path</h2>
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
@@ -232,7 +296,7 @@ function Support() {
           </div>
         </div>
         <p className="mt-4 text-sm leading-6 text-gray-400">
-          Bank transfers are confirmed manually by admin. Include the reference so the reward can be attached to {isAuthenticated ? displayProfileName(profile) : 'your profile'}.
+          The QR uses standard SEPA transfer data. Bank transfers are confirmed manually by admin. Include the reference so the reward can be attached to {isAuthenticated ? displayProfileName(profile) : 'your profile'}.
         </p>
       </section>
 

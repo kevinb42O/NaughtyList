@@ -1134,30 +1134,6 @@ function IntelProvider({ children }) {
     return data
   }
 
-  async function createDonationCheckout({ amountCents, donorMessage, isPublic }) {
-    if (!user) {
-      throw new Error('Login first so the supporter reward can be attached to your profile.')
-    }
-
-    const { data, error: checkoutError } = await withTimeout(
-      supabase.functions.invoke('create-donation-checkout', {
-        body: {
-          amountCents,
-          donorMessage,
-          isPublic,
-        },
-      }),
-      12000,
-      'Donation checkout request timed out.',
-    )
-
-    if (checkoutError) {
-      throw checkoutError
-    }
-
-    return data
-  }
-
   async function adminRecordDonation({ profileId, amountCents, provider, reference, message, isPublic }) {
     if (!isAdmin) {
       throw new Error('Only admins can record donations.')
@@ -2090,7 +2066,6 @@ function IntelProvider({ children }) {
     setProfileRole,
     updateProfile,
     updateSupporterPreferences,
-    createDonationCheckout,
     adminRecordDonation,
     createClan,
     requestClanJoin,

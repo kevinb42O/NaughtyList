@@ -28,20 +28,11 @@ Database migrations live in `supabase/migrations/`.
 
 The app supports quiet project contributions with cosmetic-only rewards:
 
-- `/support` starts Stripe Checkout for logged-in users and shows a bank transfer fallback.
-- Stripe webhooks are handled by `supabase/functions/stripe-donations`.
+- `/support` generates a SEPA bank-transfer QR code for bank apps.
 - Admins can manually confirm bank transfers and Ko-fi/support records from `/admin`.
 - Rewards are stored on profiles as supporter tier, badge visibility, wall visibility, and cosmetic frame/flair fields.
 
-Required server env for automated Stripe checkout:
-
-```bash
-STRIPE_SECRET_KEY=sk_live_or_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-SITE_URL=https://your-domain.example
-```
-
-Bank transfer fallback shown in the app:
+Bank transfer details shown in the app and encoded into the QR:
 
 ```text
 IBAN: BE43 7380 0488 6701

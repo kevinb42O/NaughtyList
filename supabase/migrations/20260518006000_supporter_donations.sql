@@ -19,7 +19,7 @@ add constraint profiles_supporter_tier_check check (supporter_tier in ('none', '
 create table if not exists public.donations (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid references public.profiles(id) on delete set null,
-  provider text not null default 'manual' check (provider in ('stripe', 'bank_transfer', 'manual', 'kofi')),
+  provider text not null default 'manual' check (provider in ('bank_transfer', 'manual', 'kofi')),
   provider_payment_id text,
   amount_cents integer not null check (amount_cents > 0),
   currency text not null default 'eur',
@@ -54,7 +54,7 @@ as $$
   select case
     when coalesce(amount_cents, 0) >= 2500 then 'founder'
     when coalesce(amount_cents, 0) >= 1000 then 'backer'
-    when coalesce(amount_cents, 0) >= 300 then 'supporter'
+    when coalesce(amount_cents, 0) > 0 then 'supporter'
     else 'none'
   end
 $$;
@@ -139,7 +139,7 @@ begin
     raise exception 'Only admins can record donations';
   end if;
 
-  if amount_cents < 100 then
+  if amount_cents <= 0 then
     raise exception 'Donation amount is too low';
   end if;
 
