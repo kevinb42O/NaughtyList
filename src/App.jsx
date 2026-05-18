@@ -14,6 +14,7 @@ import Moderator from './views/Moderator.jsx'
 import Profile from './views/Profile.jsx'
 import PublicProfile from './views/PublicProfile.jsx'
 import Profiles from './views/Profiles.jsx'
+import Support from './views/Support.jsx'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="/profiles/:profileId" element={<PublicProfile />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/help" element={<Help />} />
             <Route path="/faq" element={<Navigate to="/help" replace />} />
             <Route path="/auth" element={<Auth />} />

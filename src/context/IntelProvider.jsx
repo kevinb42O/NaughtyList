@@ -8,7 +8,7 @@ import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMap
 import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
-const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, last_seen, created_at, updated_at'
+const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, supporter_tier, supporter_lifetime_amount_cents, supporter_since, supporter_active_until, supporter_badge_enabled, supporter_badge_visible, supporter_wall_visible, supporter_display_name, supporter_profile_frame, supporter_chat_flair, last_seen, created_at, updated_at'
 const clanSelect = 'id, name, tag, description, badge_icon, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
@@ -122,6 +122,16 @@ function profileRecordMatches(currentProfile, nextProfile) {
     currentProfile.level === nextProfile.level &&
     currentProfile.streak_freezes === nextProfile.streak_freezes &&
     currentProfile.daily_checkin_count === nextProfile.daily_checkin_count &&
+    currentProfile.supporter_tier === nextProfile.supporter_tier &&
+    currentProfile.supporter_lifetime_amount_cents === nextProfile.supporter_lifetime_amount_cents &&
+    currentProfile.supporter_since === nextProfile.supporter_since &&
+    currentProfile.supporter_active_until === nextProfile.supporter_active_until &&
+    currentProfile.supporter_badge_enabled === nextProfile.supporter_badge_enabled &&
+    currentProfile.supporter_badge_visible === nextProfile.supporter_badge_visible &&
+    currentProfile.supporter_wall_visible === nextProfile.supporter_wall_visible &&
+    currentProfile.supporter_display_name === nextProfile.supporter_display_name &&
+    currentProfile.supporter_profile_frame === nextProfile.supporter_profile_frame &&
+    currentProfile.supporter_chat_flair === nextProfile.supporter_chat_flair &&
     currentProfile.last_seen === nextProfile.last_seen &&
     currentProfile.updated_at === nextProfile.updated_at &&
     JSON.stringify(currentProfile.activision_ids ?? null) === JSON.stringify(nextProfile.activision_ids ?? null) &&
@@ -196,6 +206,8 @@ function IntelProvider({ children }) {
     sent_notifications: 0,
   })
   const [pushEvents, setPushEvents] = useState([])
+  const [donations, setDonations] = useState([])
+  const [supporterWall, setSupporterWall] = useState([])
   const [publicChatMutes, setPublicChatMutes] = useState([])
   const [moderationEvents, setModerationEvents] = useState([])
   const [dailyCheckInResult, setDailyCheckInResult] = useState(null)
@@ -296,6 +308,46 @@ function IntelProvider({ children }) {
     })
     return resolved
   }, [])
+
+  const fetchSupporterWall = useCallback(async () => {
+    const { data, error: wallError } = await supabase
+      .from('supporter_wall')
+      .select('profile_id, display_name, supporter_tier, supporter_since, message')
+      .order('supporter_since', { ascending: true })
+      .limit(24)
+
+    if (wallError) {
+      throw wallError
+    }
+
+    setSupporterWall(data ?? [])
+    return data ?? []
+  }, [])
+
+  const fetchDonationAdmin = useCallback(async (nextProfiles = profilesRef.current) => {
+    if (!isAdmin) {
+      setDonations([])
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+    const { data, error: donationsError } = await supabase
+      .from('donations')
+      .select('id, profile_id, provider, provider_payment_id, amount_cents, currency, status, donor_name, donor_email, donor_message, is_public, confirmed_at, confirmed_by, metadata, created_at, updated_at')
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (donationsError) {
+      throw donationsError
+    }
+
+    const nextDonations = (data ?? []).map((donation) => ({
+      ...donation,
+      profile: profileById.get(donation.profile_id),
+    }))
+    setDonations(nextDonations)
+    return nextDonations
+  }, [isAdmin])
 
   const fetchPublicMessages = useCallback(async (nextProfiles = []) => {
     const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
@@ -672,6 +724,8 @@ function IntelProvider({ children }) {
         fetchDirectMessages(user?.id, nextProfiles),
         fetchPublicChatMutes(nextProfiles),
         fetchModerationEvents(nextProfiles),
+        fetchSupporterWall(),
+        fetchDonationAdmin(nextProfiles),
         refreshClanState(nextProfiles),
       ])
     } catch (refreshError) {
@@ -679,7 +733,7 @@ function IntelProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [fetchDirectMessages, fetchModerationEvents, fetchPlayers, fetchProfiles, fetchPublicChatMutes, fetchPublicMessages, refreshClanState, user?.id])
+  }, [fetchDirectMessages, fetchDonationAdmin, fetchModerationEvents, fetchPlayers, fetchProfiles, fetchPublicChatMutes, fetchPublicMessages, fetchSupporterWall, refreshClanState, user?.id])
 
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) {
@@ -1058,6 +1112,72 @@ function IntelProvider({ children }) {
     }
 
     await refresh()
+  }
+
+  async function updateSupporterPreferences({ badgeVisible, wallVisible, displayName }) {
+    if (!user) {
+      throw new Error('You must be logged in to update supporter preferences.')
+    }
+
+    const { data, error: preferencesError } = await supabase.rpc('update_supporter_preferences', {
+      badge_visible: Boolean(badgeVisible),
+      wall_visible: Boolean(wallVisible),
+      display_name: displayName?.trim() || null,
+    })
+
+    if (preferencesError) {
+      throw preferencesError
+    }
+
+    applyProfileRecord(data)
+    await Promise.all([fetchSupporterWall(), fetchProfiles()])
+    return data
+  }
+
+  async function createDonationCheckout({ amountCents, donorMessage, isPublic }) {
+    if (!user) {
+      throw new Error('Login first so the supporter reward can be attached to your profile.')
+    }
+
+    const { data, error: checkoutError } = await withTimeout(
+      supabase.functions.invoke('create-donation-checkout', {
+        body: {
+          amountCents,
+          donorMessage,
+          isPublic,
+        },
+      }),
+      12000,
+      'Donation checkout request timed out.',
+    )
+
+    if (checkoutError) {
+      throw checkoutError
+    }
+
+    return data
+  }
+
+  async function adminRecordDonation({ profileId, amountCents, provider, reference, message, isPublic }) {
+    if (!isAdmin) {
+      throw new Error('Only admins can record donations.')
+    }
+
+    const { data, error: donationError } = await supabase.rpc('admin_record_donation', {
+      target_profile_id: profileId,
+      amount_cents: amountCents,
+      provider,
+      reference,
+      donor_message: message,
+      is_public: Boolean(isPublic),
+    })
+
+    if (donationError) {
+      throw donationError
+    }
+
+    await refresh()
+    return data
   }
 
   async function createClan({ name, tag, description }) {
@@ -1937,6 +2057,8 @@ function IntelProvider({ children }) {
     clanInvites,
     pushSummary,
     pushEvents,
+    donations,
+    supporterWall,
     dailyCheckInResult,
     lastXpAward,
     unreadDirectMessageCount,
@@ -1967,6 +2089,9 @@ function IntelProvider({ children }) {
     claimAdmin,
     setProfileRole,
     updateProfile,
+    updateSupporterPreferences,
+    createDonationCheckout,
+    adminRecordDonation,
     createClan,
     requestClanJoin,
     cancelClanJoinRequest,
@@ -1998,6 +2123,7 @@ function IntelProvider({ children }) {
     broadcastOnline,
     enablePushNotifications,
     fetchPushConsole,
+    fetchDonationAdmin,
     sendCustomPush,
   }
 

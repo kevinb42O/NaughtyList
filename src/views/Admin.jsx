@@ -1,6 +1,7 @@
 import { Crown, Search, Shield, Trash2, UserX } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import AdminDonationConsole from '../components/AdminDonationConsole.jsx'
 import AdminPushConsole from '../components/AdminPushConsole.jsx'
 import EditPlayerModal from '../components/EditPlayerModal.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
@@ -228,6 +229,8 @@ function Admin() {
       </PageHeader>
 
       <AdminPushConsole />
+
+      <AdminDonationConsole />
 
       <section className="panel rounded-[1.8rem] p-5">
         <div className="mb-4 flex items-center gap-3">

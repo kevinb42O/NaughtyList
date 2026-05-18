@@ -25,6 +25,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { avatarStreakRequirement } from '../utils/streaks.js'
+import { supporterFrameClass } from '../utils/supporters.js'
 
 export const avatarIconOptions = [
   { key: 'skull', label: 'Skull', Icon: Skull, accent: 'text-red-100', glow: 'from-red-500/28 to-zinc-950' },
@@ -124,7 +125,7 @@ function ProfileAvatar({ className = '', iconKey, online, profile, showOnline = 
   return (
     <span className={`relative inline-flex shrink-0 ${className}`}>
       <span
-        className={`flex items-center justify-center overflow-hidden border border-white/10 bg-gradient-to-br ${option.glow} shadow-lg shadow-black/25 ring-1 ring-white/[0.03] ${sizeClasses[size] ?? sizeClasses.md}`}
+        className={`flex items-center justify-center overflow-hidden border border-white/10 bg-gradient-to-br ${option.glow} shadow-lg shadow-black/25 ring-1 ring-white/[0.03] ${supporterFrameClass(profile)} ${sizeClasses[size] ?? sizeClasses.md}`}
         title={option.label}
         aria-label={`${option.label} avatar`}
       >

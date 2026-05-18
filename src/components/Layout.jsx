@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   Crown,
   CircleHelp,
+  HeartHandshake,
   House,
   LogIn,
   MessageSquare,
@@ -162,6 +163,16 @@ function Layout() {
             </Link>
 
             <div className="flex min-w-0 items-center justify-end gap-2">
+              <Link
+                to="/support"
+                title="Support 21rats"
+                aria-label="Open support page"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-400/8 text-emerald-100 transition hover:border-emerald-300/50 hover:bg-emerald-400/14 sm:w-auto sm:px-3"
+              >
+                <HeartHandshake className="h-4.5 w-4.5" aria-hidden="true" />
+                <span className="hidden pl-2 text-[0.62rem] font-black uppercase tracking-[0.16em] sm:inline">Support</span>
+              </Link>
+
               <Link
                 to="/help"
                 title="Help and FAQ"

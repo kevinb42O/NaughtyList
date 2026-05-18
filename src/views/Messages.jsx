@@ -7,6 +7,7 @@ import MessageReactions from '../components/MessageReactions.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
+import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { mediaPreviewLabel } from '../utils/media.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
@@ -356,6 +357,7 @@ function Messages() {
                         <p className="truncate text-sm font-black uppercase tracking-[0.04em] text-white">
                         {clanPrefix(contact)} {displayProfileName(contact)}
                         </p>
+                        <SupporterBadge profile={contact} compact />
                         {unreadCountsBySender[contact.id] ? (
                           <span className="rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-red-100">
                             {unreadCountsBySender[contact.id]}

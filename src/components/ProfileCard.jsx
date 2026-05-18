@@ -7,6 +7,7 @@ import OnlineDot from './OnlineDot.jsx'
 import ProfileAvatar from './ProfileAvatar.jsx'
 import RoleBadge from './RoleBadge.jsx'
 import StreakBadge from './StreakBadge.jsx'
+import SupporterBadge from './SupporterBadge.jsx'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
 function ProfileCard({ profile, onlineUserIds }) {
@@ -55,6 +56,7 @@ function ProfileCard({ profile, onlineUserIds }) {
                 <OnlineDot online={online} />
                 <RoleBadge role={profile.role} compact />
                 <StreakBadge compact profile={profile} />
+                <SupporterBadge compact profile={profile} />
                 <span className="inline-flex min-h-8 items-center rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
                   LV {level}
                 </span>

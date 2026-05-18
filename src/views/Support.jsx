@@ -1,0 +1,269 @@
+import { Banknote, BadgeCheck, CreditCard, EyeOff, HeartHandshake, Lock, ShieldCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import PageHeader from '../components/PageHeader.jsx'
+import SupporterBadge from '../components/SupporterBadge.jsx'
+import { useIntel } from '../context/useIntel.js'
+import { displayProfileName } from '../utils/profiles.js'
+import { donationTiers, formatDonationAmount, supporterTierMeta } from '../utils/supporters.js'
+import { useState } from 'react'
+
+const bankTransferReferencePrefix = 'NaughtyList'
+const bankTransferIban = 'BE43 7380 0488 6701'
+const bankTransferName = 'Kevin Bourguignon'
+
+function Support() {
+  const {
+    isAuthenticated,
+    profile,
+    supporterWall,
+    createDonationCheckout,
+  } = useIntel()
+  const [selectedTier, setSelectedTier] = useState(donationTiers[1].key)
+  const [customAmount, setCustomAmount] = useState('')
+  const [donorMessage, setDonorMessage] = useState('')
+  const [isPublic, setIsPublic] = useState(false)
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+  const [working, setWorking] = useState(false)
+
+  const currentTier = supporterTierMeta(profile?.supporter_tier)
+  const selectedTierMeta = supporterTierMeta(selectedTier)
+  const selectedAmountCents = selectedTier === 'custom'
+    ? Math.max(0, Math.round(Number(customAmount || 0) * 100))
+    : selectedTierMeta?.amountCents ?? 0
+  const transferReference = `${bankTransferReferencePrefix} ${profile?.display_name || profile?.id || '@username'}`
+
+  async function handleCheckout() {
+    setStatus('')
+    setError('')
+
+    if (!isAuthenticated) {
+      setError('Login first so the supporter reward can be attached to your profile.')
+      return
+    }
+
+    if (selectedAmountCents < 300) {
+      setError('The minimum online support amount is €3.')
+      return
+    }
+
+    setWorking(true)
+    try {
+      const result = await createDonationCheckout({ amountCents: selectedAmountCents, donorMessage, isPublic })
+      if (!result?.url) {
+        throw new Error('Checkout did not return a payment link.')
+      }
+      window.location.assign(result.url)
+    } catch (checkoutError) {
+      setError(checkoutError.message)
+      setStatus('Stripe may still need server keys. Bank transfer is available below.')
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader eyebrow="Project Support" title="Support 21rats">
+        Keep the intel board online and unlock cosmetic supporter signals. Core tools stay free.
+      </PageHeader>
+
+      <section className="panel rounded-[1.8rem] p-5 sm:p-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)]">
+          <div>
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <HeartHandshake className="h-6 w-6 text-red-100" aria-hidden="true" />
+              <div>
+                <p className="intel-label">Quiet Support</p>
+                <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">Cosmetic rewards only</h2>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {donationTiers.map((tier) => (
+                <button
+                  key={tier.key}
+                  type="button"
+                  onClick={() => setSelectedTier(tier.key)}
+                  className={`min-h-36 rounded-[1.4rem] border p-4 text-left transition ${
+                    selectedTier === tier.key
+                      ? 'border-red-400/55 bg-red-500/14 shadow-lg shadow-red-950/20'
+                      : 'border-white/10 bg-black/25 hover:border-white/20 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] ${tier.tone}`}>
+                    {tier.label}
+                  </span>
+                  <p className="mt-4 text-3xl font-black text-white">{formatDonationAmount(tier.amountCents)}</p>
+                  <p className="mt-3 text-sm leading-6 text-gray-400">{tier.description}</p>
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedTier('custom')}
+              className={`mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-[1.4rem] border px-4 text-left transition ${
+                selectedTier === 'custom'
+                  ? 'border-red-400/55 bg-red-500/14'
+                  : 'border-white/10 bg-black/25 hover:border-white/20 hover:bg-white/[0.04]'
+              }`}
+            >
+              <span>
+                <span className="block text-sm font-black uppercase tracking-[0.16em] text-white">Custom Amount</span>
+                <span className="block text-xs font-bold uppercase tracking-[0.14em] text-gray-500">Minimum €3</span>
+              </span>
+              <input
+                value={customAmount}
+                onChange={(event) => setCustomAmount(event.target.value)}
+                onClick={(event) => event.stopPropagation()}
+                inputMode="decimal"
+                className="field h-11 w-28 text-right"
+                placeholder="€"
+                aria-label="Custom support amount"
+              />
+            </button>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+              <div>
+                <label htmlFor="support-message" className="intel-label mb-2 block">Supporter Message</label>
+                <input
+                  id="support-message"
+                  value={donorMessage}
+                  onChange={(event) => setDonorMessage(event.target.value)}
+                  className="field"
+                  maxLength="140"
+                  placeholder="Optional note for the supporter wall"
+                />
+              </div>
+              <label className="flex min-h-12 items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={isPublic}
+                  onChange={(event) => setIsPublic(event.target.checked)}
+                  className="h-4 w-4 accent-red-500"
+                />
+                Public wall
+              </label>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={working}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+              >
+                <CreditCard className="h-4 w-4" aria-hidden="true" />
+                {working ? 'Opening Checkout' : `Support ${formatDonationAmount(selectedAmountCents || 0)}`}
+              </button>
+              {!isAuthenticated ? (
+                <Link
+                  to="/auth"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 hover:border-red-500/40 hover:text-red-100"
+                >
+                  <Lock className="h-4 w-4" aria-hidden="true" />
+                  Login for rewards
+                </Link>
+              ) : null}
+            </div>
+            {status ? <p className="mt-3 text-sm font-bold text-green-200">{status}</p> : null}
+            {error ? <p className="mt-3 text-sm font-bold text-red-200">{error}</p> : null}
+          </div>
+
+          <aside className="grid content-start gap-3">
+            <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+              <p className="intel-label mb-3">Your Status</p>
+              {currentTier ? (
+                <>
+                  <SupporterBadge profile={profile} />
+                  <p className="mt-3 text-sm leading-6 text-gray-400">
+                    Lifetime support: {formatDonationAmount(profile?.supporter_lifetime_amount_cents ?? 0)}.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm leading-6 text-gray-400">No supporter badge yet. Stripe rewards apply automatically after checkout.</p>
+              )}
+            </div>
+
+            <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-cyan-100" aria-hidden="true" />
+                <p className="intel-label">Fair Play</p>
+              </div>
+              <p className="text-sm leading-6 text-gray-400">
+                Support never changes votes, trust, moderation, leaderboard rank, or clan access.
+              </p>
+            </div>
+
+            <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <EyeOff className="h-4 w-4 text-gray-300" aria-hidden="true" />
+                <p className="intel-label">Privacy</p>
+              </div>
+              <p className="text-sm leading-6 text-gray-400">
+                Badges and wall entries are opt-in. Exact amounts are not shown publicly.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="panel rounded-[1.8rem] p-5 sm:p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <Banknote className="h-5 w-5 text-emerald-100" aria-hidden="true" />
+          <div>
+            <p className="intel-label">Bank Transfer</p>
+            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Manual support path</h2>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">IBAN</p>
+            <p className="mt-2 font-mono text-lg font-black text-white">{bankTransferIban}</p>
+          </div>
+          <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Name</p>
+            <p className="mt-2 text-lg font-black text-white">{bankTransferName}</p>
+          </div>
+          <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Reference</p>
+            <p className="mt-2 font-mono text-sm font-black text-white">{transferReference}</p>
+          </div>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-gray-400">
+          Bank transfers are confirmed manually by admin. Include the reference so the reward can be attached to {isAuthenticated ? displayProfileName(profile) : 'your profile'}.
+        </p>
+      </section>
+
+      <section className="panel rounded-[1.8rem] p-5 sm:p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <BadgeCheck className="h-5 w-5 text-yellow-100" aria-hidden="true" />
+          <div>
+            <p className="intel-label">Supporter Wall</p>
+            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Opt-in signals</h2>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {supporterWall.length ? supporterWall.map((entry) => (
+            <article key={`${entry.profile_id}-${entry.supporter_since}`} className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <p className="text-lg font-black uppercase tracking-[0.04em] text-white">{entry.display_name}</p>
+                <span className={`rounded-full border px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] ${supporterTierMeta(entry.supporter_tier)?.tone ?? 'border-emerald-400/45 bg-emerald-400/10 text-emerald-100'}`}>
+                  {supporterTierMeta(entry.supporter_tier)?.label ?? 'Supporter'}
+                </span>
+              </div>
+              <p className="text-sm leading-6 text-gray-400">{entry.message || 'Supporting the project.'}</p>
+            </article>
+          )) : (
+            <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">
+              No public supporters yet.
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default Support

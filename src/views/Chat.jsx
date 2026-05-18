@@ -8,6 +8,7 @@ import MessageReactions from '../components/MessageReactions.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
+import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
@@ -524,6 +525,7 @@ function Chat() {
                           ) : null}
                         </span>
                         {!mine ? <RoleBadge role={chatMessage.profile?.role} compact /> : null}
+                        {!mine ? <SupporterBadge profile={chatMessage.profile} compact /> : null}
                       </div>
                       <div className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
                         mine

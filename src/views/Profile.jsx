@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { KeyRound, Lock, Plus, Save, Trash2 } from 'lucide-react'
+import { HeartHandshake, KeyRound, Lock, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
@@ -9,12 +9,14 @@ import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import StreakBadge from '../components/StreakBadge.jsx'
+import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
 import { profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } from '../utils/gameAccounts.js'
 import { clanPrefix } from '../utils/profiles.js'
 import { avatarStreakRequirement, formatDaysUntilReward, nextStreakReward, profileLoginStreak } from '../utils/streaks.js'
+import { formatDonationAmount } from '../utils/supporters.js'
 
 function ProfileSectionHeader({ step, eyebrow, title, description }) {
   return (
@@ -44,6 +46,7 @@ function Profile() {
     isAdmin,
     isModerator,
     updateProfile,
+    updateSupporterPreferences,
     enablePushNotifications,
   } = useIntel()
 
@@ -65,12 +68,21 @@ function Profile() {
   const [notificationStatus, setNotificationStatus] = useState('')
   const [notificationError, setNotificationError] = useState('')
   const [enablingNotifications, setEnablingNotifications] = useState(false)
+  const [supporterBadgeVisible, setSupporterBadgeVisible] = useState(profile?.supporter_badge_visible ?? true)
+  const [supporterWallVisible, setSupporterWallVisible] = useState(profile?.supporter_wall_visible ?? false)
+  const [supporterDisplayName, setSupporterDisplayName] = useState(profile?.supporter_display_name ?? '')
+  const [savingSupporterPrefs, setSavingSupporterPrefs] = useState(false)
+  const [supporterStatus, setSupporterStatus] = useState('')
+  const [supporterError, setSupporterError] = useState('')
 
   useEffect(() => {
     setDisplayName(profile?.display_name ?? '')
     setBio(profile?.bio ?? '')
     setAvatarIcon(profile?.avatar_icon ?? defaultAvatarIconKey)
     setGameAccounts(profileGameAccounts(profile))
+    setSupporterBadgeVisible(profile?.supporter_badge_visible ?? true)
+    setSupporterWallVisible(profile?.supporter_wall_visible ?? false)
+    setSupporterDisplayName(profile?.supporter_display_name ?? '')
   }, [profile])
 
   if (!isAuthenticated) {
@@ -200,6 +212,26 @@ function Profile() {
     }
   }
 
+  async function handleSaveSupporterPreferences(event) {
+    event.preventDefault()
+    setSupporterStatus('')
+    setSupporterError('')
+    setSavingSupporterPrefs(true)
+
+    try {
+      await updateSupporterPreferences({
+        badgeVisible: supporterBadgeVisible,
+        wallVisible: supporterWallVisible,
+        displayName: supporterDisplayName,
+      })
+      setSupporterStatus('Supporter preferences saved.')
+    } catch (preferencesError) {
+      setSupporterError(preferencesError.message)
+    } finally {
+      setSavingSupporterPrefs(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader eyebrow="Settings" title="My Profile">
@@ -219,6 +251,7 @@ function Profile() {
             <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
               LV {currentLevel} · {currentXp} XP
             </span>
+            <SupporterBadge profile={profile} />
             <span className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">{user?.email}</span>
           </div>
           <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-gray-400">
@@ -504,6 +537,88 @@ function Profile() {
           <section className="panel rounded-[1.8rem] p-5">
             <ProfileSectionHeader
               step="4"
+              eyebrow="Support"
+              title="Supporter Rewards"
+              description="Control whether cosmetic supporter rewards show publicly. Donation rewards never affect intel rank, votes, moderation, or clan access."
+            />
+
+            <form onSubmit={handleSaveSupporterPreferences} className="space-y-4">
+              <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+                <div className="mb-3 flex flex-wrap items-center gap-3">
+                  <HeartHandshake className="h-5 w-5 text-emerald-100" aria-hidden="true" />
+                  <div>
+                    <p className="text-lg font-black uppercase tracking-[0.04em] text-white">
+                      {profile?.supporter_tier === 'none' ? 'No supporter tier' : profile?.supporter_tier}
+                    </p>
+                    <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-gray-500">
+                      Lifetime {formatDonationAmount(profile?.supporter_lifetime_amount_cents ?? 0)}
+                    </p>
+                  </div>
+                  <SupporterBadge profile={profile} />
+                </div>
+                <p className="text-sm leading-6 text-gray-400">
+                  Supporter badges are cosmetic signals for helping keep the project online.
+                </p>
+              </div>
+
+              <label className="flex min-h-12 items-center gap-3 rounded-[1.3rem] border border-white/10 bg-black/25 px-4 text-sm font-bold text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={supporterBadgeVisible}
+                  onChange={(event) => setSupporterBadgeVisible(event.target.checked)}
+                  className="h-4 w-4 accent-red-500"
+                  disabled={!profile?.supporter_badge_enabled}
+                />
+                Show supporter badge on my profile and messages
+              </label>
+
+              <label className="flex min-h-12 items-center gap-3 rounded-[1.3rem] border border-white/10 bg-black/25 px-4 text-sm font-bold text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={supporterWallVisible}
+                  onChange={(event) => setSupporterWallVisible(event.target.checked)}
+                  className="h-4 w-4 accent-red-500"
+                  disabled={!profile?.supporter_badge_enabled}
+                />
+                Show me on the supporter wall
+              </label>
+
+              <div>
+                <label htmlFor="supporter-display-name" className="intel-label mb-2 block">Supporter Wall Name</label>
+                <input
+                  id="supporter-display-name"
+                  value={supporterDisplayName}
+                  onChange={(event) => setSupporterDisplayName(event.target.value)}
+                  className="field"
+                  maxLength="64"
+                  placeholder="Leave empty to use profile name"
+                  disabled={!profile?.supporter_badge_enabled}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={savingSupporterPrefs || !profile?.supporter_badge_enabled}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-60"
+                >
+                  {savingSupporterPrefs ? 'Saving...' : 'Save Reward Privacy'}
+                </button>
+                <Link
+                  to="/support"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
+                >
+                  Support Page
+                </Link>
+              </div>
+              {supporterStatus ? <p className="text-sm font-bold text-green-200">{supporterStatus}</p> : null}
+              {supporterError ? <p className="text-sm font-bold text-red-200">{supporterError}</p> : null}
+            </form>
+          </section>
+
+          <section className="panel rounded-[1.8rem] p-5">
+            <ProfileSectionHeader
+              step="5"
               eyebrow="Alerts"
               title="Phone Notifications"
               description="Enable push alerts on this device so you catch squad updates without reopening the app."
@@ -523,7 +638,7 @@ function Profile() {
 
           <section className="panel rounded-[1.8rem] p-5">
             <ProfileSectionHeader
-              step="5"
+              step="6"
               eyebrow="Security"
               title="Change Password"
               description="Update your password here without touching the rest of your profile settings."

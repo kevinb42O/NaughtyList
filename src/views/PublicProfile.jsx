@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import StreakBadge from '../components/StreakBadge.jsx'
+import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { formatEuropeanDateTime } from '../utils/dates.js'
 import { levelProgress, profileLevel, profileXpTotal } from '../utils/gamification.js'
@@ -122,6 +123,7 @@ function PublicProfile() {
               <OnlineDot online={online} />
               <RoleBadge role={profile.role} compact />
               <StreakBadge profile={profile} />
+              <SupporterBadge profile={profile} />
               <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
                 LV {level}
               </span>
