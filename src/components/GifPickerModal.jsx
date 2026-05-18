@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const tenorBaseUrl = 'https://tenor.googleapis.com/v2'
 const giphyBaseUrl = 'https://api.giphy.com/v1/gifs'
@@ -34,6 +34,7 @@ function normalizeGiphyGif(result) {
 }
 
 function GifPickerModal({ onClose, onSelect }) {
+  const selectingRef = useRef(false)
   const giphyApiKey = import.meta.env.VITE_GIPHY_API_KEY
   const tenorApiKey = import.meta.env.VITE_TENOR_API_KEY
   const provider = giphyApiKey ? 'giphy' : 'tenor'
@@ -44,6 +45,27 @@ function GifPickerModal({ onClose, onSelect }) {
   const [error, setError] = useState('')
   const trimmedQuery = query.trim()
   const missingApiKey = !apiKey
+
+  const selectGif = useCallback((gif) => {
+    if (selectingRef.current || !gif?.mediaUrl) return
+
+    selectingRef.current = true
+    onSelect({ mediaUrl: gif.mediaUrl, mediaType: 'gif' })
+  }, [onSelect])
+
+  const handleGifPointerDown = useCallback((event, gif) => {
+    if (event.pointerType === 'mouse') return
+
+    event.preventDefault()
+    selectGif(gif)
+  }, [selectGif])
+
+  const handleGifTouchStart = useCallback((event, gif) => {
+    if (window.PointerEvent) return
+
+    event.preventDefault()
+    selectGif(gif)
+  }, [selectGif])
 
   const endpoint = useMemo(() => {
     if (!apiKey) return ''
@@ -116,7 +138,7 @@ function GifPickerModal({ onClose, onSelect }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/78 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true">
-      <div className="max-h-[88vh] w-full overflow-hidden rounded-t-[1.35rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black sm:max-w-3xl sm:rounded-[1.35rem]">
+      <div className="max-h-[88vh] w-full overflow-hidden rounded-t-[1.35rem] border border-white/10 bg-zinc-950 pb-[env(safe-area-inset-bottom)] shadow-2xl shadow-black sm:max-w-3xl sm:rounded-[1.35rem] sm:pb-0">
         <div className="flex items-center gap-2 border-b border-white/10 bg-black/35 p-3">
           <div className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3">
             <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
@@ -125,6 +147,7 @@ function GifPickerModal({ onClose, onSelect }) {
               onChange={(event) => setQuery(event.target.value)}
               className="min-h-10 min-w-0 flex-1 border-0 bg-transparent text-sm text-gray-100 outline-none placeholder:text-gray-600"
               placeholder="Search GIFs"
+              inputMode="search"
               autoFocus
             />
           </div>
@@ -138,7 +161,7 @@ function GifPickerModal({ onClose, onSelect }) {
           </button>
         </div>
 
-        <div className="max-h-[68vh] overflow-y-auto p-3">
+        <div className="max-h-[68vh] overflow-y-auto overscroll-contain p-3 [-webkit-overflow-scrolling:touch] [touch-action:pan-y]">
           {missingApiKey || error ? (
             <p className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm font-bold text-red-100">
               {missingApiKey ? 'GIF search needs a GIPHY or Tenor API key.' : error}
@@ -153,7 +176,9 @@ function GifPickerModal({ onClose, onSelect }) {
                 <button
                   key={gif.id}
                   type="button"
-                  onClick={() => onSelect({ mediaUrl: gif.mediaUrl, mediaType: 'gif' })}
+                  onPointerDown={(event) => handleGifPointerDown(event, gif)}
+                  onTouchStart={(event) => handleGifTouchStart(event, gif)}
+                  onClick={() => selectGif(gif)}
                   className="group aspect-square overflow-hidden rounded-2xl border border-white/10 bg-black/35 transition hover:border-red-400/45"
                   aria-label={`Select ${gif.title}`}
                 >
