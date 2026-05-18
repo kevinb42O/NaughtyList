@@ -1,4 +1,4 @@
-import { Crosshair, Edit3, ExternalLink } from 'lucide-react'
+import { Crosshair, Edit3, ExternalLink, History } from 'lucide-react'
 import { getThreatStyle } from '../utils/threat.js'
 
 const killFeedbackToneClasses = {
@@ -13,6 +13,7 @@ function PlayerRow({
   number,
   onEdit,
   onLogKill,
+  onOpenKillLog,
   killPending = false,
   killDisabled = false,
   killButtonLabel = 'Log Kill',
@@ -24,6 +25,9 @@ function PlayerRow({
 }) {
   const threat = getThreatStyle(player.threatLevel)
   const killFeedbackToneClass = killFeedbackToneClasses[killTone] ?? 'text-gray-300'
+  const lastKillName = player.lastKillDisplayName || 'Operator'
+  const lastKillClanTag = player.lastKillClanTag || player.lastKillProfileClanTag
+  const showLastKillIntel = Boolean(player.lastKillAt || player.lastKillUserId)
 
   return (
     <article className={`watchlist-row relative rounded-[1.4rem] p-4 ${threat.glow}`}>
@@ -49,6 +53,16 @@ function PlayerRow({
           <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-200">
             {player.killCount ?? 0} kills
           </span>
+          {onOpenKillLog ? (
+            <button
+              type="button"
+              onClick={() => onOpenKillLog(player)}
+              className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-200 transition hover:border-red-500/35 hover:bg-red-500/10 hover:text-red-100"
+            >
+              <History className="h-3.5 w-3.5" aria-hidden="true" />
+              History
+            </button>
+          ) : null}
           {player.evidenceUrl ? (
             <a
               href={player.evidenceUrl}
@@ -85,6 +99,19 @@ function PlayerRow({
 
         {player.notes ? (
           <p className="mt-3 text-sm leading-6 text-gray-400">{player.notes}</p>
+        ) : null}
+
+        {showLastKillIntel ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300">
+            <span className="rounded-md border border-white/10 bg-black/25 px-2.5 py-1 text-gray-400">Logged by</span>
+            <span className="min-w-0 max-w-full truncate text-white">
+              {lastKillClanTag ? <span className="text-gray-400">[{lastKillClanTag}] </span> : null}
+              {lastKillName}
+            </span>
+            <span className="rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 text-red-100">
+              {player.lastKillUserTotal ?? 0} total
+            </span>
+          </div>
         ) : null}
 
         {killMessage ? (

@@ -1854,6 +1854,14 @@ function IntelProvider({ children }) {
               killCount: result.kill_count ?? currentPlayer.killCount,
               myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
               myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
+              lastKillUserId: result.last_kill_user_id ?? currentPlayer.lastKillUserId,
+              lastKillDisplayName: result.last_kill_display_name ?? currentPlayer.lastKillDisplayName,
+              lastKillProfileClanTag: result.last_kill_profile_clan_tag ?? currentPlayer.lastKillProfileClanTag,
+              lastKillUserTotal: result.last_kill_user_total ?? currentPlayer.lastKillUserTotal,
+              lastKillClanId: result.last_kill_clan_id ?? currentPlayer.lastKillClanId,
+              lastKillClanTag: result.last_kill_clan_tag ?? currentPlayer.lastKillClanTag,
+              lastKillClanTotal: result.last_kill_clan_total ?? currentPlayer.lastKillClanTotal,
+              lastKillAt: result.last_kill_at ?? currentPlayer.lastKillAt,
             }
           : currentPlayer,
       ),
@@ -1865,6 +1873,29 @@ function IntelProvider({ children }) {
 
     return result
   }
+
+  const fetchPlayerKillLog = useCallback(async (playerId) => {
+    const { data, error: logError } = await supabase.rpc('list_player_kill_log', {
+      target_player_id: playerId,
+    })
+
+    if (logError) {
+      throw logError
+    }
+
+    return (data ?? []).map((entry) => ({
+      killId: entry.kill_id,
+      playerId: entry.player_id,
+      userId: entry.user_id,
+      displayName: entry.display_name ?? '',
+      profileClanTag: entry.profile_clan_tag ?? '',
+      clanId: entry.clan_id ?? null,
+      clanTag: entry.clan_tag ?? '',
+      loggedAt: entry.logged_at,
+      userKillTotal: entry.user_kill_total ?? 0,
+      clanKillTotal: entry.clan_kill_total ?? null,
+    }))
+  }, [])
 
   async function reorderPlayers(orderedIds) {
     if (!isAdmin) {
@@ -2081,6 +2112,7 @@ function IntelProvider({ children }) {
     quarantinePlayer,
     restorePlayer,
     registerPlayerKill,
+    fetchPlayerKillLog,
     deletePlayer,
     deleteProfileAccount,
     claimAdmin,

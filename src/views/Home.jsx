@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import AddPlayerModal from '../components/AddPlayerModal.jsx'
 import { DailyOpsModal, DailyOpsSummary } from '../components/DailyCheckInPanel.jsx'
+import KillLogModal from '../components/KillLogModal.jsx'
 import PlayerRow from '../components/PlayerRow.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { comparePlayersByPriority } from '../utils/threat.js'
@@ -85,11 +86,15 @@ function SortablePlayerRow({
   isDragging,
   number,
   onLogKill,
+  onOpenKillLog,
   killPending,
   killDisabled,
   killButtonLabel,
   killMessage,
   killTone,
+  cooldownActive,
+  cooldownLabel,
+  cooldownProgress,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: player.id })
 
@@ -117,11 +122,15 @@ function SortablePlayerRow({
         dragHandle={handle}
         number={number}
         onLogKill={onLogKill}
+        onOpenKillLog={onOpenKillLog}
         killPending={killPending}
         killDisabled={killDisabled}
         killButtonLabel={killButtonLabel}
         killMessage={killMessage}
         killTone={killTone}
+        cooldownActive={cooldownActive}
+        cooldownLabel={cooldownLabel}
+        cooldownProgress={cooldownProgress}
       />
     </div>
   )
@@ -138,6 +147,7 @@ function Home() {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [pendingKillId, setPendingKillId] = useState('')
   const [killFeedbackByPlayer, setKillFeedbackByPlayer] = useState({})
+  const [killLogPlayer, setKillLogPlayer] = useState(null)
   const [now, setNow] = useState(() => Date.now())
   const [dailyOpsOpen, setDailyOpsOpen] = useState(false)
   const isAddRouteOpen = searchParams.get('add') === '1'
@@ -219,6 +229,14 @@ function Home() {
                   killCount: result.kill_count ?? currentPlayer.killCount,
                   myLastKillAt: result.recorded_at ?? currentPlayer.myLastKillAt,
                   myKillCooldownEndsAt: result.cooldown_ends_at ?? currentPlayer.myKillCooldownEndsAt,
+                  lastKillUserId: result.last_kill_user_id ?? currentPlayer.lastKillUserId,
+                  lastKillDisplayName: result.last_kill_display_name ?? currentPlayer.lastKillDisplayName,
+                  lastKillProfileClanTag: result.last_kill_profile_clan_tag ?? currentPlayer.lastKillProfileClanTag,
+                  lastKillUserTotal: result.last_kill_user_total ?? currentPlayer.lastKillUserTotal,
+                  lastKillClanId: result.last_kill_clan_id ?? currentPlayer.lastKillClanId,
+                  lastKillClanTag: result.last_kill_clan_tag ?? currentPlayer.lastKillClanTag,
+                  lastKillClanTotal: result.last_kill_clan_total ?? currentPlayer.lastKillClanTotal,
+                  lastKillAt: result.last_kill_at ?? currentPlayer.lastKillAt,
                 }
               : currentPlayer,
           )
@@ -385,6 +403,7 @@ function Home() {
                         player={player}
                         number={index + 1}
                         onLogKill={isAuthenticated ? handleRegisterKill : undefined}
+                        onOpenKillLog={setKillLogPlayer}
                         killPending={pendingKillId === player.id}
                         killDisabled={pendingKillId === player.id || cooldown.active}
                         killButtonLabel={cooldown.active ? 'Cooldown' : 'Log Kill'}
@@ -409,6 +428,7 @@ function Home() {
                     player={player}
                     number={index + 1}
                     onLogKill={isAuthenticated ? handleRegisterKill : undefined}
+                    onOpenKillLog={setKillLogPlayer}
                     killPending={pendingKillId === player.id}
                     killDisabled={pendingKillId === player.id || cooldown.active}
                     killButtonLabel={cooldown.active ? 'Cooldown' : 'Log Kill'}
@@ -443,6 +463,12 @@ function Home() {
       </section>
 
       <AddPlayerModal open={isAddModalOpen} onClose={closeAddModal} />
+      <KillLogModal
+        key={killLogPlayer?.id ?? 'closed'}
+        open={Boolean(killLogPlayer)}
+        onClose={() => setKillLogPlayer(null)}
+        player={killLogPlayer}
+      />
       <DailyOpsModal open={dailyOpsOpen} onClose={() => setDailyOpsOpen(false)} />
     </div>
   )
