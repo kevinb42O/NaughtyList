@@ -1,4 +1,4 @@
-import { Image, LoaderCircle, Send, Sticker, X } from 'lucide-react'
+import { LoaderCircle, Plus, Send, Sticker, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { allowedImageTypes, uploadChatImage } from '../utils/media.js'
@@ -8,16 +8,16 @@ function MediaPreview({ pendingMedia, onClear }) {
   if (!pendingMedia?.mediaUrl) return null
 
   return (
-    <div className="mb-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/35 p-2">
-      <img src={pendingMedia.mediaUrl} alt="Pending attachment" className="h-16 w-16 rounded-xl object-cover" />
+    <div className="mb-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-950/80 p-2 shadow-sm shadow-black/30">
+      <img src={pendingMedia.mediaUrl} alt="Pending attachment" className="h-14 w-14 rounded-xl object-cover" />
       <div className="min-w-0 flex-1">
-        <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">Attachment Ready</p>
-        <p className="truncate text-sm font-bold text-gray-200">{pendingMedia.mediaType === 'gif' ? 'GIF selected' : 'Image uploaded'}</p>
+        <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-gray-500">Ready to send</p>
+        <p className="truncate text-sm font-bold text-gray-200">{pendingMedia.mediaType === 'gif' ? 'GIF selected' : 'Image attached'}</p>
       </div>
       <button
         type="button"
         onClick={onClear}
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-gray-300 transition hover:border-red-400/40 hover:text-red-100"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-gray-300 transition hover:border-red-400/40 hover:text-red-100"
         aria-label="Remove attachment"
       >
         <X className="h-4 w-4" aria-hidden="true" />
@@ -67,50 +67,53 @@ function MediaComposer({
 
   return (
     <>
-      <form onSubmit={onSubmit} className="border-t border-white/10 bg-black/40 p-3 sm:p-4">
+      <form onSubmit={onSubmit} className="border-t border-white/10 bg-black/40 p-2.5 sm:p-3">
         <MediaPreview pendingMedia={pendingMedia} onClear={() => onPendingMediaChange(null)} />
         {uploading ? (
-          <div className="mb-2 overflow-hidden rounded-full border border-white/10 bg-black/35">
-            <div className="h-2 bg-red-400 transition-all" style={{ width: `${Math.max(8, uploadProgress)}%` }} />
+          <div className="mb-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-1 bg-red-300 transition-all" style={{ width: `${Math.max(8, uploadProgress)}%` }} />
           </div>
         ) : null}
-        <div className="grid gap-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/80 p-1.5 shadow-inner shadow-black/40 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto]">
+        <div className="flex min-h-12 items-center gap-1.5 rounded-full border border-white/10 bg-zinc-950/90 px-1.5 py-1.5 shadow-inner shadow-black/35">
           <input ref={fileInputRef} type="file" accept={allowedImageTypes.join(',')} onChange={handleFileChange} className="hidden" />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || sending || uploading}
-            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-gray-300 transition hover:border-red-400/40 hover:text-red-100 disabled:opacity-45"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/8 hover:text-gray-100 disabled:opacity-40"
             aria-label="Attach image"
             title="Attach image"
           >
-            {uploading ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Image className="h-4 w-4" aria-hidden="true" />}
+            {uploading ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-5 w-5" aria-hidden="true" />}
           </button>
           <button
             type="button"
             onClick={() => setGifPickerOpen(true)}
             disabled={disabled || sending || uploading}
-            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-gray-300 transition hover:border-red-400/40 hover:text-red-100 disabled:opacity-45"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/8 hover:text-gray-100 disabled:opacity-40"
             aria-label="Choose GIF"
             title="Choose GIF"
           >
             <Sticker className="h-4 w-4" aria-hidden="true" />
           </button>
-          <input
+          <div className="flex min-w-0 flex-1 items-center rounded-full bg-white/[0.06] px-3">
+            <input
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            className="min-h-11 rounded-2xl border-0 bg-transparent px-3 text-[0.95rem] text-gray-100 outline-none placeholder:text-gray-600"
+            className="min-h-9 min-w-0 flex-1 border-0 bg-transparent text-[0.95rem] text-gray-100 outline-none placeholder:text-gray-500"
             placeholder={placeholder}
             maxLength={maxLength}
             disabled={disabled}
+            autoComplete="off"
           />
+          </div>
           <button
             type="submit"
             disabled={!canSend}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/18 px-4 text-sm font-black uppercase tracking-[0.12em] text-red-50 transition hover:bg-red-500/28 disabled:opacity-45"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-950/25 transition hover:bg-red-400 disabled:bg-white/10 disabled:text-gray-600 disabled:shadow-none"
+            aria-label="Send message"
           >
             <Send className="h-4 w-4" aria-hidden="true" />
-            Send
           </button>
         </div>
       </form>

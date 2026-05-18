@@ -2,8 +2,9 @@ import { Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 const tenorBaseUrl = 'https://tenor.googleapis.com/v2'
+const giphyBaseUrl = 'https://api.giphy.com/v1/gifs'
 
-function normalizeGif(result) {
+function normalizeTenorGif(result) {
   const mediaFormats = result?.media_formats ?? {}
   const full = mediaFormats.gif?.url || mediaFormats.mediumgif?.url || mediaFormats.tinygif?.url
   const preview = mediaFormats.tinygif?.url || mediaFormats.nanogif?.url || full
@@ -18,8 +19,25 @@ function normalizeGif(result) {
   }
 }
 
+function normalizeGiphyGif(result) {
+  const full = result?.images?.original?.url || result?.images?.downsized?.url
+  const preview = result?.images?.fixed_width_small?.url || result?.images?.preview_gif?.url || full
+
+  if (!full) return null
+
+  return {
+    id: result.id,
+    title: result.title || 'GIF',
+    previewUrl: preview,
+    mediaUrl: full,
+  }
+}
+
 function GifPickerModal({ onClose, onSelect }) {
-  const apiKey = import.meta.env.VITE_TENOR_API_KEY
+  const giphyApiKey = import.meta.env.VITE_GIPHY_API_KEY
+  const tenorApiKey = import.meta.env.VITE_TENOR_API_KEY
+  const provider = giphyApiKey ? 'giphy' : 'tenor'
+  const apiKey = giphyApiKey || tenorApiKey
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -29,6 +47,23 @@ function GifPickerModal({ onClose, onSelect }) {
 
   const endpoint = useMemo(() => {
     if (!apiKey) return ''
+
+    if (provider === 'giphy') {
+      const params = new URLSearchParams({
+        api_key: apiKey,
+        limit: '24',
+        rating: 'pg-13',
+        lang: 'en',
+      })
+
+      if (trimmedQuery) {
+        params.set('q', trimmedQuery)
+        return `${giphyBaseUrl}/search?${params.toString()}`
+      }
+
+      return `${giphyBaseUrl}/trending?${params.toString()}`
+    }
+
     const params = new URLSearchParams({
       key: apiKey,
       client_key: 'naughtylist',
@@ -42,7 +77,7 @@ function GifPickerModal({ onClose, onSelect }) {
     }
 
     return `${tenorBaseUrl}/featured?${params.toString()}`
-  }, [apiKey, trimmedQuery])
+  }, [apiKey, provider, trimmedQuery])
 
   useEffect(() => {
     if (missingApiKey) {
@@ -61,7 +96,9 @@ function GifPickerModal({ onClose, onSelect }) {
         })
         .then((data) => {
           if (cancelled) return
-          setResults((data.results ?? []).map(normalizeGif).filter(Boolean))
+          const incomingResults = provider === 'giphy' ? data.data : data.results
+          const normalizeGif = provider === 'giphy' ? normalizeGiphyGif : normalizeTenorGif
+          setResults((incomingResults ?? []).map(normalizeGif).filter(Boolean))
         })
         .catch((gifError) => {
           if (!cancelled) setError(gifError.message)
@@ -75,7 +112,7 @@ function GifPickerModal({ onClose, onSelect }) {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [endpoint, missingApiKey, trimmedQuery])
+  }, [endpoint, missingApiKey, provider, trimmedQuery])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/78 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true">
@@ -104,7 +141,7 @@ function GifPickerModal({ onClose, onSelect }) {
         <div className="max-h-[68vh] overflow-y-auto p-3">
           {missingApiKey || error ? (
             <p className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm font-bold text-red-100">
-              {missingApiKey ? 'GIF search needs a Tenor API key.' : error}
+              {missingApiKey ? 'GIF search needs a GIPHY or Tenor API key.' : error}
             </p>
           ) : null}
           {!missingApiKey && !error && loading ? (
