@@ -10,7 +10,7 @@ import { donationTiers, formatDonationAmount, supporterTierMeta } from '../utils
 const bankTransferReferencePrefix = '21RATS'
 const bankTransferIban = 'BE43 7380 0488 6701'
 const bankTransferIbanCompact = bankTransferIban.replace(/\s+/g, '')
-const bankTransferName = 'Kevin Bourguignon'
+const bankTransferName = '21RATS'
 
 function parseEuroAmount(value) {
   const normalized = String(value ?? '').trim().replace(',', '.')

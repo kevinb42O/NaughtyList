@@ -1,4 +1,4 @@
-import { Banknote, CheckCircle2, HeartHandshake, RefreshCw, Search } from 'lucide-react'
+import { Award, Banknote, CheckCircle2, HeartHandshake, RefreshCw, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useIntel } from '../context/useIntel.js'
@@ -11,10 +11,15 @@ function AdminDonationConsole() {
     donations,
     profiles,
     fetchDonationAdmin,
+    adminGrantSupporterBadge,
     adminRecordDonation,
   } = useIntel()
   const [query, setQuery] = useState('')
   const [profileId, setProfileId] = useState('')
+  const [grantProfileId, setGrantProfileId] = useState('')
+  const [grantTier, setGrantTier] = useState('supporter')
+  const [grantDisplayName, setGrantDisplayName] = useState('')
+  const [grantWallVisible, setGrantWallVisible] = useState(false)
   const [amount, setAmount] = useState('10')
   const [provider, setProvider] = useState('bank_transfer')
   const [reference, setReference] = useState('')
@@ -23,6 +28,7 @@ function AdminDonationConsole() {
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [working, setWorking] = useState(false)
+  const [grantWorking, setGrantWorking] = useState(false)
 
   const normalizedQuery = query.trim().toLowerCase()
   const sortedProfiles = useMemo(() => {
@@ -67,6 +73,34 @@ function AdminDonationConsole() {
     }
   }
 
+  async function handleGrantBadge(event) {
+    event.preventDefault()
+    setStatus('')
+    setError('')
+
+    if (!grantProfileId) {
+      setError('Choose a profile first.')
+      return
+    }
+
+    setGrantWorking(true)
+    try {
+      await adminGrantSupporterBadge({
+        profileId: grantProfileId,
+        tier: grantTier,
+        displayName: grantDisplayName,
+        wallVisible: grantWallVisible,
+      })
+      setStatus('Contributor badge granted.')
+      setGrantDisplayName('')
+      await fetchDonationAdmin()
+    } catch (grantError) {
+      setError(grantError.message)
+    } finally {
+      setGrantWorking(false)
+    }
+  }
+
   return (
     <section className="panel rounded-[1.8rem] p-5">
       <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
@@ -107,7 +141,55 @@ function AdminDonationConsole() {
         ))}
       </div>
 
+      <form onSubmit={handleGrantBadge} className="mb-5 grid gap-3 rounded-[1.4rem] border border-emerald-400/20 bg-emerald-400/10 p-4 lg:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)]">
+        <div className="lg:col-span-3">
+          <div className="flex items-center gap-2">
+            <Award className="h-4 w-4 text-emerald-100" aria-hidden="true" />
+            <p className="intel-label">Contributor Badge</p>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-gray-400">Grant a cosmetic supporter badge without creating a traceable payment record.</p>
+        </div>
+        <div>
+          <label htmlFor="grant-profile" className="intel-label mb-2 block">Profile</label>
+          <select id="grant-profile" value={grantProfileId} onChange={(event) => setGrantProfileId(event.target.value)} className="field min-h-12">
+            <option value="">Choose profile</option>
+            {sortedProfiles.map((nextProfile) => (
+              <option key={nextProfile.id} value={nextProfile.id}>{displayProfileName(nextProfile)}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="grant-tier" className="intel-label mb-2 block">Tier</label>
+          <select id="grant-tier" value={grantTier} onChange={(event) => setGrantTier(event.target.value)} className="field min-h-12">
+            {donationTiers.map((tier) => (
+              <option key={tier.key} value={tier.key}>{tier.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="grant-display-name" className="intel-label mb-2 block">Wall Name</label>
+          <input id="grant-display-name" value={grantDisplayName} onChange={(event) => setGrantDisplayName(event.target.value)} className="field min-h-12" maxLength="64" placeholder="Optional public alias" />
+        </div>
+        <div className="flex flex-wrap items-end gap-3 lg:col-span-3">
+          <label className="flex min-h-11 items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300">
+            <input type="checkbox" checked={grantWallVisible} onChange={(event) => setGrantWallVisible(event.target.checked)} className="h-4 w-4 accent-emerald-500" />
+            Public wall
+          </label>
+          <button
+            type="submit"
+            disabled={grantWorking}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-60"
+          >
+            <Award className="h-4 w-4" aria-hidden="true" />
+            {grantWorking ? 'Granting' : 'Grant Badge'}
+          </button>
+        </div>
+      </form>
+
       <form onSubmit={handleRecordDonation} className="mb-5 grid gap-3 rounded-[1.4rem] border border-white/10 bg-black/25 p-4 lg:grid-cols-[minmax(0,1fr)_120px_160px]">
+        <div className="lg:col-span-3">
+          <p className="intel-label">Transaction Record</p>
+        </div>
         <div>
           <label htmlFor="donation-profile" className="intel-label mb-2 block">Profile</label>
           <select id="donation-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} className="field min-h-12">

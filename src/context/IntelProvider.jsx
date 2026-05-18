@@ -1156,6 +1156,27 @@ function IntelProvider({ children }) {
     return data
   }
 
+  async function adminGrantSupporterBadge({ profileId, tier, displayName, wallVisible }) {
+    if (!isAdmin) {
+      throw new Error('Only admins can grant supporter badges.')
+    }
+
+    const { data, error: grantError } = await supabase.rpc('admin_grant_supporter_badge', {
+      target_profile_id: profileId,
+      tier,
+      display_name: displayName?.trim() || null,
+      wall_visible: Boolean(wallVisible),
+    })
+
+    if (grantError) {
+      throw grantError
+    }
+
+    applyProfileRecord(data)
+    await Promise.all([fetchSupporterWall(), fetchProfiles(), fetchDonationAdmin()])
+    return data
+  }
+
   async function createClan({ name, tag, description }) {
     if (!user) {
       throw new Error('You must be logged in to create a clan.')
@@ -2067,6 +2088,7 @@ function IntelProvider({ children }) {
     updateProfile,
     updateSupporterPreferences,
     adminRecordDonation,
+    adminGrantSupporterBadge,
     createClan,
     requestClanJoin,
     cancelClanJoinRequest,
