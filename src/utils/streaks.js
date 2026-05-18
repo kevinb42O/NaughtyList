@@ -110,3 +110,32 @@ export function formatDaysUntilReward(streakCount, reward) {
 
   return `${remainingDays} more daily check-in${remainingDays === 1 ? '' : 's'}`
 }
+
+export function streakRewardProgress(streakCount) {
+  const nextReward = nextStreakReward(streakCount)
+  const currentReward = currentStreakReward(streakCount)
+  const previousRewardDays = currentReward?.days ?? 0
+
+  if (!nextReward) {
+    return {
+      currentReward,
+      nextReward: null,
+      previousRewardDays,
+      progressPercent: 100,
+      remainingDays: 0,
+      label: 'All avatar badges unlocked',
+    }
+  }
+
+  const tierSpan = Math.max(1, nextReward.days - previousRewardDays)
+  const progressPercent = Math.min(100, Math.max(0, ((streakCount - previousRewardDays) / tierSpan) * 100))
+
+  return {
+    currentReward,
+    nextReward,
+    previousRewardDays,
+    progressPercent,
+    remainingDays: daysUntilStreakReward(streakCount, nextReward),
+    label: formatDaysUntilReward(streakCount, nextReward),
+  }
+}

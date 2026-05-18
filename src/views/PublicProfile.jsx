@@ -8,6 +8,7 @@ import RoleBadge from '../components/RoleBadge.jsx'
 import StreakBadge from '../components/StreakBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { formatEuropeanDateTime } from '../utils/dates.js'
+import { levelProgress, profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 import { profileLoginStreak, profileLongestLoginStreak } from '../utils/streaks.js'
@@ -56,6 +57,9 @@ function PublicProfile() {
   const viewingOwnProfile = user?.id === profile.id
   const loginStreak = profileLoginStreak(profile)
   const longestLoginStreak = profileLongestLoginStreak(profile)
+  const level = profileLevel(profile)
+  const xpTotal = profileXpTotal(profile)
+  const levelState = levelProgress(profile)
 
   async function copyGameAccountId(accountId) {
     await navigator.clipboard.writeText(accountId)
@@ -118,6 +122,9 @@ function PublicProfile() {
               <OnlineDot online={online} />
               <RoleBadge role={profile.role} compact />
               <StreakBadge profile={profile} />
+              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
+                LV {level}
+              </span>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -129,6 +136,9 @@ function PublicProfile() {
               </span>
               <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100">
                 {loginStreak} day streak
+              </span>
+              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-cyan-100">
+                {xpTotal} XP
               </span>
             </div>
 
@@ -207,6 +217,18 @@ function PublicProfile() {
               <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Best Streak</p>
                 <p className="mt-2 text-lg font-black text-white">{longestLoginStreak} days</p>
+              </div>
+              <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Level Progress</p>
+                  <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">LV {level}</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/8">
+                  <div className="h-full rounded-full bg-cyan-300/90" style={{ width: `${levelState.progressPercent}%` }} />
+                </div>
+                <p className="mt-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">
+                  {levelState.neededForNext} XP to next
+                </p>
               </div>
             </div>
           </section>

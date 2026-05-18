@@ -297,4 +297,53 @@ button:disabled {
     background: rgb(255 255 255 / 0.03);
     padding: 0.9rem 1rem;
   }
+
+  .daily-ops-scanning {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .daily-ops-scanning::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgb(248 113 113 / 0.2), transparent);
+    animation: daily-ops-scan 1s ease-in-out infinite;
+  }
+
+  .daily-ops-scanning > *,
+  .daily-ops-celebrate > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .daily-ops-celebrate {
+    animation: daily-ops-pulse 1.2s ease-out 1;
+  }
+}
+
+@keyframes daily-ops-scan {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(110%);
+  }
+}
+
+@keyframes daily-ops-pulse {
+  0% {
+    box-shadow: 0 0 0 rgb(239 68 68 / 0), 0 0 34px rgb(239 68 68 / 0.1);
+  }
+
+  35% {
+    box-shadow: 0 0 0 5px rgb(239 68 68 / 0.12), 0 0 42px rgb(239 68 68 / 0.24);
+  }
+
+  100% {
+    box-shadow: 0 0 0 rgb(239 68 68 / 0), 0 0 34px rgb(239 68 68 / 0.1);
+  }
 }

@@ -1,6 +1,7 @@
 import { MessageSquare } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatEuropeanDateTime } from '../utils/dates.js'
+import { profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
 import OnlineDot from './OnlineDot.jsx'
 import ProfileAvatar from './ProfileAvatar.jsx'
@@ -13,6 +14,8 @@ function ProfileCard({ profile, onlineUserIds }) {
   const online = isProfileOnline(profile, onlineUserIds)
   const gameAccounts = profileGameAccounts(profile)
   const bio = profile.bio?.trim()
+  const level = profileLevel(profile)
+  const xpTotal = profileXpTotal(profile)
 
   function openProfile() {
     navigate(`/profiles/${profile.id}`)
@@ -52,6 +55,9 @@ function ProfileCard({ profile, onlineUserIds }) {
                 <OnlineDot online={online} />
                 <RoleBadge role={profile.role} compact />
                 <StreakBadge compact profile={profile} />
+                <span className="inline-flex min-h-8 items-center rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
+                  LV {level}
+                </span>
               </div>
             </div>
           </div>
@@ -95,7 +101,7 @@ function ProfileCard({ profile, onlineUserIds }) {
       </div>
 
       <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-gray-600">
-        Last seen {formatEuropeanDateTime(profile.last_seen)}
+        {xpTotal} XP · Last seen {formatEuropeanDateTime(profile.last_seen)}
       </p>
     </article>
   )

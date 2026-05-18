@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import AddPlayerModal from '../components/AddPlayerModal.jsx'
+import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'
 import PlayerRow from '../components/PlayerRow.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { comparePlayersByPriority } from '../utils/threat.js'
@@ -299,6 +300,8 @@ function Home() {
       </section>
 
       <section className="watchlist-shell relative z-10 -mt-[clamp(3.5rem,17vw,12.25rem)] rounded-[1.8rem] p-4 sm:p-5">
+        <DailyCheckInPanel compact className="mb-4" />
+
         <div className="flex flex-col gap-4 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

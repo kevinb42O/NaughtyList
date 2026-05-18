@@ -3,6 +3,7 @@ import { KeyRound, Lock, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
+import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
@@ -10,9 +11,10 @@ import RoleBadge from '../components/RoleBadge.jsx'
 import StreakBadge from '../components/StreakBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
+import { profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } from '../utils/gameAccounts.js'
 import { clanPrefix } from '../utils/profiles.js'
-import { avatarStreakRequirement, currentStreakReward, formatDaysUntilReward, nextStreakReward, profileLoginStreak, profileLongestLoginStreak, streakRewards } from '../utils/streaks.js'
+import { avatarStreakRequirement, formatDaysUntilReward, nextStreakReward, profileLoginStreak } from '../utils/streaks.js'
 
 function ProfileSectionHeader({ step, eyebrow, title, description }) {
   return (
@@ -81,13 +83,9 @@ function Profile() {
   const pendingInviteCount = clanInvites.filter((invite) => invite.invitee_user_id === user?.id).length
   const pendingRequestCount = clanJoinRequests.filter((request) => request.user_id === user?.id).length
   const loginStreak = profileLoginStreak(profile)
-  const longestLoginStreak = profileLongestLoginStreak(profile)
-  const activeStreakReward = currentStreakReward(loginStreak)
+  const currentLevel = profileLevel(profile)
+  const currentXp = profileXpTotal(profile)
   const upcomingStreakReward = nextStreakReward(loginStreak)
-  const previousRewardDays = activeStreakReward?.days ?? 0
-  const nextRewardProgress = upcomingStreakReward
-    ? Math.min(100, ((loginStreak - previousRewardDays) / (upcomingStreakReward.days - previousRewardDays)) * 100)
-    : 100
   const nextRewardRemaining = upcomingStreakReward ? formatDaysUntilReward(loginStreak, upcomingStreakReward) : 'All avatar badges unlocked'
 
   function addGameAccount() {
@@ -218,6 +216,9 @@ function Profile() {
             <OnlineDot online={isOnline} />
             <RoleBadge role={profile?.role} compact />
             <StreakBadge profile={profile} />
+            <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
+              LV {currentLevel} · {currentXp} XP
+            </span>
             <span className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">{user?.email}</span>
           </div>
           <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-gray-400">
@@ -494,63 +495,10 @@ function Profile() {
             <ProfileSectionHeader
               step="3"
               eyebrow="Daily Streak"
-              title="Unlock Profile Badges"
-              description="Each daily check-in moves you toward avatar badges that newer users cannot equip."
+              title="Daily Ops"
+              description="Claim your daily signal, keep the streak alive, level up, and push toward the next badge unlock."
             />
-
-            <div className="grid gap-3 sm:grid-cols-[0.8fr_1.2fr]">
-              <div className="rounded-[1.4rem] border border-red-400/30 bg-red-500/10 p-4">
-                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">Current</p>
-                <p className="mt-2 text-4xl font-black text-white">{loginStreak}</p>
-                <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Day streak</p>
-              </div>
-              <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Next Unlock</p>
-                    <p className="mt-2 text-lg font-black uppercase tracking-[0.04em] text-white">
-                      {upcomingStreakReward ? upcomingStreakReward.unlockLabel : 'All avatar badges unlocked'}
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300">
-                    Best {longestLoginStreak}D
-                  </span>
-                </div>
-                <p className="mt-3 text-sm font-bold text-gray-400">
-                  {upcomingStreakReward ? nextRewardRemaining : 'You have every streak badge tier.'}
-                </p>
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
-                  <div className="h-full rounded-full bg-red-300/80" style={{ width: `${nextRewardProgress}%` }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {streakRewards.map((reward) => {
-                const unlocked = loginStreak >= reward.days
-                const remainingLabel = formatDaysUntilReward(loginStreak, reward)
-
-                return (
-                  <div
-                    key={reward.key}
-                    className={`rounded-[1.1rem] border p-3 ${unlocked ? reward.tone : 'border-white/10 bg-black/20 text-gray-600'}`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className={`text-lg font-black ${unlocked ? 'text-white' : 'text-gray-500'}`}>{reward.days}D</p>
-                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[0.5rem] font-black uppercase tracking-[0.12em]">
-                        {unlocked ? 'Unlocked' : 'Locked'}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-white/90">
-                      {reward.unlockLabel}
-                    </p>
-                    <p className="mt-2 text-[0.55rem] font-black uppercase tracking-[0.14em] text-gray-500">
-                      {remainingLabel}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
+            <DailyCheckInPanel embedded />
           </section>
 
           <section className="panel rounded-[1.8rem] p-5">

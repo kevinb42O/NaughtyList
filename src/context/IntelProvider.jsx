@@ -8,7 +8,7 @@ import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMap
 import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
-const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, last_seen, created_at, updated_at'
+const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, last_seen, created_at, updated_at'
 const clanSelect = 'id, name, tag, description, badge_icon, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
@@ -116,6 +116,10 @@ function profileRecordMatches(currentProfile, nextProfile) {
     currentProfile.login_streak_count === nextProfile.login_streak_count &&
     currentProfile.longest_login_streak_count === nextProfile.longest_login_streak_count &&
     currentProfile.last_streak_login_date === nextProfile.last_streak_login_date &&
+    currentProfile.xp_total === nextProfile.xp_total &&
+    currentProfile.level === nextProfile.level &&
+    currentProfile.streak_freezes === nextProfile.streak_freezes &&
+    currentProfile.daily_checkin_count === nextProfile.daily_checkin_count &&
     currentProfile.last_seen === nextProfile.last_seen &&
     currentProfile.updated_at === nextProfile.updated_at &&
     JSON.stringify(currentProfile.activision_ids ?? null) === JSON.stringify(nextProfile.activision_ids ?? null) &&
@@ -190,6 +194,8 @@ function IntelProvider({ children }) {
     sent_notifications: 0,
   })
   const [pushEvents, setPushEvents] = useState([])
+  const [dailyCheckInResult, setDailyCheckInResult] = useState(null)
+  const [lastXpAward, setLastXpAward] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(true)
   const [error, setError] = useState('')
@@ -207,6 +213,22 @@ function IntelProvider({ children }) {
   useEffect(() => {
     profilesRef.current = profiles
   }, [profiles])
+
+  const applyProfileRecord = useCallback((nextProfile) => {
+    if (!nextProfile?.id) {
+      return
+    }
+
+    setProfile((currentProfile) => (currentProfile?.id === nextProfile.id || user?.id === nextProfile.id ? nextProfile : currentProfile))
+    setProfiles((currentProfiles) => {
+      const exists = currentProfiles.some((currentProfile) => currentProfile.id === nextProfile.id)
+      if (!exists) {
+        return currentProfiles
+      }
+
+      return currentProfiles.map((currentProfile) => (currentProfile.id === nextProfile.id ? nextProfile : currentProfile))
+    })
+  }, [user?.id])
 
   const fetchMessageReactionMap = useCallback(async (scope, messageIds) => {
     const reactionTable = messageReactionTables[scope]
@@ -612,25 +634,65 @@ function IntelProvider({ children }) {
     await Promise.all([fetchProfile(user?.id), refresh()])
   }, [fetchProfile, refresh, user?.id])
 
-  const claimDailyLoginStreak = useCallback(async () => {
+  const awardActivityXp = useCallback(async (activityKey, activityRef = '', { silent = true } = {}) => {
     if (!user?.id) {
       return null
     }
 
-    const { data, error: streakError } = await supabase.rpc('claim_daily_login_streak')
+    const { data, error: xpError } = await supabase.rpc('award_my_profile_xp', {
+      activity_key: activityKey,
+      activity_ref: activityRef ?? '',
+    })
 
-    if (streakError) {
-      throw streakError
+    if (xpError) {
+      if (silent) {
+        console.warn(`[xp] ${activityKey} award failed: ${xpError.message}`)
+        return null
+      }
+
+      throw xpError
     }
 
-    setProfile(data)
-    setProfiles((currentProfiles) =>
-      currentProfiles.map((currentProfile) =>
-        currentProfile.id === data.id ? data : currentProfile,
-      ),
-    )
+    if (data?.profile) {
+      applyProfileRecord(data.profile)
+    }
+
+    if (data?.awarded && data?.xp_earned > 0) {
+      setLastXpAward(data)
+    }
+
     return data
-  }, [user?.id])
+  }, [applyProfileRecord, user?.id])
+
+  const claimDailyCheckIn = useCallback(async () => {
+    if (!user?.id) {
+      return null
+    }
+
+    const { data, error: checkInError } = await supabase.rpc('claim_daily_check_in')
+
+    if (checkInError) {
+      throw checkInError
+    }
+
+    if (data?.profile) {
+      applyProfileRecord(data.profile)
+    }
+
+    setDailyCheckInResult(data)
+
+    if (data?.xp_earned > 0) {
+      setLastXpAward({
+        awarded: true,
+        xp_earned: data.xp_earned,
+        label: data.milestone_unlocked ? 'Daily Ops milestone' : 'Daily Ops claimed',
+        activity_key: 'daily_check_in',
+        profile: data.profile,
+      })
+    }
+
+    return data
+  }, [applyProfileRecord, user?.id])
 
   useEffect(() => {
     let isMounted = true
@@ -668,14 +730,6 @@ function IntelProvider({ children }) {
   useEffect(() => {
     fetchProfile(user?.id).catch((profileError) => setError(profileError.message))
   }, [fetchProfile, user?.id])
-
-  useEffect(() => {
-    if (!user?.id) {
-      return
-    }
-
-    claimDailyLoginStreak().catch((streakError) => setError(streakError.message))
-  }, [claimDailyLoginStreak, user?.id])
 
   useEffect(() => {
     refresh()
@@ -880,6 +934,10 @@ function IntelProvider({ children }) {
     const normalizedGameAccounts = normalizeGameAccounts(updates.gameAccounts)
     const nextAvatarIcon = updates.avatarIcon || defaultAvatarIconKey
     const currentAvatarIcon = profile?.avatar_icon ?? defaultAvatarIconKey
+    const previousBio = profile?.bio?.trim() ?? ''
+    const nextBio = updates.bio?.trim() ?? ''
+    const previousAccountIds = new Set(gameAccountIds(normalizeGameAccounts(profile?.game_accounts)).map((id) => id.toLowerCase()))
+    const addedAccountIds = gameAccountIds(normalizedGameAccounts).filter((id) => !previousAccountIds.has(id.toLowerCase()))
 
     if (!canUseAvatarIcon(nextAvatarIcon, role, Number(profile?.login_streak_count ?? 0)) && nextAvatarIcon !== currentAvatarIcon) {
       throw new Error(`That avatar is locked: ${getAvatarIconLockLabel(nextAvatarIcon)}.`)
@@ -903,7 +961,23 @@ function IntelProvider({ children }) {
       throw updateError
     }
 
-    setProfile(data)
+    applyProfileRecord(data)
+    await awardActivityXp('profile_saved')
+
+    if (!previousBio && nextBio) {
+      await awardActivityXp('profile_bio_added')
+    }
+
+    if (nextAvatarIcon !== currentAvatarIcon) {
+      await awardActivityXp('profile_avatar_updated')
+    }
+
+    if (addedAccountIds.length) {
+      await Promise.all(addedAccountIds.map((accountId) => awardActivityXp('profile_game_account_added', accountId)))
+    } else if (normalizedGameAccounts.length) {
+      await awardActivityXp('profile_game_accounts_updated')
+    }
+
     await refresh()
   }
 
@@ -922,6 +996,7 @@ function IntelProvider({ children }) {
       throw createClanError
     }
 
+    await awardActivityXp('clan_created', data?.id ?? tag)
     await refreshAfterClanMutation()
     return data
   }
@@ -940,6 +1015,7 @@ function IntelProvider({ children }) {
       throw clanRequestError
     }
 
+    await awardActivityXp('clan_join_requested', clanId)
     await refreshAfterClanMutation()
     return data
   }
@@ -994,6 +1070,7 @@ function IntelProvider({ children }) {
       throw inviteClanMemberError
     }
 
+    await awardActivityXp('clan_invite_sent', `${clanId}:${userId}`)
     await refreshAfterClanMutation()
     return data
   }
@@ -1130,6 +1207,7 @@ function IntelProvider({ children }) {
     }
 
     const profileById = new Map(profilesRef.current.map((nextProfile) => [nextProfile.id, nextProfile]))
+    await awardActivityXp('clan_message_sent', clanId)
     return {
       ...sentMessage,
       profile: profileById.get(sentMessage.user_id),
@@ -1176,7 +1254,9 @@ function IntelProvider({ children }) {
       throw existingReactionError
     }
 
-    if (existingReaction?.reaction === reaction) {
+    const removingExistingReaction = existingReaction?.reaction === reaction
+
+    if (removingExistingReaction) {
       const { error: deleteReactionError } = await supabase
         .from(reactionTable)
         .delete()
@@ -1218,6 +1298,10 @@ function IntelProvider({ children }) {
       )
     }
 
+    if (!removingExistingReaction) {
+      await awardActivityXp('message_reaction_set', `${scope}:${messageId}`)
+    }
+
     return nextReactions
   }
 
@@ -1251,6 +1335,7 @@ function IntelProvider({ children }) {
         100,
       ),
     )
+    await awardActivityXp('public_message_sent')
   }
 
   async function sendDirectMessage(recipientId, body) {
@@ -1323,6 +1408,7 @@ function IntelProvider({ children }) {
         console.warn(`[push] DM delivered in-app but push failed: ${pushError.message}`)
       })
 
+    await awardActivityXp('direct_message_sent', recipientId)
     return sentMessage
   }
 
@@ -1392,6 +1478,7 @@ function IntelProvider({ children }) {
       throw insertError
     }
 
+    await awardActivityXp('intel_added', data.id)
     await refresh()
     return data
   }
@@ -1468,6 +1555,10 @@ function IntelProvider({ children }) {
           : currentPlayer,
       ),
     )
+
+    if (result.accepted) {
+      fetchProfile(user.id).catch((profileError) => setError(profileError.message))
+    }
 
     return result
   }
@@ -1573,11 +1664,16 @@ function IntelProvider({ children }) {
     if (!data?.sent) {
       throw new Error('No active phone subscriptions found for the team yet.')
     }
+    await awardActivityXp('drop_in')
   }
 
   async function enablePushNotifications() {
     if (!user) return false
-    return subscribeToPush(user.id)
+    const enabled = await subscribeToPush(user.id)
+    if (enabled) {
+      await awardActivityXp('push_enabled')
+    }
+    return enabled
   }
 
   const fetchPushConsole = useCallback(async () => {
@@ -1652,6 +1748,8 @@ function IntelProvider({ children }) {
     clanInvites,
     pushSummary,
     pushEvents,
+    dailyCheckInResult,
+    lastXpAward,
     unreadDirectMessageCount,
     onlineUserIds,
     clans,
@@ -1663,6 +1761,9 @@ function IntelProvider({ children }) {
     isAdmin,
     profileDisplayName: profile?.display_name || profileDisplayName(user),
     refresh,
+    claimDailyCheckIn,
+    awardActivityXp,
+    clearLastXpAward: () => setLastXpAward(null),
     signIn,
     signUp,
     signOut,

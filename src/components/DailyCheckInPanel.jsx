@@ -1,0 +1,265 @@
+import { BadgeCheck, CalendarCheck, CheckCircle2, ChevronRight, Clock3, Gift, Lock, ShieldCheck, Snowflake, Target, Trophy, Zap } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useIntel } from '../context/useIntel.js'
+import { checkInRiskState, dailyResetLabel, isCheckInClaimedToday, levelProgress, profileMissionStates, profileStreakFreezes, weeklyCircuitCells } from '../utils/gamification.js'
+import { formatDaysUntilReward, profileLoginStreak, profileLongestLoginStreak, streakRewardProgress, streakRewards } from '../utils/streaks.js'
+
+const statusMeta = {
+  claimed: {
+    label: 'Secured Today',
+    tone: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100',
+    Icon: CheckCircle2,
+  },
+  ready: {
+    label: 'Claim Ready',
+    tone: 'border-red-400/45 bg-red-500/12 text-red-100',
+    Icon: CalendarCheck,
+  },
+  protected: {
+    label: 'Freeze Armed',
+    tone: 'border-cyan-300/40 bg-cyan-400/10 text-cyan-100',
+    Icon: Snowflake,
+  },
+  recover: {
+    label: 'Rebuild Streak',
+    tone: 'border-yellow-300/40 bg-yellow-400/10 text-yellow-100',
+    Icon: ShieldCheck,
+  },
+}
+
+function ProgressBar({ value, tone = 'bg-red-300/90', label }) {
+  return (
+    <div className="space-y-2">
+      {label ? <div className="flex justify-between gap-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">{label}</div> : null}
+      <div className="h-2.5 overflow-hidden rounded-full border border-white/10 bg-black/45">
+        <div className={`h-full rounded-full transition-[width] duration-700 ${tone}`} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function StatTile({ icon: Icon, label, value, tone = 'text-white' }) {
+  return (
+    <div className="rounded-[1.15rem] border border-white/10 bg-black/25 p-3">
+      <div className="mb-2 flex items-center gap-2 text-gray-500">
+        <Icon className="h-4 w-4" aria-hidden="true" />
+        <span className="text-[0.58rem] font-black uppercase tracking-[0.16em]">{label}</span>
+      </div>
+      <p className={`text-2xl font-black leading-none ${tone}`}>{value}</p>
+    </div>
+  )
+}
+
+function DailyCheckInPanel({ compact = false, embedded = false, className = '' }) {
+  const { isAuthenticated, profile, myClan, claimDailyCheckIn, dailyCheckInResult, lastXpAward } = useIntel()
+  const [claiming, setClaiming] = useState(false)
+  const [localResult, setLocalResult] = useState(null)
+  const [error, setError] = useState('')
+  const [now, setNow] = useState(() => new Date())
+
+  const claimedToday = isCheckInClaimedToday(profile)
+  const riskState = checkInRiskState(profile)
+  const resolvedStatus = statusMeta[riskState] ?? statusMeta.ready
+  const StatusIcon = resolvedStatus.Icon
+  const loginStreak = profileLoginStreak(profile)
+  const longestStreak = profileLongestLoginStreak(profile)
+  const freezes = profileStreakFreezes(profile)
+  const rewardProgress = streakRewardProgress(loginStreak)
+  const level = levelProgress(profile)
+  const weeklyCells = weeklyCircuitCells(loginStreak, claimedToday)
+  const missions = useMemo(() => profileMissionStates(profile, myClan), [myClan, profile])
+  const result = localResult ?? dailyCheckInResult
+  const xpFlash = result?.xp_earned || lastXpAward?.xp_earned || 0
+  const resetLabel = dailyResetLabel(now)
+
+  useEffect(() => {
+    if (!claimedToday) {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNow(new Date())
+    }, 60000)
+
+    return () => window.clearInterval(intervalId)
+  }, [claimedToday])
+
+  async function handleClaim() {
+    if (!isAuthenticated || claiming || claimedToday) {
+      return
+    }
+
+    setClaiming(true)
+    setError('')
+    setNow(new Date())
+
+    try {
+      const nextResult = await claimDailyCheckIn()
+      setLocalResult(nextResult)
+    } catch (claimError) {
+      setError(claimError.message)
+    } finally {
+      setClaiming(false)
+    }
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <section className={`panel rounded-[1.6rem] p-4 sm:p-5 ${className}`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="intel-label mb-2">Daily Ops</p>
+            <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">Check-In Locked</h2>
+          </div>
+          <Link
+            to="/auth"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.16em] text-red-100 transition hover:bg-red-500/20"
+          >
+            <Lock className="h-4 w-4" aria-hidden="true" />
+            Login
+          </Link>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className={`${embedded ? '' : 'panel rounded-[1.6rem] p-4 sm:p-5'} ${className}`}>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className={`rounded-[1.35rem] border border-red-400/25 bg-red-500/10 p-4 shadow-[0_0_34px_rgba(239,68,68,0.1)] ${claiming ? 'daily-ops-scanning' : ''} ${result?.claimed ? 'daily-ops-celebrate' : ''}`}>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="intel-label mb-2">Daily Ops</p>
+              <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">{loginStreak} Day Streak</h2>
+            </div>
+            <span className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] ${resolvedStatus.tone}`}>
+              <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              {resolvedStatus.label}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <StatTile icon={Trophy} label="Best" value={`${longestStreak}D`} tone="text-yellow-100" />
+            <StatTile icon={Zap} label="Level" value={level.level} tone="text-cyan-100" />
+            <StatTile icon={Snowflake} label="Freeze" value={freezes} tone={freezes ? 'text-cyan-100' : 'text-gray-500'} />
+          </div>
+
+          <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-black/25 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">Weekly Circuit</p>
+              <span className="inline-flex items-center gap-1.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">
+                <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                {claimedToday ? resetLabel : 'Open'}
+              </span>
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {weeklyCells.map((cell) => (
+                <span
+                  key={cell.day}
+                  className={`flex aspect-square items-center justify-center rounded-lg border text-[0.62rem] font-black transition ${cell.complete ? 'border-red-300/55 bg-red-500/18 text-red-50' : cell.today ? 'border-yellow-300/55 bg-yellow-400/10 text-yellow-100' : 'border-white/10 bg-black/30 text-gray-600'}`}
+                >
+                  {cell.complete ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : cell.day}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={handleClaim}
+              disabled={claiming || claimedToday}
+              className={`inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border px-5 text-sm font-black uppercase tracking-[0.16em] transition active:scale-[0.98] disabled:scale-100 ${claimedToday ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100' : 'border-red-400/55 bg-red-500/16 text-red-50 hover:bg-red-500/24'} disabled:opacity-70`}
+            >
+              <CalendarCheck className="h-4 w-4" aria-hidden="true" />
+              {claiming ? 'Securing' : claimedToday ? 'Claimed' : 'Claim Daily'}
+            </button>
+            {xpFlash ? (
+              <span className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-yellow-300/45 bg-yellow-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-yellow-100">
+                <Gift className="h-4 w-4" aria-hidden="true" />
+                +{xpFlash} XP
+              </span>
+            ) : null}
+          </div>
+          {result?.used_streak_freeze ? <p className="mt-3 text-sm font-bold text-cyan-100">Freeze consumed. Streak protected.</p> : null}
+          {result?.freeze_awarded ? <p className="mt-3 text-sm font-bold text-cyan-100">Freeze earned. Backup charge armed.</p> : null}
+          {error ? <p className="mt-3 text-sm font-bold text-red-200">{error}</p> : null}
+        </div>
+
+        <div className="grid gap-4">
+          <div className="rounded-[1.35rem] border border-white/10 bg-black/25 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">Next Unlock</p>
+                <p className="mt-1 text-lg font-black uppercase tracking-[0.04em] text-white">
+                  {rewardProgress.nextReward ? rewardProgress.nextReward.unlockLabel : 'Reward Track Maxed'}
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300">
+                {rewardProgress.label}
+              </span>
+            </div>
+            <ProgressBar value={rewardProgress.progressPercent} tone="bg-red-300/90" />
+          </div>
+
+          <div className="rounded-[1.35rem] border border-white/10 bg-black/25 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">Level Progress</p>
+              <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">{level.xpTotal} XP</span>
+            </div>
+            <ProgressBar value={level.progressPercent} tone="bg-cyan-300/90" />
+            <p className="mt-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">
+              {level.neededForNext} XP to level {level.level + 1}
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {missions.map((mission) => (
+              <Link
+                key={mission.key}
+                to={mission.to}
+                className={`group rounded-[1.15rem] border p-3 transition ${mission.complete ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-white/10 bg-black/25 text-gray-300 hover:border-red-400/35 hover:text-red-100'}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[0.62rem] font-black uppercase tracking-[0.16em]">{mission.label}</span>
+                  {mission.complete ? <BadgeCheck className="h-4 w-4" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden="true" />}
+                </div>
+                <p className="mt-2 text-lg font-black uppercase tracking-[0.04em]">{mission.status}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {!compact ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+          {streakRewards.map((reward) => {
+            const unlocked = loginStreak >= reward.days
+            const active = rewardProgress.nextReward?.key === reward.key
+
+            return (
+              <div
+                key={reward.key}
+                className={`rounded-[1.1rem] border p-3 ${unlocked ? reward.tone : active ? 'border-red-400/45 bg-red-500/10 text-red-100' : 'border-white/10 bg-black/20 text-gray-600'}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`text-lg font-black ${unlocked || active ? 'text-white' : 'text-gray-500'}`}>{reward.days}D</p>
+                  {unlocked ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : active ? <Target className="h-4 w-4" aria-hidden="true" /> : <Lock className="h-4 w-4" aria-hidden="true" />}
+                </div>
+                <p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-white/90">{reward.shortLabel}</p>
+                <p className="mt-2 text-[0.55rem] font-black uppercase tracking-[0.14em] text-gray-500">
+                  {formatDaysUntilReward(loginStreak, reward)}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-0 opacity-0" aria-hidden="true" />
+    </section>
+  )
+}
+
+export default DailyCheckInPanel
