@@ -27,6 +27,8 @@ function AdminDonationConsole() {
   const [isPublic, setIsPublic] = useState(false)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
+  const [grantStatus, setGrantStatus] = useState('')
+  const [grantErrorMessage, setGrantErrorMessage] = useState('')
   const [working, setWorking] = useState(false)
   const [grantWorking, setGrantWorking] = useState(false)
 
@@ -47,6 +49,8 @@ function AdminDonationConsole() {
     event.preventDefault()
     setStatus('')
     setError('')
+    setGrantStatus('')
+    setGrantErrorMessage('')
 
     if (!profileId) {
       setError('Choose a profile first.')
@@ -75,11 +79,11 @@ function AdminDonationConsole() {
 
   async function handleGrantBadge(event) {
     event.preventDefault()
-    setStatus('')
-    setError('')
+    setGrantStatus('')
+    setGrantErrorMessage('')
 
     if (!grantProfileId) {
-      setError('Choose a profile first.')
+      setGrantErrorMessage('Choose a profile first.')
       return
     }
 
@@ -91,11 +95,11 @@ function AdminDonationConsole() {
         displayName: grantDisplayName,
         wallVisible: grantWallVisible,
       })
-      setStatus('Contributor badge granted.')
+      setGrantStatus('Contributor badge granted.')
       setGrantDisplayName('')
       await fetchDonationAdmin()
     } catch (grantError) {
-      setError(grantError.message)
+      setGrantErrorMessage(grantError.message)
     } finally {
       setGrantWorking(false)
     }
@@ -184,6 +188,8 @@ function AdminDonationConsole() {
             {grantWorking ? 'Granting' : 'Grant Badge'}
           </button>
         </div>
+        {grantStatus ? <p className="text-sm font-bold text-green-200 lg:col-span-3">{grantStatus}</p> : null}
+        {grantErrorMessage ? <p className="text-sm font-bold text-red-200 lg:col-span-3">{grantErrorMessage}</p> : null}
       </form>
 
       <form onSubmit={handleRecordDonation} className="mb-5 grid gap-3 rounded-[1.4rem] border border-white/10 bg-black/25 p-4 lg:grid-cols-[minmax(0,1fr)_120px_160px]">

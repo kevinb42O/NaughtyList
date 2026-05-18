@@ -1162,10 +1162,10 @@ function IntelProvider({ children }) {
     }
 
     const { data, error: grantError } = await supabase.rpc('admin_grant_supporter_badge', {
-      target_profile_id: profileId,
-      tier,
-      display_name: displayName?.trim() || null,
-      wall_visible: Boolean(wallVisible),
+      p_target_profile_id: profileId,
+      p_tier: tier,
+      p_display_name: displayName?.trim() || null,
+      p_wall_visible: Boolean(wallVisible),
     })
 
     if (grantError) {
