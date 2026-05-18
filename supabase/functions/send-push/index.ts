@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
       clanTag,
       senderUserId,
       recipientUserId,
+      recipientUserIds,
       message,
       title: customTitle,
       body: customBody,
@@ -117,14 +118,31 @@ Deno.serve(async (req) => {
     }
 
     const isCustom = type === 'custom-notification'
+    const isPublicMention = type === 'public-mention'
     if (isCustom) {
       await requireAdmin(supabase, requestUser.id)
+    }
+
+    const publicMentionRecipientIds = isPublicMention && Array.isArray(recipientUserIds)
+      ? recipientUserIds.filter((id) => typeof id === 'string' && id !== requestUser.id).slice(0, 20)
+      : []
+
+    if (isPublicMention && !publicMentionRecipientIds.length) {
+      return new Response(JSON.stringify({ sent: 0, failed: 0 }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
     }
 
     const query = supabase.from('push_subscriptions').select('id, subscription, user_id')
     if (type === 'direct-message') {
       if (!recipientUserId) throw new Error('recipientUserId is required')
       query.eq('user_id', recipientUserId)
+    }
+    if (isPublicMention) {
+      if (!Array.isArray(recipientUserIds) || !recipientUserIds.length) {
+        throw new Error('recipientUserIds is required')
+      }
+      query.in('user_id', publicMentionRecipientIds)
     }
 
     const { data: rows, error: dbError } = await query
@@ -149,6 +167,13 @@ Deno.serve(async (req) => {
             url: senderUserId ? `/messages?to=${senderUserId}` : '/messages',
             tag: `dm-${senderUserId ?? 'new'}`,
           }
+        : isPublicMention
+          ? {
+              title: 'TAGGED IN PUBLIC CHAT',
+              body: `${name}: ${trimMessage(message)}`,
+              url: '/chat',
+              tag: `public-mention-${senderUserId ?? 'new'}`,
+            }
         : isCustom
           ? {
               title,

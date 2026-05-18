@@ -10,6 +10,7 @@ import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
+import { findActiveMentionToken, insertMentionToken, mentionHandle, mentionLabel, mentionedProfileIds } from '../utils/mentions.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
 function isSameDay(firstValue, secondValue) {
@@ -127,6 +128,7 @@ function Chat() {
     isAuthenticated,
     activePublicChatMute,
     publicMessages,
+    profiles,
     clanDirectory,
     myClan,
     myClanRole,
@@ -135,6 +137,7 @@ function Chat() {
     sendClanMessage,
     fetchClanMessages,
     setMessageReaction,
+    markPublicChatRead,
   } = useIntel()
   const [message, setMessage] = useState('')
   const [pendingMedia, setPendingMedia] = useState(null)
@@ -191,6 +194,28 @@ function Chat() {
   const activeRoomKey = activeRoom === 'clan' ? `clan:${resolvedSelectedClanId}` : 'public'
   const lastActiveMessageId = activeMessages[activeMessages.length - 1]?.id ?? ''
   const activeMessagesLength = activeMessages.length
+  const activeMentionToken = useMemo(() => {
+    if (activeRoom !== 'public' || publicChatMuted) {
+      return null
+    }
+
+    return findActiveMentionToken(message)
+  }, [activeRoom, message, publicChatMuted])
+  const mentionSuggestions = useMemo(() => {
+    if (!activeMentionToken) {
+      return []
+    }
+
+    const query = activeMentionToken.query.toLowerCase()
+    return profiles
+      .filter((nextProfile) => {
+        const handle = mentionHandle(nextProfile).toLowerCase()
+        const label = mentionLabel(nextProfile).toLowerCase()
+        const activisionIds = (nextProfile.activision_ids ?? []).join(' ').toLowerCase()
+        return !query || handle.includes(query) || label.includes(query) || activisionIds.includes(query)
+      })
+      .slice(0, 6)
+  }, [activeMentionToken, profiles])
 
   const scrollToLatestMessage = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -223,6 +248,12 @@ function Chat() {
       scrollToLatestMessage()
     }
   }, [activeMessagesLength, lastActiveMessageId, scrollToLatestMessage])
+
+  useEffect(() => {
+    if (activeRoom === 'public') {
+      markPublicChatRead()
+    }
+  }, [activeMessagesLength, activeRoom, lastActiveMessageId, markPublicChatRead])
 
   useEffect(() => {
     let cancelled = false
@@ -312,7 +343,7 @@ function Chat() {
         }))
         scrollToLatestMessage()
       } else {
-        await sendPublicMessage(nextMessage, nextMedia)
+        await sendPublicMessage(nextMessage, nextMedia, mentionedProfileIds(nextMessage, profiles))
         scrollToLatestMessage()
       }
     } catch (chatError) {
@@ -343,6 +374,38 @@ function Chat() {
       setError(reactionError.message)
     }
   }
+
+  function handleMentionSelect(nextProfile) {
+    if (!activeMentionToken) {
+      return
+    }
+
+    setMessage((currentMessage) => insertMentionToken(currentMessage, activeMentionToken, nextProfile))
+  }
+
+  const mentionAccessory = mentionSuggestions.length ? (
+    <div className="mb-2 rounded-2xl border border-white/10 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30">
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+        {mentionSuggestions.map((nextProfile) => (
+          <button
+            key={nextProfile.id}
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => handleMentionSelect(nextProfile)}
+            className="flex min-w-[11rem] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 text-left transition hover:border-red-400/40 hover:bg-red-500/10"
+          >
+            <ProfileAvatar profile={nextProfile} size="sm" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+                {mentionLabel(nextProfile)}
+              </span>
+              <span className="block truncate text-[0.62rem] font-bold text-red-200/80">@{mentionHandle(nextProfile)}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null
 
   if (!isAuthenticated) {
     return (
@@ -580,6 +643,7 @@ function Chat() {
           maxLength={activeRoom === 'clan' ? 1000 : 500}
           disabled={(activeRoom === 'clan' && !canSendClanRoomMessage) || publicChatMuted}
           sending={sending}
+          accessory={mentionAccessory}
         />
         {publicChatMuted ? (
           <p className="px-4 pb-3 text-sm font-bold text-orange-200">

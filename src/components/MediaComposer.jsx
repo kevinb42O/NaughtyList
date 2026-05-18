@@ -37,6 +37,7 @@ function MediaComposer({
   maxLength,
   disabled = false,
   sending = false,
+  accessory = null,
 }) {
   const fileInputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
@@ -74,6 +75,7 @@ function MediaComposer({
             <div className="h-1 bg-red-300 transition-all" style={{ width: `${Math.max(8, uploadProgress)}%` }} />
           </div>
         ) : null}
+        {accessory}
         <div className="flex min-h-12 items-center gap-1.5 rounded-full border border-white/10 bg-zinc-950/90 px-1.5 py-1.5 shadow-inner shadow-black/35">
           <input ref={fileInputRef} type="file" accept={allowedImageTypes.join(',')} onChange={handleFileChange} className="hidden" />
           <button

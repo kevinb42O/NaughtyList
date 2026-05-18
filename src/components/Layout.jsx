@@ -36,6 +36,7 @@ function Layout() {
     signOut,
     broadcastOnline,
     unreadDirectMessageCount,
+    unreadPublicChatCount,
   } = useIntel()
   const [dropping, setDropping] = useState(false)
   const [dropStatus, setDropStatus] = useState('') // 'sent' | 'error' | ''
@@ -124,6 +125,11 @@ function Layout() {
             {item.to === '/messages' && unreadDirectMessageCount ? (
               <span className="absolute right-1 top-1 min-w-4 rounded-full border border-red-400/50 bg-red-500/18 px-1 py-0.5 text-[0.5rem] leading-none text-red-100">
                 {unreadDirectMessageCount > 9 ? '9+' : unreadDirectMessageCount}
+              </span>
+            ) : null}
+            {item.to === '/chat' && unreadPublicChatCount ? (
+              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-red-400/50 bg-red-500/18 px-1 py-0.5 text-[0.5rem] leading-none text-red-100">
+                {unreadPublicChatCount > 9 ? '9+' : unreadPublicChatCount}
               </span>
             ) : null}
             {isActive ? (

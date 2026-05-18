@@ -16,6 +16,7 @@ const messageReactionTables = {
   clan: 'clan_message_reactions',
 }
 const messageReactionKeys = ['middle_finger', 'heart', 'rofl', 'sad_tear', 'xd']
+const publicChatReadStoragePrefix = '21rats:lastPublicChatRead:'
 
 function withTimeout(promise, ms, message) {
   return Promise.race([
@@ -209,6 +210,7 @@ function IntelProvider({ children }) {
   const [donations, setDonations] = useState([])
   const [supporterWall, setSupporterWall] = useState([])
   const [publicChatMutes, setPublicChatMutes] = useState([])
+  const [lastReadPublicChatMessageId, setLastReadPublicChatMessageId] = useState('')
   const [moderationEvents, setModerationEvents] = useState([])
   const [dailyCheckInResult, setDailyCheckInResult] = useState(null)
   const [lastXpAward, setLastXpAward] = useState(null)
@@ -225,6 +227,15 @@ function IntelProvider({ children }) {
   const unreadDirectMessageCount = directMessages.filter(
     (message) => message.recipient_id === user?.id && !message.read_at,
   ).length
+  const unreadPublicChatCount = useMemo(() => {
+    if (!user?.id || !lastReadPublicChatMessageId) {
+      return 0
+    }
+
+    const lastReadIndex = publicMessages.findIndex((message) => message.id === lastReadPublicChatMessageId)
+    const missedMessages = lastReadIndex === -1 ? publicMessages : publicMessages.slice(lastReadIndex + 1)
+    return missedMessages.filter((message) => message.user_id !== user.id).length
+  }, [lastReadPublicChatMessageId, publicMessages, user?.id])
   const activePublicChatMute = useMemo(() => {
     if (!user?.id) {
       return null
@@ -241,6 +252,32 @@ function IntelProvider({ children }) {
   useEffect(() => {
     profilesRef.current = profiles
   }, [profiles])
+
+  useEffect(() => {
+    if (!user?.id || typeof window === 'undefined') {
+      setLastReadPublicChatMessageId('')
+      return
+    }
+
+    setLastReadPublicChatMessageId(window.localStorage.getItem(`${publicChatReadStoragePrefix}${user.id}`) || '')
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id || !publicMessages.length || typeof window === 'undefined') {
+      return
+    }
+
+    const storageKey = `${publicChatReadStoragePrefix}${user.id}`
+    if (window.localStorage.getItem(storageKey)) {
+      return
+    }
+
+    const latestMessageId = publicMessages[publicMessages.length - 1]?.id
+    if (latestMessageId) {
+      window.localStorage.setItem(storageKey, latestMessageId)
+      setLastReadPublicChatMessageId(latestMessageId)
+    }
+  }, [publicMessages, user?.id])
 
   const applyProfileRecord = useCallback((nextProfile) => {
     if (!nextProfile?.id) {
@@ -1507,7 +1544,21 @@ function IntelProvider({ children }) {
     return nextReactions
   }
 
-  async function sendPublicMessage(body, media = null) {
+  const markPublicChatRead = useCallback(() => {
+    if (!user?.id || !publicMessages.length || typeof window === 'undefined') {
+      return
+    }
+
+    const latestMessageId = publicMessages[publicMessages.length - 1]?.id
+    if (!latestMessageId) {
+      return
+    }
+
+    window.localStorage.setItem(`${publicChatReadStoragePrefix}${user.id}`, latestMessageId)
+    setLastReadPublicChatMessageId(latestMessageId)
+  }, [publicMessages, user?.id])
+
+  async function sendPublicMessage(body, media = null, mentionedUserIds = []) {
     if (!user) {
       throw new Error('You must be logged in to chat.')
     }
@@ -1547,6 +1598,39 @@ function IntelProvider({ children }) {
         100,
       ),
     )
+    const mentionRecipientIds = Array.from(new Set(mentionedUserIds)).filter((recipientId) => recipientId && recipientId !== user.id)
+    if (mentionRecipientIds.length) {
+      const displayName = profile?.display_name || profileDisplayName(user)
+      const clanTag = profile?.clan_tag || ''
+
+      withTimeout(
+        supabase.functions.invoke('send-push', {
+          body: {
+            type: 'public-mention',
+            senderUserId: user.id,
+            recipientUserIds: mentionRecipientIds,
+            displayName,
+            clanTag,
+            message: trimmedBody || (mediaType === 'gif' ? 'tagged you with a GIF' : 'tagged you with an image'),
+          },
+        }),
+        12000,
+        'Mention notification request timed out.',
+      )
+        .then(({ data: pushResult, error: pushError }) => {
+          if (pushError) {
+            console.warn(`[push] Public mention delivered in chat but push failed: ${pushError.message}`)
+            return
+          }
+
+          if (!pushResult?.sent) {
+            console.warn('[push] Public mention delivered in chat but tagged users have no active push subscription.')
+          }
+        })
+        .catch((pushError) => {
+          console.warn(`[push] Public mention delivered in chat but push failed: ${pushError.message}`)
+        })
+    }
     await awardActivityXp('public_message_sent')
   }
 
@@ -2090,6 +2174,7 @@ function IntelProvider({ children }) {
     dailyCheckInResult,
     lastXpAward,
     unreadDirectMessageCount,
+    unreadPublicChatCount,
     onlineUserIds,
     clans,
     loading: loading || authLoading,
@@ -2139,6 +2224,7 @@ function IntelProvider({ children }) {
     sendDirectMessage,
     sendClanMessage,
     setMessageReaction,
+    markPublicChatRead,
     markDirectMessageRead,
     markDirectMessagesRead,
     deletePublicMessage,
