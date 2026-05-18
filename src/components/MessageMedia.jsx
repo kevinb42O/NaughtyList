@@ -74,12 +74,15 @@ function MessageMedia({ mediaUrl, mediaType }) {
         className="group relative mb-2 block w-full overflow-hidden rounded-xl border border-white/10 bg-black/35 text-left"
         aria-label={isGif ? 'Open GIF preview' : 'Open image preview'}
       >
-        <img
-          src={mediaUrl}
-          alt={isGif ? 'Shared GIF' : 'Shared image'}
-          loading="lazy"
-          className="max-h-72 w-full min-w-52 object-cover transition duration-200 group-hover:scale-[1.015]"
-        />
+        <span className="chat-media-frame">
+          <img
+            src={mediaUrl}
+            alt={isGif ? 'Shared GIF' : 'Shared image'}
+            loading="lazy"
+            decoding="async"
+            draggable="false"
+          />
+        </span>
         <span className="absolute left-2 top-2 rounded-full border border-black/30 bg-black/70 px-2 py-1 text-[0.56rem] font-black uppercase tracking-[0.16em] text-white/85">
           {isGif ? 'GIF' : 'IMG'}
         </span>

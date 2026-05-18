@@ -187,19 +187,50 @@ button:disabled {
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    contain: layout paint;
     border: 1px solid rgb(255 255 255 / 0.08);
     background: rgb(8 8 11 / 0.96);
     box-shadow: 0 18px 46px rgb(0 0 0 / 0.38);
-    transform: translateZ(0);
-    backface-visibility: hidden;
   }
 
   .chat-scroll-surface {
     background: #07070a;
     overflow-anchor: none;
-    transform: translateZ(0);
-    backface-visibility: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chat-media-frame {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    max-height: 18rem;
+    overflow: hidden;
+    background: #050507;
+    contain: paint;
+  }
+
+  .chat-media-frame > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #050507;
+  }
+
+  @media (max-width: 640px) {
+    .chat-stable-panel,
+    .chat-scroll-surface,
+    .chat-media-frame,
+    .chat-media-frame > img {
+      transform: none;
+      backface-visibility: visible;
+      will-change: auto;
+    }
+
+    .chat-media-frame {
+      max-height: 15rem;
+    }
   }
 
   .watchlist-shell {
