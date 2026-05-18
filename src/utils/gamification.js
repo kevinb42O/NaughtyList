@@ -1,11 +1,28 @@
-export const levelXpBase = 125
+export const levelXpBase = 250
 
 export function profileXpTotal(profile) {
   return Number(profile?.xp_total ?? 0)
 }
 
 export function profileLevel(profile) {
-  return Math.max(1, Number(profile?.level ?? levelForXp(profileXpTotal(profile))))
+  const resolvedLevel = Math.max(1, Number(profile?.level ?? levelForXp(profileXpTotal(profile))))
+
+  if (hasCompletedProgressionProfile(profile)) {
+    return resolvedLevel
+  }
+
+  return Math.min(2, resolvedLevel)
+}
+
+export function hasCompletedProgressionProfile(profile) {
+  const hasBio = Boolean(profile?.bio?.trim())
+  const accountCount = Array.isArray(profile?.game_accounts)
+    ? profile.game_accounts.length
+    : Array.isArray(profile?.activision_ids)
+      ? profile.activision_ids.length
+      : 0
+
+  return hasBio && accountCount > 0
 }
 
 export function profileStreakFreezes(profile) {
