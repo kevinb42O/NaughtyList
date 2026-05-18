@@ -5,10 +5,9 @@ import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
-import { displayProfileName } from '../utils/profiles.js'
 import { donationTiers, formatDonationAmount, supporterTierMeta } from '../utils/supporters.js'
 
-const bankTransferReferencePrefix = 'NaughtyList'
+const bankTransferReferencePrefix = '21RATS'
 const bankTransferIban = 'BE43 7380 0488 6701'
 const bankTransferIbanCompact = bankTransferIban.replace(/\s+/g, '')
 const bankTransferName = 'Kevin Bourguignon'
@@ -42,7 +41,9 @@ function buildEpcQrPayload({ amountCents, beneficiaryName, iban, reference }) {
 function Support() {
   const {
     isAuthenticated,
+    loading,
     profile,
+    profileDisplayName,
     supporterWall,
   } = useIntel()
   const [selectedTier, setSelectedTier] = useState(donationTiers[1].key)
@@ -55,14 +56,18 @@ function Support() {
 
   const currentTier = supporterTierMeta(profile?.supporter_tier)
   const selectedTierMeta = supporterTierMeta(selectedTier)
+  const transferIdentity = isAuthenticated
+    ? profile?.display_name || profileDisplayName || profile?.id || 'your profile'
+    : '@username'
+  const attachedProfileLabel = isAuthenticated ? transferIdentity : 'your profile'
+  const wallEntries = supporterWall ?? []
   const selectedAmountCents = selectedTier === 'custom'
     ? parseEuroAmount(customAmount)
     : selectedTierMeta?.amountCents ?? 0
   const transferReference = useMemo(() => {
-    const identity = profile?.display_name || profile?.id || '@username'
     const note = transferNote.trim()
-    return `${bankTransferReferencePrefix} ${identity}${note ? ` ${note}` : ''}`.slice(0, 140)
-  }, [profile?.display_name, profile?.id, transferNote])
+    return `${bankTransferReferencePrefix} ${transferIdentity}${note ? ` ${note}` : ''}`.slice(0, 140)
+  }, [transferIdentity, transferNote])
   const qrPayload = useMemo(() => buildEpcQrPayload({
     amountCents: selectedAmountCents,
     beneficiaryName: bankTransferName,
@@ -100,7 +105,6 @@ function Support() {
 
   async function copyTransferDetails() {
     const details = [
-      `Name: ${bankTransferName}`,
       `IBAN: ${bankTransferIban}`,
       selectedAmountCents > 0 ? `Amount: ${formatDonationAmount(selectedAmountCents)}` : 'Amount: open',
       `Reference: ${transferReference}`,
@@ -225,6 +229,8 @@ function Support() {
                     Lifetime support: {formatDonationAmount(profile?.supporter_lifetime_amount_cents ?? 0)}.
                   </p>
                 </>
+              ) : loading && isAuthenticated ? (
+                <p className="text-sm leading-6 text-gray-400">Loading supporter status.</p>
               ) : (
                 <p className="text-sm leading-6 text-gray-400">No supporter badge yet. Bank transfers are confirmed manually by admin.</p>
               )}
@@ -243,7 +249,6 @@ function Support() {
             <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
               <p className="intel-label mb-3">QR Transfer</p>
               <div className="space-y-2 text-sm font-bold text-gray-300">
-                <p>Name: {bankTransferName}</p>
                 <p>IBAN: {bankTransferIban}</p>
                 <p>Amount: {selectedAmountCents > 0 ? formatDonationAmount(selectedAmountCents) : 'open'}</p>
                 <p className="break-words">Reference: {transferReference}</p>
@@ -287,16 +292,12 @@ function Support() {
             <p className="mt-2 font-mono text-lg font-black text-white">{bankTransferIban}</p>
           </div>
           <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Name</p>
-            <p className="mt-2 text-lg font-black text-white">{bankTransferName}</p>
-          </div>
-          <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Reference</p>
             <p className="mt-2 font-mono text-sm font-black text-white">{transferReference}</p>
           </div>
         </div>
         <p className="mt-4 text-sm leading-6 text-gray-400">
-          The QR uses standard SEPA transfer data. Bank transfers are confirmed manually by admin. Include the reference so the reward can be attached to {isAuthenticated ? displayProfileName(profile) : 'your profile'}.
+          The QR uses standard SEPA transfer data. Bank transfers are confirmed manually by admin. Include the reference so the reward can be attached to {attachedProfileLabel}.
         </p>
       </section>
 
@@ -309,7 +310,7 @@ function Support() {
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {supporterWall.length ? supporterWall.map((entry) => (
+          {wallEntries.length ? wallEntries.map((entry) => (
             <article key={`${entry.profile_id}-${entry.supporter_since}`} className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <p className="text-lg font-black uppercase tracking-[0.04em] text-white">{entry.display_name}</p>
