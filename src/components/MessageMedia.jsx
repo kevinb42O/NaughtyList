@@ -1,24 +1,61 @@
 import { Maximize2, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 function MediaLightbox({ media, onClose }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/92 p-3 backdrop-blur-sm" role="dialog" aria-modal="true">
+  const closeButtonRef = useRef(null)
+  const isGif = media.mediaType === 'gif'
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeButtonRef.current?.focus()
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
+  const lightbox = (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 backdrop-blur-sm sm:p-5"
+      role="dialog"
+      aria-label={isGif ? 'Fullscreen GIF preview' : 'Fullscreen image preview'}
+      aria-modal="true"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose()
+        }
+      }}
+    >
       <button
+        ref={closeButtonRef}
         type="button"
         onClick={onClose}
-        className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white transition hover:bg-white/15"
+        className="absolute right-3 top-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-zinc-950/80 text-white shadow-lg shadow-black/40 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-red-300/70"
         aria-label="Close image preview"
       >
         <X className="h-5 w-5" aria-hidden="true" />
       </button>
       <img
         src={media.mediaUrl}
-        alt="Shared media preview"
-        className="max-h-[88vh] max-w-full rounded-2xl border border-white/10 object-contain shadow-2xl shadow-black"
+        alt={isGif ? 'Shared GIF fullscreen preview' : 'Shared image fullscreen preview'}
+        className="max-h-[92svh] max-w-full select-none rounded-xl border border-white/10 object-contain shadow-2xl shadow-black sm:max-h-[90vh]"
+        draggable="false"
       />
     </div>
   )
+
+  return createPortal(lightbox, document.body)
 }
 
 function MessageMedia({ mediaUrl, mediaType }) {
