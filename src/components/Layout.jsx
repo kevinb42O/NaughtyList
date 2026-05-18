@@ -11,7 +11,7 @@ import {
   UsersRound,
   Zap,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
 import ProfileAvatar from './ProfileAvatar.jsx'
 import { clanPrefix, displayProfileName } from '../utils/profiles.js'
@@ -38,6 +38,31 @@ function Layout() {
   } = useIntel()
   const [dropping, setDropping] = useState(false)
   const [dropStatus, setDropStatus] = useState('') // 'sent' | 'error' | ''
+
+  useEffect(() => {
+    const root = document.documentElement
+
+    function updateVisualViewportBottom() {
+      const visualViewport = window.visualViewport
+      const bottomOffset = visualViewport
+        ? Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop)
+        : 0
+
+      root.style.setProperty('--visual-viewport-bottom', `${Math.round(bottomOffset)}px`)
+    }
+
+    updateVisualViewportBottom()
+    window.addEventListener('resize', updateVisualViewportBottom)
+    window.visualViewport?.addEventListener('resize', updateVisualViewportBottom)
+    window.visualViewport?.addEventListener('scroll', updateVisualViewportBottom)
+
+    return () => {
+      window.removeEventListener('resize', updateVisualViewportBottom)
+      window.visualViewport?.removeEventListener('resize', updateVisualViewportBottom)
+      window.visualViewport?.removeEventListener('scroll', updateVisualViewportBottom)
+      root.style.removeProperty('--visual-viewport-bottom')
+    }
+  }, [])
 
   async function handleDropIn() {
     if (dropping) return
@@ -204,7 +229,7 @@ function Layout() {
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl" aria-label="Primary navigation">
+      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl" aria-label="Primary navigation">
         <div className="mx-auto grid max-w-6xl gap-1 rounded-2xl border border-white/8 bg-black/35 p-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${bottomNavItems.length}, minmax(0, 1fr))` }}>
           {bottomNavItems.map((item) => <NavItem key={item.to} item={item} />)}
         </div>

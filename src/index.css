@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  --visual-viewport-bottom: 0px;
   color: #ececf1;
   background: #050608;
   color-scheme: dark;
@@ -17,14 +18,18 @@
 }
 
 html {
+  height: 100%;
   min-height: 100%;
+  overflow-x: hidden;
   background: #050608;
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top center, rgba(239, 68, 68, 0.14), transparent 32rem),
     radial-gradient(circle at 85% 12%, rgba(249, 115, 22, 0.1), transparent 22rem),
@@ -54,11 +59,11 @@ body::before {
       transparent 64px
     );
   opacity: 0.06;
-  mix-blend-mode: screen;
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
 }
 
@@ -69,16 +74,20 @@ body::before {
   background-position: center;
   background-repeat: no-repeat;
   background-size: 112vmin 112vmin, min(96vmin, 58rem) auto;
-  filter: grayscale(1) contrast(1.35) brightness(1.35);
-  mix-blend-mode: screen;
-  opacity: 0.26;
+  opacity: 0.18;
 }
 
 @media (max-width: 640px) {
   .app-watermark {
-    background-size: 132vmin 132vmin, 112vmin auto;
-    opacity: 0.28;
+    background-image: radial-gradient(circle at center, rgba(239, 68, 68, 0.1), transparent 52vmin);
+    background-size: 132vmin 132vmin;
+    opacity: 0.18;
   }
+}
+
+.mobile-bottom-nav {
+  transform: translate3d(0, calc(var(--visual-viewport-bottom) * -1), 0);
+  will-change: transform;
 }
 
 button,
@@ -134,12 +143,9 @@ button:disabled {
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    contain: layout paint;
     border: 1px solid rgb(255 255 255 / 0.08);
     background: linear-gradient(180deg, rgba(19, 19, 23, 0.94), rgba(7, 7, 9, 0.96));
     box-shadow: 0 22px 60px rgb(0 0 0 / 0.45);
-    transform: translateZ(0);
-    backface-visibility: hidden;
   }
 
   .clan-section-panel::before {
@@ -165,6 +171,15 @@ button:disabled {
     .clan-section-panel {
       -webkit-backdrop-filter: blur(18px);
       backdrop-filter: blur(18px);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .panel,
+    .watchlist-shell,
+    .page-masthead {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
   }
 
