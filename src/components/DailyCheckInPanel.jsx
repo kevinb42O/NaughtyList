@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarCheck, CheckCircle2, ChevronRight, Clock3, Gift, Lock, ShieldCheck, Snowflake, Target, Trophy, Zap } from 'lucide-react'
+import { BadgeCheck, CalendarCheck, CheckCircle2, ChevronRight, Clock3, Gift, Lock, ShieldCheck, Snowflake, Target, Trophy, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useIntel } from '../context/useIntel.js'
@@ -47,6 +47,138 @@ function StatTile({ icon: Icon, label, value, tone = 'text-white' }) {
         <span className="text-[0.58rem] font-black uppercase tracking-[0.16em]">{label}</span>
       </div>
       <p className={`text-2xl font-black leading-none ${tone}`}>{value}</p>
+    </div>
+  )
+}
+
+function DailyOpsSummary({ onOpen, className = '' }) {
+  const { isAuthenticated, profile, lastXpAward } = useIntel()
+  const loginStreak = profileLoginStreak(profile)
+  const claimedToday = isCheckInClaimedToday(profile)
+  const riskState = checkInRiskState(profile)
+  const resolvedStatus = statusMeta[riskState] ?? statusMeta.ready
+  const StatusIcon = resolvedStatus.Icon
+  const rewardProgress = streakRewardProgress(loginStreak)
+  const level = levelProgress(profile)
+
+  if (!isAuthenticated) {
+    return (
+      <div className={`rounded-[1.15rem] border border-white/10 bg-black/30 p-3 ${className}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="intel-label mb-1">Daily Ops</p>
+            <p className="truncate text-sm font-black uppercase tracking-[0.08em] text-white">Check-in locked</p>
+          </div>
+          <Link
+            to="/auth"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/45 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-red-100 hover:bg-red-500/20"
+          >
+            <Lock className="h-4 w-4" aria-hidden="true" />
+            Login
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`rounded-[1.15rem] border border-white/10 bg-black/30 p-3 ${className}`}>
+      <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="group flex min-w-0 items-center gap-3 text-left"
+          aria-label="Open Daily Ops"
+        >
+          <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${claimedToday ? 'border-emerald-400/35 bg-emerald-400/10 text-emerald-100' : 'border-red-400/45 bg-red-500/12 text-red-100'}`}>
+            <StatusIcon className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="intel-label mb-1 block">Daily Ops</span>
+            <span className="block truncate text-sm font-black uppercase tracking-[0.08em] text-white">
+              {loginStreak}D streak · LV {level.level}
+            </span>
+          </span>
+        </button>
+
+        <div className="min-w-0">
+          <div className="mb-1.5 flex items-center justify-between gap-3 text-[0.58rem] font-black uppercase tracking-[0.14em] text-gray-500">
+            <span className="truncate">{rewardProgress.nextReward ? rewardProgress.nextReward.shortLabel : 'Maxed'}</span>
+            <span>{Math.round(rewardProgress.progressPercent)}%</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+            <div className="h-full rounded-full bg-red-300/90" style={{ width: `${rewardProgress.progressPercent}%` }} />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {lastXpAward?.xp_earned ? (
+            <span className="hidden rounded-full border border-yellow-300/35 bg-yellow-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.14em] text-yellow-100 sm:inline-flex">
+              +{lastXpAward.xp_earned} XP
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onOpen}
+            className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] transition ${claimedToday ? 'border-white/10 bg-white/5 text-gray-300 hover:border-red-400/35 hover:text-red-100' : 'border-red-500/50 bg-red-500/12 text-red-100 hover:bg-red-500/20'}`}
+          >
+            {claimedToday ? 'View' : 'Claim'}
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DailyOpsModal({ open, onClose }) {
+  useEffect(() => {
+    if (!open) {
+      return undefined
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose, open])
+
+  if (!open) {
+    return null
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/72 px-3 pb-[calc(0.8rem+env(safe-area-inset-bottom))] pt-6 backdrop-blur-md sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="daily-ops-modal-title">
+      <button type="button" className="absolute inset-0 cursor-default" onClick={onClose} aria-label="Close Daily Ops" />
+      <div className="panel relative max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-[1.35rem] p-4 shadow-2xl shadow-black/60 sm:rounded-[1.8rem] sm:p-5">
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div>
+            <p className="intel-label mb-1">Daily Ops</p>
+            <h2 id="daily-ops-modal-title" className="text-xl font-black uppercase tracking-[0.04em] text-white sm:text-2xl">
+              Check-In Command
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 hover:border-red-400/40 hover:text-red-100"
+            aria-label="Close Daily Ops"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+        <DailyCheckInPanel embedded />
+      </div>
     </div>
   )
 }
@@ -263,3 +395,4 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
 }
 
 export default DailyCheckInPanel
+export { DailyOpsModal, DailyOpsSummary }
