@@ -124,6 +124,7 @@ function Chat() {
     user,
     isAdmin,
     isAuthenticated,
+    activePublicChatMute,
     publicMessages,
     clanDirectory,
     myClan,
@@ -185,6 +186,7 @@ function Chat() {
   const showClanLoading =
     activeRoom === 'clan' && clanLoading && clanMessageState.clanId !== resolvedSelectedClanId
   const activeMessages = activeRoom === 'clan' ? clanMessages : publicMessages
+  const publicChatMuted = activeRoom === 'public' && Boolean(activePublicChatMute)
   const activeRoomKey = activeRoom === 'clan' ? `clan:${resolvedSelectedClanId}` : 'public'
   const lastActiveMessageId = activeMessages[activeMessages.length - 1]?.id ?? ''
   const activeMessagesLength = activeMessages.length
@@ -569,12 +571,19 @@ function Chat() {
               ? canSendClanRoomMessage
                 ? `Message ${selectedClan?.name || 'your clan'}`
                 : 'Read-only room'
+              : publicChatMuted
+                ? 'Public chat muted'
               : "Yo who's playing?"
           }
           maxLength={activeRoom === 'clan' ? 1000 : 500}
-          disabled={activeRoom === 'clan' && !canSendClanRoomMessage}
+          disabled={(activeRoom === 'clan' && !canSendClanRoomMessage) || publicChatMuted}
           sending={sending}
         />
+        {publicChatMuted ? (
+          <p className="px-4 pb-3 text-sm font-bold text-orange-200">
+            Public chat muted until {new Date(activePublicChatMute.ends_at).toLocaleString()}.
+          </p>
+        ) : null}
         {activeRoom === 'clan' && !canSendClanRoomMessage && selectedClan ? (
           <p className="px-4 pb-3 text-sm font-bold text-gray-500">
             {selectedClan.id === myClanId

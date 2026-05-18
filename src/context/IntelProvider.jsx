@@ -196,6 +196,8 @@ function IntelProvider({ children }) {
     sent_notifications: 0,
   })
   const [pushEvents, setPushEvents] = useState([])
+  const [publicChatMutes, setPublicChatMutes] = useState([])
+  const [moderationEvents, setModerationEvents] = useState([])
   const [dailyCheckInResult, setDailyCheckInResult] = useState(null)
   const [lastXpAward, setLastXpAward] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -211,6 +213,18 @@ function IntelProvider({ children }) {
   const unreadDirectMessageCount = directMessages.filter(
     (message) => message.recipient_id === user?.id && !message.read_at,
   ).length
+  const activePublicChatMute = useMemo(() => {
+    if (!user?.id) {
+      return null
+    }
+
+    const now = Date.now()
+    return publicChatMutes.find((mute) => (
+      mute.target_user_id === user.id &&
+      !mute.revoked_at &&
+      new Date(mute.ends_at).getTime() > now
+    )) ?? null
+  }, [publicChatMutes, user?.id])
 
   useEffect(() => {
     profilesRef.current = profiles
@@ -337,6 +351,59 @@ function IntelProvider({ children }) {
     const nextMessages = messages.map((message) => withMessageReaction(message, reactionMap))
     setDirectMessages((currentMessages) => mergeMessageRecords(currentMessages, nextMessages, 300))
   }, [fetchMessageReactionMap])
+
+  const fetchPublicChatMutes = useCallback(async (nextProfiles = profilesRef.current) => {
+    if (!user?.id) {
+      setPublicChatMutes([])
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+    const { data, error: mutesError } = await supabase
+      .from('public_chat_mutes')
+      .select('id, target_user_id, muted_by, reason, starts_at, ends_at, revoked_at, revoked_by, created_at')
+      .is('revoked_at', null)
+      .gt('ends_at', new Date().toISOString())
+      .order('ends_at', { ascending: true })
+
+    if (mutesError) {
+      throw mutesError
+    }
+
+    const nextMutes = (data ?? []).map((mute) => ({
+      ...mute,
+      targetProfile: profileById.get(mute.target_user_id),
+      mutedByProfile: profileById.get(mute.muted_by),
+    }))
+    setPublicChatMutes(nextMutes)
+    return nextMutes
+  }, [user?.id])
+
+  const fetchModerationEvents = useCallback(async (nextProfiles = profilesRef.current) => {
+    if (!isModerator) {
+      setModerationEvents([])
+      return []
+    }
+
+    const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
+    const { data, error: eventsError } = await supabase
+      .from('moderation_events')
+      .select('id, actor_user_id, target_user_id, player_id, message_id, event_type, details, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (eventsError) {
+      throw eventsError
+    }
+
+    const nextEvents = (data ?? []).map((event) => ({
+      ...event,
+      actorProfile: profileById.get(event.actor_user_id),
+      targetProfile: profileById.get(event.target_user_id),
+    }))
+    setModerationEvents(nextEvents)
+    return nextEvents
+  }, [isModerator])
 
   const fetchClanDirectory = useCallback(async () => {
     const { data, error: clanDirectoryError } = await supabase.rpc('list_clan_directory')
@@ -603,6 +670,8 @@ function IntelProvider({ children }) {
       await Promise.all([
         fetchPublicMessages(nextProfiles),
         fetchDirectMessages(user?.id, nextProfiles),
+        fetchPublicChatMutes(nextProfiles),
+        fetchModerationEvents(nextProfiles),
         refreshClanState(nextProfiles),
       ])
     } catch (refreshError) {
@@ -610,7 +679,7 @@ function IntelProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [fetchDirectMessages, fetchPlayers, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
+  }, [fetchDirectMessages, fetchModerationEvents, fetchPlayers, fetchProfiles, fetchPublicChatMutes, fetchPublicMessages, refreshClanState, user?.id])
 
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) {
@@ -803,6 +872,12 @@ function IntelProvider({ children }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
         fetchPlayers().catch((playersError) => setError(playersError.message))
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'public_chat_mutes' }, () => {
+        fetchPublicChatMutes().catch((mutesError) => setError(mutesError.message))
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'moderation_events' }, () => {
+        fetchModerationEvents().catch((eventsError) => setError(eventsError.message))
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clans' }, () => {
         fetchProfiles()
           .then((nextProfiles) => refreshClanState(nextProfiles))
@@ -828,7 +903,7 @@ function IntelProvider({ children }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchPlayers, fetchProfiles, refreshClanState, user?.id])
+  }, [fetchModerationEvents, fetchPlayers, fetchProfiles, fetchPublicChatMutes, refreshClanState, user?.id])
 
   useEffect(() => {
     if (!user?.id) {
@@ -844,6 +919,8 @@ function IntelProvider({ children }) {
           Promise.all([
             fetchPublicMessages(nextProfiles),
             fetchDirectMessages(user.id, nextProfiles),
+            fetchPublicChatMutes(nextProfiles),
+            fetchModerationEvents(nextProfiles),
             refreshClanState(nextProfiles),
           ]),
         )
@@ -853,7 +930,7 @@ function IntelProvider({ children }) {
     // Realtime keeps state fresh; this is a slow visibility-gated safety net.
     const intervalId = window.setInterval(pollMessages, 60000)
     return () => window.clearInterval(intervalId)
-  }, [fetchDirectMessages, fetchProfiles, fetchPublicMessages, refreshClanState, user?.id])
+  }, [fetchDirectMessages, fetchModerationEvents, fetchProfiles, fetchPublicChatMutes, fetchPublicMessages, refreshClanState, user?.id])
 
   useEffect(() => {
     if (!user) {
@@ -1318,6 +1395,10 @@ function IntelProvider({ children }) {
       throw new Error('You must be logged in to chat.')
     }
 
+    if (activePublicChatMute) {
+      throw new Error(`Public chat muted until ${new Date(activePublicChatMute.ends_at).toLocaleString()}.`)
+    }
+
     const trimmedBody = body.trim()
     const mediaUrl = media?.mediaUrl || null
     const mediaType = media?.mediaType || null
@@ -1469,16 +1550,103 @@ function IntelProvider({ children }) {
       throw new Error('Only moderators and admins can delete public chat.')
     }
 
-    const { error: deleteError } = await supabase
-      .from('public_chat_messages')
-      .delete()
-      .eq('id', messageId)
+    const { error: deleteError } = await supabase.rpc('delete_public_chat_message', {
+      target_message_id: messageId,
+    })
 
     if (deleteError) {
       throw deleteError
     }
 
+    setPublicMessages((currentMessages) => currentMessages.filter((message) => message.id !== messageId))
+    await fetchModerationEvents()
+  }
+
+  async function setPlayerVerdict(playerId, nextStatus, note = '') {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can update verdicts.')
+    }
+
+    const { error: verdictError } = await supabase.rpc('set_player_moderation_status', {
+      target_player_id: playerId,
+      next_status: nextStatus,
+      next_note: note,
+    })
+
+    if (verdictError) {
+      throw verdictError
+    }
+
     await refresh()
+  }
+
+  async function quarantinePlayer(playerId, reason = '') {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can quarantine entries.')
+    }
+
+    const { error: quarantineError } = await supabase.rpc('quarantine_player', {
+      target_player_id: playerId,
+      reason,
+    })
+
+    if (quarantineError) {
+      throw quarantineError
+    }
+
+    await refresh()
+  }
+
+  async function restorePlayer(playerId) {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can restore entries.')
+    }
+
+    const { error: restoreError } = await supabase.rpc('restore_quarantined_player', {
+      target_player_id: playerId,
+    })
+
+    if (restoreError) {
+      throw restoreError
+    }
+
+    await refresh()
+  }
+
+  async function mutePublicChatUser(userId, minutes, reason = '') {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can mute public chat.')
+    }
+
+    const { error: muteError } = await supabase.rpc('mute_public_chat_user', {
+      target_user_id: userId,
+      duration_minutes: minutes,
+      reason,
+    })
+
+    if (muteError) {
+      throw muteError
+    }
+
+    const nextProfiles = profilesRef.current
+    await Promise.all([fetchPublicChatMutes(nextProfiles), fetchModerationEvents(nextProfiles)])
+  }
+
+  async function clearPublicChatMute(muteId) {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can clear public chat mutes.')
+    }
+
+    const { error: clearError } = await supabase.rpc('clear_public_chat_mute', {
+      target_mute_id: muteId,
+    })
+
+    if (clearError) {
+      throw clearError
+    }
+
+    const nextProfiles = profilesRef.current
+    await Promise.all([fetchPublicChatMutes(nextProfiles), fetchModerationEvents(nextProfiles)])
   }
 
   async function addPlayer(player) {
@@ -1502,8 +1670,8 @@ function IntelProvider({ children }) {
   }
 
   async function deletePlayer(playerId) {
-    if (!isModerator) {
-      throw new Error('Only moderators and admins can delete entries.')
+    if (!isAdmin) {
+      throw new Error('Only admins can permanently delete entries.')
     }
 
     const { error: deleteError } = await supabase.from('players').delete().eq('id', playerId)
@@ -1757,6 +1925,9 @@ function IntelProvider({ children }) {
     players,
     publicMessages,
     directMessages,
+    publicChatMutes,
+    activePublicChatMute,
+    moderationEvents,
     clanDirectory,
     myClanMembership,
     myClan: myClanMembership?.clan ?? null,
@@ -1787,6 +1958,9 @@ function IntelProvider({ children }) {
     signOut,
     addPlayer,
     updatePlayer,
+    setPlayerVerdict,
+    quarantinePlayer,
+    restorePlayer,
     registerPlayerKill,
     deletePlayer,
     deleteProfileAccount,
@@ -1814,6 +1988,8 @@ function IntelProvider({ children }) {
     markDirectMessageRead,
     markDirectMessagesRead,
     deletePublicMessage,
+    mutePublicChatUser,
+    clearPublicChatMute,
     deleteClanMessage,
     fetchClanMembers,
     fetchClanMessages,

@@ -313,6 +313,27 @@ button:disabled {
     padding: 0.9rem 1rem;
   }
 
+  .mod-button {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border-width: 1px;
+    border-style: solid;
+    padding-inline: 1rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+  }
+
+  .mod-button:disabled {
+    opacity: 0.6;
+  }
+
   .daily-ops-scanning {
     position: relative;
     overflow: hidden;
