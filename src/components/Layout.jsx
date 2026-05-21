@@ -12,7 +12,7 @@ import {
   UsersRound,
   Zap,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
 import ProfileAvatar from './ProfileAvatar.jsx'
 import { clanPrefix, displayProfileName } from '../utils/profiles.js'
@@ -40,29 +40,48 @@ function Layout() {
   } = useIntel()
   const [dropping, setDropping] = useState(false)
   const [dropStatus, setDropStatus] = useState('') // 'sent' | 'error' | ''
+  const [keyboardActive, setKeyboardActive] = useState(false)
+  const bottomNavRef = useRef(null)
 
   useEffect(() => {
     const root = document.documentElement
+    const textInputSelector = 'input, textarea, select, [contenteditable="true"]'
 
     function updateVisualViewportBottom() {
       const visualViewport = window.visualViewport
+      const viewportHeight = visualViewport?.height ?? window.innerHeight
       const bottomOffset = visualViewport
         ? Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop)
         : 0
+      const activeElement = document.activeElement
+      const textFieldFocused = Boolean(activeElement?.matches?.(textInputSelector))
+      const phoneViewport = window.matchMedia('(max-width: 640px)').matches
 
+      if (bottomNavRef.current) {
+        root.style.setProperty('--mobile-bottom-nav-height', `${Math.round(bottomNavRef.current.offsetHeight)}px`)
+      }
+
+      root.style.setProperty('--visual-viewport-height', `${Math.round(viewportHeight)}px`)
       root.style.setProperty('--visual-viewport-bottom', `${Math.round(bottomOffset)}px`)
+      setKeyboardActive(textFieldFocused && phoneViewport)
     }
 
     updateVisualViewportBottom()
     window.addEventListener('resize', updateVisualViewportBottom)
+    window.addEventListener('focusin', updateVisualViewportBottom)
+    window.addEventListener('focusout', updateVisualViewportBottom)
     window.visualViewport?.addEventListener('resize', updateVisualViewportBottom)
     window.visualViewport?.addEventListener('scroll', updateVisualViewportBottom)
 
     return () => {
       window.removeEventListener('resize', updateVisualViewportBottom)
+      window.removeEventListener('focusin', updateVisualViewportBottom)
+      window.removeEventListener('focusout', updateVisualViewportBottom)
       window.visualViewport?.removeEventListener('resize', updateVisualViewportBottom)
       window.visualViewport?.removeEventListener('scroll', updateVisualViewportBottom)
       root.style.removeProperty('--visual-viewport-bottom')
+      root.style.removeProperty('--visual-viewport-height')
+      root.style.removeProperty('--mobile-bottom-nav-height')
     }
   }, [])
 
@@ -246,7 +265,7 @@ function Layout() {
         <Outlet />
       </main>
 
-      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl" aria-label="Primary navigation">
+      <nav ref={bottomNavRef} className={`mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl ${keyboardActive ? 'mobile-bottom-nav--keyboard' : ''}`} aria-label="Primary navigation">
         <div className="mx-auto grid max-w-6xl gap-1 rounded-2xl border border-white/8 bg-black/35 p-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${bottomNavItems.length}, minmax(0, 1fr))` }}>
           {bottomNavItems.map((item) => <NavItem key={item.to} item={item} />)}
         </div>

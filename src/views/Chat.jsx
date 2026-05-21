@@ -13,6 +13,63 @@ import { useIntel } from '../context/useIntel.js'
 import { findActiveMentionToken, hasEveryoneMention, insertMentionEveryoneToken, insertMentionToken, mentionHandle, mentionLabel, mentionedProfileIds } from '../utils/mentions.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
+function useMobileChatPanelHeight(dependencyKey) {
+  const panelRef = useRef(null)
+  const [panelHeight, setPanelHeight] = useState(null)
+
+  const updatePanelHeight = useCallback(() => {
+    const panel = panelRef.current
+
+    if (!panel || !window.matchMedia('(max-width: 639px)').matches) {
+      setPanelHeight(null)
+      return
+    }
+
+    const visualViewport = window.visualViewport
+    const viewportHeight = visualViewport?.height ?? window.innerHeight
+    const panelTop = Math.max(0, panel.getBoundingClientRect().top)
+    const activeElement = document.activeElement
+    const composerFocused = Boolean(panel.contains(activeElement) && activeElement?.matches?.('input, textarea, [contenteditable="true"]'))
+    const navHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0
+    const bottomReserve = composerFocused ? 10 : navHeight + 14
+    const availableHeight = Math.floor(viewportHeight - panelTop - bottomReserve)
+
+    setPanelHeight(Math.max(220, availableHeight))
+  }, [])
+
+  useEffect(() => {
+    updatePanelHeight()
+
+    const delayedUpdate = window.setTimeout(updatePanelHeight, 80)
+    window.addEventListener('resize', updatePanelHeight)
+    window.addEventListener('scroll', updatePanelHeight, { passive: true })
+    window.addEventListener('focusin', updatePanelHeight)
+    window.addEventListener('focusout', updatePanelHeight)
+    window.visualViewport?.addEventListener('resize', updatePanelHeight)
+    window.visualViewport?.addEventListener('scroll', updatePanelHeight)
+
+    return () => {
+      window.clearTimeout(delayedUpdate)
+      window.removeEventListener('resize', updatePanelHeight)
+      window.removeEventListener('scroll', updatePanelHeight)
+      window.removeEventListener('focusin', updatePanelHeight)
+      window.removeEventListener('focusout', updatePanelHeight)
+      window.visualViewport?.removeEventListener('resize', updatePanelHeight)
+      window.visualViewport?.removeEventListener('scroll', updatePanelHeight)
+    }
+  }, [updatePanelHeight])
+
+  useEffect(() => {
+    updatePanelHeight()
+
+    const delayedUpdate = window.setTimeout(updatePanelHeight, 80)
+
+    return () => window.clearTimeout(delayedUpdate)
+  }, [dependencyKey, updatePanelHeight])
+
+  return [panelRef, panelHeight]
+}
+
 function isSameDay(firstValue, secondValue) {
   const first = new Date(firstValue)
   const second = new Date(secondValue)
@@ -184,6 +241,7 @@ function Chat() {
 
     return availableClanRooms[0]?.id || ''
   }, [availableClanRooms, canUseClanRoom, myClanId, selectedClanId])
+  const [chatPanelRef, chatPanelHeight] = useMobileChatPanelHeight(`${activeRoom}:${canUseClanRoom}:${resolvedSelectedClanId}:${selectedClanId}`)
   const selectedClan = availableClanRooms.find((clan) => clan.id === resolvedSelectedClanId) ?? null
   const canSendClanRoomMessage = Boolean(resolvedSelectedClanId && myClanId === resolvedSelectedClanId)
   const clanMessages =
@@ -254,6 +312,12 @@ function Chat() {
       scrollToLatestMessage()
     }
   }, [activeMessagesLength, lastActiveMessageId, scrollToLatestMessage])
+
+  useEffect(() => {
+    if (stickToBottomRef.current) {
+      scrollToLatestMessage()
+    }
+  }, [chatPanelHeight, scrollToLatestMessage])
 
   useEffect(() => {
     if (activeRoom === 'public') {
@@ -549,7 +613,7 @@ function Chat() {
         </section>
       ) : null}
 
-      <section className="chat-stable-panel flex h-[72vh] min-h-[34rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem]">
+      <section ref={chatPanelRef} style={chatPanelHeight ? { height: `${chatPanelHeight}px` } : undefined} className="chat-stable-panel flex h-[calc(var(--visual-viewport-height)-17rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:h-[72vh] sm:min-h-[34rem] sm:rounded-[1.8rem]">
         <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
           <div className="mr-auto min-w-0">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">

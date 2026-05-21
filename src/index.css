@@ -2,6 +2,8 @@
 
 :root {
   --visual-viewport-bottom: 0px;
+  --visual-viewport-height: 100dvh;
+  --mobile-bottom-nav-height: 0px;
   color: #ececf1;
   background: #050608;
   color-scheme: dark;
@@ -87,7 +89,18 @@ body::before {
 
 .mobile-bottom-nav {
   transform: translate3d(0, calc(var(--visual-viewport-bottom) * -1), 0);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
   will-change: transform;
+}
+
+@media (max-width: 640px) {
+  .mobile-bottom-nav--keyboard {
+    pointer-events: none;
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
 }
 
 button,
