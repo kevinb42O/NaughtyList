@@ -9,6 +9,7 @@ import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
+import { useMobileViewportPanelHeight } from '../utils/mobileViewport.js'
 import { mediaPreviewLabel } from '../utils/media.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
@@ -194,6 +195,7 @@ function Messages() {
   }, [fallbackContactId, profiles, selectedId])
   const selectedProfileId = selectedProfile?.id ?? ''
   const hasSelectedThread = Boolean(selectedId && selectedProfileId)
+  const [threadPanelRef, threadPanelHeight] = useMobileViewportPanelHeight(`direct:${selectedProfileId}:${hasSelectedThread}`)
 
   const thread = useMemo(() => {
     if (!selectedProfile || !user) {
@@ -384,7 +386,11 @@ function Messages() {
           </div>
         </aside>
 
-        <div className={`chat-stable-panel h-[calc(100svh-9.5rem)] min-h-[32rem] flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:flex lg:h-[72vh] lg:min-h-[34rem] ${hasSelectedThread ? 'flex' : 'hidden'}`}>
+        <div
+          ref={threadPanelRef}
+          style={threadPanelHeight ? { height: `${threadPanelHeight}px` } : undefined}
+          className={`chat-stable-panel h-[calc(var(--visual-viewport-height)-9.5rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:flex lg:h-[72vh] lg:min-h-[34rem] ${hasSelectedThread ? 'flex' : 'hidden'}`}
+        >
           {selectedProfile ? (
             <div key={selectedProfileId} className="flex h-full min-h-0 flex-col">
               <div className="flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">

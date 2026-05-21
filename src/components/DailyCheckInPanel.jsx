@@ -314,6 +314,11 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
               </span>
             ) : null}
           </div>
+          {result?.compensation_message ? (
+            <div className="mt-3 rounded-[1rem] border border-yellow-300/40 bg-yellow-400/10 p-3 text-sm font-bold text-yellow-100">
+              {result.compensation_message}
+            </div>
+          ) : null}
           {result?.used_streak_freeze ? <p className="mt-3 text-sm font-bold text-cyan-100">Freeze consumed. Streak protected.</p> : null}
           {result?.freeze_awarded ? <p className="mt-3 text-sm font-bold text-cyan-100">Freeze earned. Backup charge armed.</p> : null}
           {error ? <p className="mt-3 text-sm font-bold text-red-200">{error}</p> : null}

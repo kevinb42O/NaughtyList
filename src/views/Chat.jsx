@@ -11,64 +11,8 @@ import RoleBadge from '../components/RoleBadge.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { findActiveMentionToken, hasEveryoneMention, insertMentionEveryoneToken, insertMentionToken, mentionHandle, mentionLabel, mentionedProfileIds } from '../utils/mentions.js'
+import { useMobileViewportPanelHeight } from '../utils/mobileViewport.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
-
-function useMobileChatPanelHeight(dependencyKey) {
-  const panelRef = useRef(null)
-  const [panelHeight, setPanelHeight] = useState(null)
-
-  const updatePanelHeight = useCallback(() => {
-    const panel = panelRef.current
-
-    if (!panel || !window.matchMedia('(max-width: 639px)').matches) {
-      setPanelHeight(null)
-      return
-    }
-
-    const visualViewport = window.visualViewport
-    const viewportHeight = visualViewport?.height ?? window.innerHeight
-    const panelTop = Math.max(0, panel.getBoundingClientRect().top)
-    const activeElement = document.activeElement
-    const composerFocused = Boolean(panel.contains(activeElement) && activeElement?.matches?.('input, textarea, [contenteditable="true"]'))
-    const navHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0
-    const bottomReserve = composerFocused ? 10 : navHeight + 14
-    const availableHeight = Math.floor(viewportHeight - panelTop - bottomReserve)
-
-    setPanelHeight(Math.max(220, availableHeight))
-  }, [])
-
-  useEffect(() => {
-    updatePanelHeight()
-
-    const delayedUpdate = window.setTimeout(updatePanelHeight, 80)
-    window.addEventListener('resize', updatePanelHeight)
-    window.addEventListener('scroll', updatePanelHeight, { passive: true })
-    window.addEventListener('focusin', updatePanelHeight)
-    window.addEventListener('focusout', updatePanelHeight)
-    window.visualViewport?.addEventListener('resize', updatePanelHeight)
-    window.visualViewport?.addEventListener('scroll', updatePanelHeight)
-
-    return () => {
-      window.clearTimeout(delayedUpdate)
-      window.removeEventListener('resize', updatePanelHeight)
-      window.removeEventListener('scroll', updatePanelHeight)
-      window.removeEventListener('focusin', updatePanelHeight)
-      window.removeEventListener('focusout', updatePanelHeight)
-      window.visualViewport?.removeEventListener('resize', updatePanelHeight)
-      window.visualViewport?.removeEventListener('scroll', updatePanelHeight)
-    }
-  }, [updatePanelHeight])
-
-  useEffect(() => {
-    updatePanelHeight()
-
-    const delayedUpdate = window.setTimeout(updatePanelHeight, 80)
-
-    return () => window.clearTimeout(delayedUpdate)
-  }, [dependencyKey, updatePanelHeight])
-
-  return [panelRef, panelHeight]
-}
 
 function isSameDay(firstValue, secondValue) {
   const first = new Date(firstValue)
@@ -241,7 +185,7 @@ function Chat() {
 
     return availableClanRooms[0]?.id || ''
   }, [availableClanRooms, canUseClanRoom, myClanId, selectedClanId])
-  const [chatPanelRef, chatPanelHeight] = useMobileChatPanelHeight(`${activeRoom}:${canUseClanRoom}:${resolvedSelectedClanId}:${selectedClanId}`)
+  const [chatPanelRef, chatPanelHeight] = useMobileViewportPanelHeight(`${activeRoom}:${canUseClanRoom}:${resolvedSelectedClanId}:${selectedClanId}`)
   const selectedClan = availableClanRooms.find((clan) => clan.id === resolvedSelectedClanId) ?? null
   const canSendClanRoomMessage = Boolean(resolvedSelectedClanId && myClanId === resolvedSelectedClanId)
   const clanMessages =

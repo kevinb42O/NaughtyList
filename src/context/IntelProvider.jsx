@@ -847,7 +847,7 @@ function IntelProvider({ children }) {
       setLastXpAward({
         awarded: true,
         xp_earned: data.xp_earned,
-        label: data.milestone_unlocked ? 'Daily Ops milestone' : 'Daily Ops claimed',
+        label: data.compensation_applied ? 'Daily Ops outage bonus' : data.milestone_unlocked ? 'Daily Ops milestone' : 'Daily Ops claimed',
         activity_key: 'daily_check_in',
         profile: data.profile,
       })
