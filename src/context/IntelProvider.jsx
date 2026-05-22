@@ -28,6 +28,10 @@ const messageBodyLimits = {
   clan: 1000,
 }
 const allowedChatMediaTypes = new Set(['image', 'gif'])
+const publicMessageSelect = 'id, user_id, body, media_url, media_type, reply_to_message_id, created_at'
+const publicMessageSelectLegacy = 'id, user_id, body, media_url, media_type, created_at'
+const directMessageSelect = 'id, sender_id, recipient_id, body, media_url, media_type, reply_to_message_id, read_at, created_at'
+const directMessageSelectLegacy = 'id, sender_id, recipient_id, body, media_url, media_type, read_at, created_at'
 
 function withTimeout(promise, ms, message) {
   return Promise.race([
@@ -76,6 +80,16 @@ function assertMessageHasContent(body, mediaUrl) {
   if (!body && !mediaUrl) {
     throw new Error('Write a message or attach media first.')
   }
+}
+
+function isMissingReplyColumnError(error) {
+  const message = `${error?.code ?? ''} ${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase()
+  return message.includes('reply_to_message_id') && (
+    message.includes('column') ||
+    message.includes('schema cache') ||
+    message.includes('could not find') ||
+    message.includes('does not exist')
+  )
 }
 
 function sortReactions(reactions = []) {
@@ -442,11 +456,22 @@ function IntelProvider({ children }) {
   const fetchPublicMessages = useCallback(async (nextProfiles = []) => {
     const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
 
-    const { data, error: messagesError } = await supabase
+    let { data, error: messagesError } = await supabase
       .from('public_chat_messages')
-      .select('id, user_id, body, media_url, media_type, reply_to_message_id, created_at')
+      .select(publicMessageSelect)
       .order('created_at', { ascending: false })
       .limit(messageHistoryLimits.public)
+
+    if (isMissingReplyColumnError(messagesError)) {
+      const legacyResult = await supabase
+        .from('public_chat_messages')
+        .select(publicMessageSelectLegacy)
+        .order('created_at', { ascending: false })
+        .limit(messageHistoryLimits.public)
+
+      data = legacyResult.data
+      messagesError = legacyResult.error
+    }
 
     if (messagesError) {
       throw messagesError
@@ -472,12 +497,24 @@ function IntelProvider({ children }) {
 
     const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
 
-    const { data, error: messagesError } = await supabase
+    let { data, error: messagesError } = await supabase
       .from('direct_messages')
-      .select('id, sender_id, recipient_id, body, media_url, media_type, reply_to_message_id, read_at, created_at')
+      .select(directMessageSelect)
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order('created_at', { ascending: false })
       .limit(messageHistoryLimits.direct)
+
+    if (isMissingReplyColumnError(messagesError)) {
+      const legacyResult = await supabase
+        .from('direct_messages')
+        .select(directMessageSelectLegacy)
+        .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
+        .limit(messageHistoryLimits.direct)
+
+      data = legacyResult.data
+      messagesError = legacyResult.error
+    }
 
     if (messagesError) {
       throw messagesError
@@ -1675,7 +1712,7 @@ function IntelProvider({ children }) {
       throw new Error('Reply target is no longer available.')
     }
 
-    const { data: sentMessage, error: messageError } = await supabase
+    let { data: sentMessage, error: messageError } = await supabase
       .from('public_chat_messages')
       .insert({
         user_id: user.id,
@@ -1684,8 +1721,24 @@ function IntelProvider({ children }) {
         media_type: mediaType,
         reply_to_message_id: resolvedReplyToMessageId,
       })
-      .select('id, user_id, body, media_url, media_type, reply_to_message_id, created_at')
+      .select(publicMessageSelect)
       .single()
+
+    if (isMissingReplyColumnError(messageError)) {
+      const legacyResult = await supabase
+        .from('public_chat_messages')
+        .insert({
+          user_id: user.id,
+          body: trimmedBody,
+          media_url: mediaUrl,
+          media_type: mediaType,
+        })
+        .select(publicMessageSelectLegacy)
+        .single()
+
+      sentMessage = legacyResult.data
+      messageError = legacyResult.error
+    }
 
     if (messageError) {
       throw messageError
@@ -1773,7 +1826,7 @@ function IntelProvider({ children }) {
       }
     }
 
-    const { data: sentMessage, error: messageError } = await supabase
+    let { data: sentMessage, error: messageError } = await supabase
       .from('direct_messages')
       .insert({
         sender_id: user.id,
@@ -1783,8 +1836,25 @@ function IntelProvider({ children }) {
         media_type: mediaType,
         reply_to_message_id: resolvedReplyToMessageId,
       })
-      .select('id, sender_id, recipient_id, body, media_url, media_type, reply_to_message_id, read_at, created_at')
+      .select(directMessageSelect)
       .single()
+
+    if (isMissingReplyColumnError(messageError)) {
+      const legacyResult = await supabase
+        .from('direct_messages')
+        .insert({
+          sender_id: user.id,
+          recipient_id: recipientId,
+          body: trimmedBody,
+          media_url: mediaUrl,
+          media_type: mediaType,
+        })
+        .select(directMessageSelectLegacy)
+        .single()
+
+      sentMessage = legacyResult.data
+      messageError = legacyResult.error
+    }
 
     if (messageError) {
       throw messageError
