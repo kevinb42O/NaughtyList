@@ -77,6 +77,12 @@ const routeSeo = {
       'Learn how to install 21rats on iPhone and Android, enable phone notifications, use clans, chat, direct messages, profiles, and Building 21 intel tools.',
     keywords: ['21rats help', 'install 21rats', '21rats notifications', 'DMZ clan help', 'Building 21 FAQ'],
   },
+  '/updates': {
+    title: 'Update Log | 21rats',
+    description:
+      'Read the complete 21rats build history from day one through the latest chat, clan, profile, support, moderation, media, and mobile updates.',
+    keywords: ['21rats update log', '21rats changelog', '21rats release notes', 'Building 21 app updates'],
+  },
   '/auth': {
     title: 'Login | 21rats',
     description: 'Log in to submit 21rats intel, manage your profile, and coordinate with DMZ clans.',

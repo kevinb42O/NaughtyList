@@ -15,6 +15,7 @@ import Profile from './views/Profile.jsx'
 import PublicProfile from './views/PublicProfile.jsx'
 import Profiles from './views/Profiles.jsx'
 import Support from './views/Support.jsx'
+import Updates from './views/Updates.jsx'
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/messages" element={<Messages />} />
             <Route path="/support" element={<Support />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/updates" element={<Updates />} />
             <Route path="/faq" element={<Navigate to="/help" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/moderator" element={<Moderator />} />

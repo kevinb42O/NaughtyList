@@ -5,6 +5,7 @@ import {
   Crosshair,
   Download,
   ExternalLink,
+  History,
   Home,
   Lock,
   MessageSquare,
@@ -403,7 +404,16 @@ function Help() {
   return (
     <div>
       <PageHeader eyebrow="Help Desk" title="Field Manual">
-        Visual setup guide, phone install steps, notifications, clans, comms, profiles, and the quick answers users usually ask first.
+        <span>
+          Visual setup guide, phone install steps, notifications, clans, comms, profiles, and the quick answers users usually ask first.
+        </span>
+        <Link
+          to="/updates"
+          className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 text-[0.6rem] font-black uppercase tracking-[0.16em] text-gray-500 transition hover:border-red-400/35 hover:text-red-100"
+        >
+          <History className="h-3.5 w-3.5" aria-hidden="true" />
+          Update Log
+        </Link>
       </PageHeader>
 
       <nav className="mb-5 grid grid-cols-2 gap-2 rounded-[1.4rem] border border-white/10 bg-black/25 p-2 sm:grid-cols-5" aria-label="Help sections">
