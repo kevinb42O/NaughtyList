@@ -1,5 +1,5 @@
 import { LoaderCircle, Plus, Send, Sticker, X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { allowedImageTypes, uploadChatImage } from '../utils/media.js'
 import GifPickerModal from './GifPickerModal.jsx'
@@ -38,12 +38,23 @@ function MediaComposer({
   disabled = false,
   sending = false,
   accessory = null,
+  onTyping,
 }) {
   const fileInputRef = useRef(null)
+  const formRef = useRef(null)
+  const textAreaRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const canSend = !disabled && !sending && !uploading && Boolean(value.trim() || pendingMedia?.mediaUrl)
+
+  useEffect(() => {
+    const textArea = textAreaRef.current
+    if (!textArea) return
+
+    textArea.style.height = '0px'
+    textArea.style.height = `${Math.min(textArea.scrollHeight, 128)}px`
+  }, [value])
 
   async function handleFileChange(event) {
     const file = event.target.files?.[0]
@@ -68,7 +79,7 @@ function MediaComposer({
 
   return (
     <>
-      <form onSubmit={onSubmit} className="border-t border-white/10 bg-black/40 p-2.5 sm:p-3">
+      <form ref={formRef} onSubmit={onSubmit} className="border-t border-white/10 bg-black/40 p-2.5 sm:p-3">
         <MediaPreview pendingMedia={pendingMedia} onClear={() => onPendingMediaChange(null)} />
         {uploading ? (
           <div className="mb-2 overflow-hidden rounded-full bg-white/10">
@@ -99,15 +110,32 @@ function MediaComposer({
             <Sticker className="h-4 w-4" aria-hidden="true" />
           </button>
           <div className="flex min-w-0 flex-1 items-center rounded-full bg-white/[0.06] px-3">
-            <input
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            className="min-h-9 min-w-0 flex-1 border-0 bg-transparent text-[0.95rem] text-gray-100 outline-none placeholder:text-gray-500"
-            placeholder={placeholder}
-            maxLength={maxLength}
-            disabled={disabled}
-            autoComplete="off"
-          />
+            <textarea
+              ref={textAreaRef}
+              value={value}
+              onChange={(event) => {
+                onChange(event.target.value)
+                if (event.target.value.trim()) {
+                  onTyping?.()
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
+                  return
+                }
+
+                event.preventDefault()
+                if (canSend) {
+                  formRef.current?.requestSubmit()
+                }
+              }}
+              className="max-h-32 min-h-9 min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent py-1.5 text-[0.95rem] leading-6 text-gray-100 outline-none placeholder:text-gray-500"
+              placeholder={placeholder}
+              maxLength={maxLength}
+              disabled={disabled}
+              autoComplete="off"
+              rows={1}
+            />
           </div>
           <button
             type="submit"

@@ -1,15 +1,18 @@
-import { Crown, Eye, MessageSquare, Shield } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Crown, Eye, MessageSquare, Reply, Shield } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
 import MediaComposer from '../components/MediaComposer.jsx'
 import MessageMedia from '../components/MessageMedia.jsx'
+import MessageReplyPreview from '../components/MessageReplyPreview.jsx'
 import MessageReactions from '../components/MessageReactions.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
+import { useChatAutoScroll } from '../utils/chatScroll.js'
+import { useRealtimeTyping } from '../utils/chatTyping.js'
 import { findActiveMentionToken, hasEveryoneMention, insertMentionEveryoneToken, insertMentionToken, mentionHandle, mentionLabel, mentionedProfileIds } from '../utils/mentions.js'
 import { useMobileViewportPanelHeight } from '../utils/mobileViewport.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
@@ -125,6 +128,7 @@ function Chat() {
   const [searchParams] = useSearchParams()
   const {
     user,
+    profile,
     isAdmin,
     isModerator,
     isAuthenticated,
@@ -149,8 +153,7 @@ function Chat() {
   const [selectedClanId, setSelectedClanId] = useState(searchParams.get('clan') || '')
   const [clanMessageState, setClanMessageState] = useState({ clanId: '', messages: [] })
   const [clanLoading, setClanLoading] = useState(false)
-  const scrollRef = useRef(null)
-  const stickToBottomRef = useRef(true)
+  const [replyToMessage, setReplyToMessage] = useState(null)
   const myClanId = myClan?.id ?? ''
 
   const availableClanRooms = useMemo(() => {
@@ -197,6 +200,16 @@ function Chat() {
   const activeRoomKey = activeRoom === 'clan' ? `clan:${resolvedSelectedClanId}` : 'public'
   const lastActiveMessageId = activeMessages[activeMessages.length - 1]?.id ?? ''
   const activeMessagesLength = activeMessages.length
+  const {
+    forceStickToBottom,
+    handleScroll,
+    scrollRef,
+    scrollToLatestMessage,
+  } = useChatAutoScroll({
+    bottomKey: `${activeMessagesLength}:${lastActiveMessageId}`,
+    panelHeight: chatPanelHeight,
+    resetKey: activeRoomKey,
+  })
   const activeMentionToken = useMemo(() => {
     if (activeRoom !== 'public' || publicChatMuted) {
       return null
@@ -224,44 +237,27 @@ function Chat() {
     isModerator &&
     'all'.startsWith(activeMentionToken.query.toLowerCase()),
   )
-
-  const scrollToLatestMessage = useCallback(() => {
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const scrollElement = scrollRef.current
-        if (scrollElement) {
-          scrollElement.scrollTop = scrollElement.scrollHeight
-        }
-      })
-    })
-  }, [])
-
-  const handleScroll = useCallback(() => {
-    const scrollElement = scrollRef.current
-    if (!scrollElement) return
-    const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight
-    stickToBottomRef.current = distanceFromBottom < 80
-  }, [])
-
-  // Snap to bottom when entering or switching rooms
-  useEffect(() => {
-    stickToBottomRef.current = true
-    scrollToLatestMessage()
-  }, [activeRoomKey, scrollToLatestMessage])
-
-  // Auto-scroll on new messages only if user is near the bottom
-  useEffect(() => {
-    if (!lastActiveMessageId) return
-    if (stickToBottomRef.current) {
-      scrollToLatestMessage()
+  const { sendTyping, typingUsers } = useRealtimeTyping({
+    enabled: activeRoom === 'public' && isAuthenticated && !publicChatMuted,
+    profile,
+    roomKey: 'public',
+    user,
+  })
+  const typingLabel = useMemo(() => {
+    if (activeRoom !== 'public' || !typingUsers.length) {
+      return ''
     }
-  }, [activeMessagesLength, lastActiveMessageId, scrollToLatestMessage])
 
-  useEffect(() => {
-    if (stickToBottomRef.current) {
-      scrollToLatestMessage()
+    const names = typingUsers.slice(0, 2).map((typingUser) => typingUser.displayName)
+    return typingUsers.length > 2 ? `${names.join(', ')} and ${typingUsers.length - 2} more typing...` : `${names.join(', ')} typing...`
+  }, [activeRoom, typingUsers])
+  const activeReplyToMessage = useMemo(() => {
+    if (!replyToMessage || replyToMessage.roomKey !== activeRoomKey || activeRoom !== 'public') {
+      return null
     }
-  }, [chatPanelHeight, scrollToLatestMessage])
+
+    return activeMessages.some((chatMessage) => chatMessage.id === replyToMessage.message.id) ? replyToMessage.message : null
+  }, [activeMessages, activeRoom, activeRoomKey, replyToMessage])
 
   useEffect(() => {
     if (activeRoom === 'public') {
@@ -313,6 +309,7 @@ function Chat() {
 
   function handleRoomChange(nextRoom) {
     setActiveRoom(nextRoom)
+    setReplyToMessage(null)
     setError('')
   }
 
@@ -326,6 +323,7 @@ function Chat() {
 
     const nextMessage = message.trim()
     const nextMedia = pendingMedia
+    const nextReplyToMessage = activeRoom === 'public' ? activeReplyToMessage : null
 
     if (sending || (!nextMessage && !nextMedia?.mediaUrl)) {
       return
@@ -335,7 +333,8 @@ function Chat() {
     setError('')
     setMessage('')
     setPendingMedia(null)
-    stickToBottomRef.current = true
+    setReplyToMessage(null)
+    forceStickToBottom()
 
     try {
       if (activeRoom === 'clan') {
@@ -362,12 +361,13 @@ function Chat() {
           throw new Error('Only moderators and admins can tag @all.')
         }
 
-        await sendPublicMessage(nextMessage, nextMedia, mentionedProfileIds(nextMessage, profiles), mentionEveryone)
+        await sendPublicMessage(nextMessage, nextMedia, mentionedProfileIds(nextMessage, profiles), mentionEveryone, nextReplyToMessage?.id ?? '')
         scrollToLatestMessage()
       }
     } catch (chatError) {
       setMessage(nextMessage)
       setPendingMedia(nextMedia)
+      setReplyToMessage(nextReplyToMessage ? { roomKey: activeRoomKey, message: nextReplyToMessage } : null)
       setError(chatError.message)
     } finally {
       setSending(false)
@@ -451,6 +451,19 @@ function Chat() {
       </div>
     </div>
   ) : null
+  const composerAccessory = (
+    <>
+      {activeRoom === 'public' && activeReplyToMessage ? (
+        <MessageReplyPreview
+          currentUserId={user?.id}
+          message={activeReplyToMessage}
+          onCancel={() => setReplyToMessage(null)}
+          tone="composer"
+        />
+      ) : null}
+      {mentionAccessory}
+    </>
+  )
 
   if (!isAuthenticated) {
     return (
@@ -640,8 +653,11 @@ function Chat() {
                           ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
                           : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
                       }`}>
+                      {chatMessage.replyToMessage ? (
+                        <MessageReplyPreview currentUserId={user?.id} message={chatMessage.replyToMessage} />
+                      ) : null}
                       {!wasDeleted ? <MessageMedia mediaUrl={chatMessage.media_url} mediaType={chatMessage.media_type} /> : null}
-                      <p className={`whitespace-pre-wrap ${wasDeleted ? 'italic text-gray-400' : ''}`}>
+                      <p className={`whitespace-pre-wrap break-words ${wasDeleted ? 'italic text-gray-400' : ''}`}>
                         {wasDeleted ? 'Message removed.' : chatMessage.body}
                       </p>
                       <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
@@ -655,6 +671,17 @@ function Chat() {
                           onReact={handleReaction}
                         />
                       ) : null}
+                      {!wasDeleted && activeRoom === 'public' ? (
+                        <button
+                          type="button"
+                          onClick={() => setReplyToMessage({ roomKey: activeRoomKey, message: chatMessage })}
+                          className="absolute -top-3 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/40 transition hover:border-red-400/45 hover:bg-red-500/10 hover:text-gray-100"
+                          aria-label="Reply to message"
+                          title="Reply"
+                        >
+                          <Reply className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      ) : null}
                       </div>
                     </div>
                     {mine ? <ProfileInitial profile={chatMessage.profile} mine={mine} online={online} /> : null}
@@ -667,6 +694,9 @@ function Chat() {
               {activeRoom === 'clan' ? 'No clan messages yet.' : 'No chat yet. Ask who is playing.'}
             </div>
           )}
+          {typingLabel ? (
+            <div className="px-2 pb-1 pt-0 text-xs font-bold text-red-200/75">{typingLabel}</div>
+          ) : null}
         </div>
 
         <MediaComposer
@@ -688,7 +718,8 @@ function Chat() {
           maxLength={activeRoom === 'clan' ? 1000 : 500}
           disabled={(activeRoom === 'clan' && !canSendClanRoomMessage) || publicChatMuted}
           sending={sending}
-          accessory={mentionAccessory}
+          accessory={composerAccessory}
+          onTyping={activeRoom === 'public' ? sendTyping : undefined}
         />
         {publicChatMuted ? (
           <p className="px-4 pb-3 text-sm font-bold text-orange-200">

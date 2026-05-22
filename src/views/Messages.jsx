@@ -1,14 +1,17 @@
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Reply } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MediaComposer from '../components/MediaComposer.jsx'
 import MessageMedia from '../components/MessageMedia.jsx'
+import MessageReplyPreview from '../components/MessageReplyPreview.jsx'
 import MessageReactions from '../components/MessageReactions.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
+import { useChatAutoScroll } from '../utils/chatScroll.js'
+import { useRealtimeTyping } from '../utils/chatTyping.js'
 import { useMobileViewportPanelHeight } from '../utils/mobileViewport.js'
 import { mediaPreviewLabel } from '../utils/media.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
@@ -53,33 +56,52 @@ function ProfileInitial({ profile, online }) {
   return <ProfileAvatar profile={profile} online={online} showOnline size="sm" />
 }
 
-const DirectMessageBubble = memo(function DirectMessageBubble({ directMessage, mine, online, onReact, ownProfile, selectedProfile, userId }) {
+const DirectMessageBubble = memo(function DirectMessageBubble({ directMessage, mine, onReact, onReply, online, ownProfile, receiptLabel, selectedProfile, userId }) {
   return (
-    <article className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
-      {!mine ? <ProfileInitial profile={selectedProfile} online={online} /> : null}
-      <div className="max-w-[86%] sm:max-w-[72%]">
-        <div
-          className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
-            mine
-              ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
-              : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
-          }`}
-        >
-          <MessageMedia mediaUrl={directMessage.media_url} mediaType={directMessage.media_type} />
-          <p className="whitespace-pre-wrap">{directMessage.body}</p>
-          <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
-            {formatMessageTime(directMessage.created_at)}
-          </span>
-          <MessageReactions
-            align={mine ? 'right' : 'left'}
-            currentUserId={userId}
-            message={directMessage}
-            onReact={onReact}
-          />
+    <>
+      <article className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+        {!mine ? <ProfileInitial profile={selectedProfile} online={online} /> : null}
+        <div className="max-w-[86%] sm:max-w-[72%]">
+          <div
+            className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
+              mine
+                ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
+                : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
+            }`}
+          >
+            {directMessage.replyToMessage ? (
+              <MessageReplyPreview currentUserId={userId} message={directMessage.replyToMessage} />
+            ) : null}
+            <MessageMedia mediaUrl={directMessage.media_url} mediaType={directMessage.media_type} />
+            <p className="whitespace-pre-wrap break-words">{directMessage.body}</p>
+            <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
+              {formatMessageTime(directMessage.created_at)}
+            </span>
+            <MessageReactions
+              align={mine ? 'right' : 'left'}
+              currentUserId={userId}
+              message={directMessage}
+              onReact={onReact}
+            />
+            <button
+              type="button"
+              onClick={() => onReply(directMessage)}
+              className="absolute -top-3 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/40 transition hover:border-red-400/45 hover:bg-red-500/10 hover:text-gray-100"
+              aria-label="Reply to message"
+              title="Reply"
+            >
+              <Reply className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
-      </div>
-      {mine ? <ProfileInitial profile={ownProfile} online /> : null}
-    </article>
+        {mine ? <ProfileInitial profile={ownProfile} online /> : null}
+      </article>
+      {receiptLabel ? (
+        <p className="pr-12 pt-1 text-right text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-500">
+          {receiptLabel}
+        </p>
+      ) : null}
+    </>
   )
 })
 
@@ -99,11 +121,10 @@ function Messages() {
   const selectedId = searchParams.get('to')
   const [message, setMessage] = useState('')
   const [pendingMedia, setPendingMedia] = useState(null)
+  const [replyToMessage, setReplyToMessage] = useState(null)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   const sendingRef = useRef(false)
-  const scrollRef = useRef(null)
-  const stickToBottomRef = useRef(true)
   const markedReadIdsRef = useRef(new Set())
   const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
   const setMessageReactionRef = useRef(setMessageReaction)
@@ -116,24 +137,6 @@ function Messages() {
   useEffect(() => {
     setMessageReactionRef.current = setMessageReaction
   }, [setMessageReaction])
-
-  const scrollToLatestMessage = useCallback(() => {
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const scrollElement = scrollRef.current
-        if (scrollElement) {
-          scrollElement.scrollTop = scrollElement.scrollHeight
-        }
-      })
-    })
-  }, [])
-
-  const handleScroll = useCallback(() => {
-    const scrollElement = scrollRef.current
-    if (!scrollElement) return
-    const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight
-    stickToBottomRef.current = distanceFromBottom < 80
-  }, [])
 
   const unreadCountsBySender = useMemo(() => {
     return directMessages.reduce((counts, directMessage) => {
@@ -222,26 +225,52 @@ function Messages() {
   const unreadThreadMessageIdsKey = unreadThreadMessageIds.join('|')
   const threadLength = thread.length
   const lastMessageId = thread[thread.length - 1]?.id ?? ''
+  const latestOwnMessageId = useMemo(() => {
+    return [...thread].reverse().find((directMessage) => directMessage.sender_id === userId)?.id ?? ''
+  }, [thread, userId])
+  const typingRoomKey = useMemo(() => {
+    if (!userId || !selectedProfileId) {
+      return ''
+    }
 
-  // Reset stickiness and snap to bottom when entering a thread
-  useEffect(() => {
-    if (!selectedProfileId) return
-    stickToBottomRef.current = true
-    scrollToLatestMessage()
-  }, [scrollToLatestMessage, selectedProfileId])
+    return `direct:${[userId, selectedProfileId].sort().join(':')}`
+  }, [selectedProfileId, userId])
+  const { sendTyping, typingUsers } = useRealtimeTyping({
+    enabled: Boolean(hasSelectedThread && typingRoomKey),
+    profile,
+    roomKey: typingRoomKey,
+    user,
+  })
+  const typingLabel = useMemo(() => {
+    if (!typingUsers.length) {
+      return ''
+    }
+
+    return `${typingUsers[0].displayName} typing...`
+  }, [typingUsers])
+  const activeReplyToMessage = useMemo(() => {
+    if (!replyToMessage || replyToMessage.threadId !== selectedProfileId) {
+      return null
+    }
+
+    return thread.some((directMessage) => directMessage.id === replyToMessage.message.id) ? replyToMessage.message : null
+  }, [replyToMessage, selectedProfileId, thread])
+  const {
+    forceStickToBottom,
+    handleScroll,
+    scrollRef,
+    scrollToLatestMessage,
+  } = useChatAutoScroll({
+    bottomKey: `${threadLength}:${lastMessageId}`,
+    panelHeight: threadPanelHeight,
+    resetKey: selectedProfileId,
+    enabled: Boolean(selectedProfileId),
+  })
 
   useEffect(() => {
     if (!hasSelectedThread || !window.matchMedia('(max-width: 1023px)').matches) return
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [hasSelectedThread, selectedProfileId])
-
-  // Auto-scroll on new messages only if user was already near the bottom
-  useEffect(() => {
-    if (!lastMessageId) return
-    if (stickToBottomRef.current) {
-      scrollToLatestMessage()
-    }
-  }, [lastMessageId, scrollToLatestMessage, threadLength])
 
   useEffect(() => {
     if (!selectedProfileId || !userId || !unreadThreadMessageIds.length) {
@@ -277,6 +306,7 @@ function Messages() {
 
     const nextMessage = message.trim()
     const nextMedia = pendingMedia
+    const nextReplyToMessage = activeReplyToMessage
 
     if (sendingRef.current || !selectedProfile || (!nextMessage && !nextMedia?.mediaUrl)) {
       return
@@ -287,14 +317,16 @@ function Messages() {
     setError('')
     setMessage('')
     setPendingMedia(null)
-    stickToBottomRef.current = true
+    setReplyToMessage(null)
+    forceStickToBottom()
 
     try {
-      await sendDirectMessage(selectedProfile.id, nextMessage, nextMedia)
+      await sendDirectMessage(selectedProfile.id, nextMessage, nextMedia, nextReplyToMessage?.id ?? '')
       scrollToLatestMessage()
     } catch (messageError) {
       setMessage(nextMessage)
       setPendingMedia(nextMedia)
+      setReplyToMessage(nextReplyToMessage ? { threadId: selectedProfileId, message: nextReplyToMessage } : null)
       setError(messageError.message)
     } finally {
       sendingRef.current = false
@@ -317,6 +349,15 @@ function Messages() {
       </div>
     )
   }
+
+  const composerAccessory = activeReplyToMessage ? (
+    <MessageReplyPreview
+      currentUserId={user?.id}
+      message={activeReplyToMessage}
+      onCancel={() => setReplyToMessage(null)}
+      tone="composer"
+    />
+  ) : null
 
   return (
     <div>
@@ -436,7 +477,9 @@ function Messages() {
                           mine={mine}
                           online={isProfileOnline(selectedProfile, onlineUserIds)}
                           onReact={handleReaction}
+                          onReply={(directMessage) => setReplyToMessage({ threadId: selectedProfileId, message: directMessage })}
                           ownProfile={profile}
+                          receiptLabel={mine && directMessage.id === latestOwnMessageId ? (directMessage.read_at ? `Read ${formatMessageTime(directMessage.read_at)}` : 'Delivered') : ''}
                           selectedProfile={selectedProfile}
                           userId={user?.id}
                         />
@@ -448,6 +491,9 @@ function Messages() {
                     No messages yet.
                   </p>
                 )}
+                {typingLabel ? (
+                  <div className="px-2 pb-1 pt-0 text-xs font-bold text-red-200/75">{typingLabel}</div>
+                ) : null}
               </div>
 
               <MediaComposer
@@ -460,6 +506,8 @@ function Messages() {
                 placeholder={`Message ${displayProfileName(selectedProfile)}`}
                 maxLength={1000}
                 sending={sending}
+                accessory={composerAccessory}
+                onTyping={sendTyping}
               />
               {error ? <p className="px-4 pb-3 text-sm font-bold text-red-200">{error}</p> : null}
             </div>

@@ -17,6 +17,17 @@ const messageReactionTables = {
 }
 const messageReactionKeys = ['middle_finger', 'heart', 'rofl', 'sad_tear', 'xd']
 const publicChatReadStoragePrefix = '21rats:lastPublicChatRead:'
+const messageHistoryLimits = {
+  public: 100,
+  direct: 300,
+  clan: 200,
+}
+const messageBodyLimits = {
+  public: 500,
+  direct: 1000,
+  clan: 1000,
+}
+const allowedChatMediaTypes = new Set(['image', 'gif'])
 
 function withTimeout(promise, ms, message) {
   return Promise.race([
@@ -33,6 +44,38 @@ function profileDisplayName(user) {
 
 function sortMessagesByCreatedAt(messages) {
   return [...messages].sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
+}
+
+function normalizeMessageBody(body, maxLength) {
+  const trimmedBody = String(body ?? '').trim()
+
+  if (trimmedBody.length > maxLength) {
+    throw new Error(`Messages must be ${maxLength} characters or fewer.`)
+  }
+
+  return trimmedBody
+}
+
+function normalizeChatMedia(media) {
+  if (!media?.mediaUrl) {
+    return { mediaUrl: null, mediaType: null }
+  }
+
+  const mediaType = media.mediaType || ''
+  if (!allowedChatMediaTypes.has(mediaType)) {
+    throw new Error('Unsupported chat attachment.')
+  }
+
+  return {
+    mediaUrl: String(media.mediaUrl),
+    mediaType,
+  }
+}
+
+function assertMessageHasContent(body, mediaUrl) {
+  if (!body && !mediaUrl) {
+    throw new Error('Write a message or attach media first.')
+  }
 }
 
 function sortReactions(reactions = []) {
@@ -72,6 +115,7 @@ function messageRecordMatches(currentMessage, nextMessage) {
     currentMessage?.sender_id === nextMessage?.sender_id &&
     currentMessage?.recipient_id === nextMessage?.recipient_id &&
     currentMessage?.clan_id === nextMessage?.clan_id &&
+    currentMessage?.reply_to_message_id === nextMessage?.reply_to_message_id &&
     currentMessage?.body === nextMessage?.body &&
     currentMessage?.media_url === nextMessage?.media_url &&
     currentMessage?.media_type === nextMessage?.media_type &&
@@ -186,6 +230,15 @@ function upsertMessageRecord(currentMessages, nextMessage, limit) {
   }
 
   return sortMessagesByCreatedAt(nextMessages).slice(typeof limit === 'number' ? -limit : 0)
+}
+
+function attachReplyMessages(messages) {
+  const messageById = new Map(messages.map((message) => [message.id, message]))
+
+  return messages.map((message) => ({
+    ...message,
+    replyToMessage: message.reply_to_message_id ? messageById.get(message.reply_to_message_id) ?? null : null,
+  }))
 }
 
 function IntelProvider({ children }) {
@@ -391,24 +444,24 @@ function IntelProvider({ children }) {
 
     const { data, error: messagesError } = await supabase
       .from('public_chat_messages')
-      .select('id, user_id, body, media_url, media_type, created_at')
+      .select('id, user_id, body, media_url, media_type, reply_to_message_id, created_at')
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(messageHistoryLimits.public)
 
     if (messagesError) {
       throw messagesError
     }
 
-    const messages = (data ?? [])
+    const messages = attachReplyMessages((data ?? [])
       .map((message) => ({
         ...message,
         profile: profileById.get(message.user_id),
       }))
-      .reverse()
+      .reverse())
     const reactionMap = await fetchMessageReactionMap('public', messages.map((message) => message.id))
 
     const nextMessages = messages.map((message) => withMessageReaction(message, reactionMap))
-    setPublicMessages((currentMessages) => mergeMessageRecords(currentMessages, nextMessages, 100))
+    setPublicMessages((currentMessages) => mergeMessageRecords(currentMessages, nextMessages, messageHistoryLimits.public))
   }, [fetchMessageReactionMap])
 
   const fetchDirectMessages = useCallback(async (userId, nextProfiles = []) => {
@@ -421,24 +474,26 @@ function IntelProvider({ children }) {
 
     const { data, error: messagesError } = await supabase
       .from('direct_messages')
-      .select('id, sender_id, recipient_id, body, media_url, media_type, read_at, created_at')
+      .select('id, sender_id, recipient_id, body, media_url, media_type, reply_to_message_id, read_at, created_at')
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-      .order('created_at', { ascending: true })
-      .limit(300)
+      .order('created_at', { ascending: false })
+      .limit(messageHistoryLimits.direct)
 
     if (messagesError) {
       throw messagesError
     }
 
-    const messages = (data ?? []).map((message) => ({
-      ...message,
-      sender: profileById.get(message.sender_id),
-      recipient: profileById.get(message.recipient_id),
-    }))
+    const messages = attachReplyMessages([...(data ?? [])]
+      .reverse()
+      .map((message) => ({
+        ...message,
+        sender: profileById.get(message.sender_id),
+        recipient: profileById.get(message.recipient_id),
+      })))
     const reactionMap = await fetchMessageReactionMap('direct', messages.map((message) => message.id))
 
     const nextMessages = messages.map((message) => withMessageReaction(message, reactionMap))
-    setDirectMessages((currentMessages) => mergeMessageRecords(currentMessages, nextMessages, 300))
+    setDirectMessages((currentMessages) => mergeMessageRecords(currentMessages, nextMessages, messageHistoryLimits.direct))
   }, [fetchMessageReactionMap])
 
   const fetchPublicChatMutes = useCallback(async (nextProfiles = profilesRef.current) => {
@@ -689,18 +744,20 @@ function IntelProvider({ children }) {
       .from('clan_messages')
       .select('id, clan_id, user_id, body, media_url, media_type, created_at, deleted_at, deleted_by')
       .eq('clan_id', clanId)
-      .order('created_at', { ascending: true })
-      .limit(200)
+      .order('created_at', { ascending: false })
+      .limit(messageHistoryLimits.clan)
 
     if (clanMessagesError) {
       throw clanMessagesError
     }
 
-    const messages = (data ?? []).map((message) => ({
-      ...message,
-      profile: profileById.get(message.user_id),
-      deletedByProfile: profileById.get(message.deleted_by),
-    }))
+    const messages = [...(data ?? [])]
+      .reverse()
+      .map((message) => ({
+        ...message,
+        profile: profileById.get(message.user_id),
+        deletedByProfile: profileById.get(message.deleted_by),
+      }))
     const reactionMap = await fetchMessageReactionMap('clan', messages.map((message) => message.id))
 
     return messages.map((message) => withMessageReaction(message, reactionMap))
@@ -730,6 +787,32 @@ function IntelProvider({ children }) {
       targetProfile: profileById.get(event.target_user_id),
     }))
   }, [user?.id])
+
+  const refreshMessageReactions = useCallback(async (scope, messageId) => {
+    if (!messageId) {
+      return
+    }
+
+    const reactionMap = await fetchMessageReactionMap(scope, [messageId])
+    const nextReactions = reactionMap.get(messageId) ?? []
+
+    if (scope === 'public') {
+      setPublicMessages((currentMessages) => (
+        currentMessages.some((message) => message.id === messageId)
+          ? currentMessages.map((message) => (message.id === messageId ? { ...message, reactions: nextReactions } : message))
+          : currentMessages
+      ))
+      return
+    }
+
+    if (scope === 'direct') {
+      setDirectMessages((currentMessages) => (
+        currentMessages.some((message) => message.id === messageId)
+          ? currentMessages.map((message) => (message.id === messageId ? { ...message, reactions: nextReactions } : message))
+          : currentMessages
+      ))
+    }
+  }, [fetchMessageReactionMap])
 
   const fetchPlayers = useCallback(async (nextProfiles = profilesRef.current) => {
     const profileById = new Map(nextProfiles.map((nextProfile) => [nextProfile.id, nextProfile]))
@@ -923,11 +1006,17 @@ function IntelProvider({ children }) {
             {
               ...nextMessage,
               profile: profileById.get(nextMessage.user_id),
+              replyToMessage: nextMessage.reply_to_message_id
+                ? currentMessages.find((message) => message.id === nextMessage.reply_to_message_id) ?? null
+                : null,
               reactions: currentMessages.find((message) => message.id === nextMessage.id)?.reactions ?? [],
             },
-            100,
+            messageHistoryLimits.public,
           ),
         )
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'public_chat_message_reactions' }, (payload) => {
+        refreshMessageReactions('public', payload.new?.message_id ?? payload.old?.message_id).catch((reactionError) => setError(reactionError.message))
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, (payload) => {
         if (!user?.id) {
@@ -954,11 +1043,17 @@ function IntelProvider({ children }) {
               ...nextMessage,
               sender: profileById.get(nextMessage.sender_id),
               recipient: profileById.get(nextMessage.recipient_id),
+              replyToMessage: nextMessage.reply_to_message_id
+                ? currentMessages.find((message) => message.id === nextMessage.reply_to_message_id) ?? null
+                : null,
               reactions: currentMessages.find((message) => message.id === nextMessage.id)?.reactions ?? [],
             },
-            300,
+            messageHistoryLimits.direct,
           ),
         )
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_message_reactions' }, (payload) => {
+        refreshMessageReactions('direct', payload.new?.message_id ?? payload.old?.message_id).catch((reactionError) => setError(reactionError.message))
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
         fetchPlayers().catch((playersError) => setError(playersError.message))
@@ -994,7 +1089,7 @@ function IntelProvider({ children }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchModerationEvents, fetchPlayers, fetchProfiles, fetchPublicChatMutes, refreshClanState, user?.id])
+  }, [fetchModerationEvents, fetchPlayers, fetchProfiles, fetchPublicChatMutes, refreshClanState, refreshMessageReactions, user?.id])
 
   useEffect(() => {
     if (!user?.id) {
@@ -1425,9 +1520,9 @@ function IntelProvider({ children }) {
       throw new Error('You must be logged in to send clan chat.')
     }
 
-    const trimmedBody = body.trim()
-    const mediaUrl = media?.mediaUrl || null
-    const mediaType = media?.mediaType || null
+    const trimmedBody = normalizeMessageBody(body, messageBodyLimits.clan)
+    const { mediaUrl, mediaType } = normalizeChatMedia(media)
+    assertMessageHasContent(trimmedBody, mediaUrl)
 
     const { data: sentMessage, error: clanMessageError } = await supabase
       .from('clan_messages')
@@ -1558,7 +1653,7 @@ function IntelProvider({ children }) {
     setLastReadPublicChatMessageId(latestMessageId)
   }, [publicMessages, user?.id])
 
-  async function sendPublicMessage(body, media = null, mentionedUserIds = [], mentionEveryone = false) {
+  async function sendPublicMessage(body, media = null, mentionedUserIds = [], mentionEveryone = false, replyToMessageId = '') {
     if (!user) {
       throw new Error('You must be logged in to chat.')
     }
@@ -1571,9 +1666,14 @@ function IntelProvider({ children }) {
       throw new Error(`Public chat muted until ${new Date(activePublicChatMute.ends_at).toLocaleString()}.`)
     }
 
-    const trimmedBody = body.trim()
-    const mediaUrl = media?.mediaUrl || null
-    const mediaType = media?.mediaType || null
+    const trimmedBody = normalizeMessageBody(body, messageBodyLimits.public)
+    const { mediaUrl, mediaType } = normalizeChatMedia(media)
+    assertMessageHasContent(trimmedBody, mediaUrl)
+    const resolvedReplyToMessageId = replyToMessageId || null
+
+    if (resolvedReplyToMessageId && !publicMessages.some((chatMessage) => chatMessage.id === resolvedReplyToMessageId)) {
+      throw new Error('Reply target is no longer available.')
+    }
 
     const { data: sentMessage, error: messageError } = await supabase
       .from('public_chat_messages')
@@ -1582,8 +1682,9 @@ function IntelProvider({ children }) {
         body: trimmedBody,
         media_url: mediaUrl,
         media_type: mediaType,
+        reply_to_message_id: resolvedReplyToMessageId,
       })
-      .select('id, user_id, body, media_url, media_type, created_at')
+      .select('id, user_id, body, media_url, media_type, reply_to_message_id, created_at')
       .single()
 
     if (messageError) {
@@ -1597,9 +1698,12 @@ function IntelProvider({ children }) {
         {
           ...sentMessage,
           profile: profileById.get(sentMessage.user_id),
+          replyToMessage: resolvedReplyToMessageId
+            ? currentMessages.find((chatMessage) => chatMessage.id === resolvedReplyToMessageId) ?? null
+            : null,
           reactions: [],
         },
-        100,
+        messageHistoryLimits.public,
       ),
     )
     const mentionRecipientIds = Array.from(new Set(mentionedUserIds)).filter((recipientId) => recipientId && recipientId !== user.id)
@@ -1639,14 +1743,35 @@ function IntelProvider({ children }) {
     await awardActivityXp('public_message_sent')
   }
 
-  async function sendDirectMessage(recipientId, body, media = null) {
+  async function sendDirectMessage(recipientId, body, media = null, replyToMessageId = '') {
     if (!user) {
       throw new Error('You must be logged in to send messages.')
     }
 
-    const trimmedBody = body.trim()
-    const mediaUrl = media?.mediaUrl || null
-    const mediaType = media?.mediaType || null
+    if (!recipientId) {
+      throw new Error('Choose a recipient first.')
+    }
+
+    if (recipientId === user.id) {
+      throw new Error('You cannot send a direct message to yourself.')
+    }
+
+    const trimmedBody = normalizeMessageBody(body, messageBodyLimits.direct)
+    const { mediaUrl, mediaType } = normalizeChatMedia(media)
+    assertMessageHasContent(trimmedBody, mediaUrl)
+    const resolvedReplyToMessageId = replyToMessageId || null
+
+    if (resolvedReplyToMessageId) {
+      const replyTarget = directMessages.find((directMessage) => directMessage.id === resolvedReplyToMessageId)
+      const replyTargetInThread = replyTarget && (
+        (replyTarget.sender_id === user.id && replyTarget.recipient_id === recipientId) ||
+        (replyTarget.sender_id === recipientId && replyTarget.recipient_id === user.id)
+      )
+
+      if (!replyTargetInThread) {
+        throw new Error('Reply target is no longer available in this thread.')
+      }
+    }
 
     const { data: sentMessage, error: messageError } = await supabase
       .from('direct_messages')
@@ -1656,8 +1781,9 @@ function IntelProvider({ children }) {
         body: trimmedBody,
         media_url: mediaUrl,
         media_type: mediaType,
+        reply_to_message_id: resolvedReplyToMessageId,
       })
-      .select('id, sender_id, recipient_id, body, media_url, media_type, read_at, created_at')
+      .select('id, sender_id, recipient_id, body, media_url, media_type, reply_to_message_id, read_at, created_at')
       .single()
 
     if (messageError) {
@@ -1676,9 +1802,12 @@ function IntelProvider({ children }) {
           ...sentMessage,
           sender: profileById.get(sentMessage.sender_id),
           recipient: profileById.get(sentMessage.recipient_id),
+          replyToMessage: resolvedReplyToMessageId
+            ? currentMessages.find((directMessage) => directMessage.id === resolvedReplyToMessageId) ?? null
+            : null,
           reactions: [],
         },
-        300,
+        messageHistoryLimits.direct,
       )
     })
 
@@ -1726,7 +1855,10 @@ function IntelProvider({ children }) {
       return
     }
 
-    const uniqueIds = Array.from(new Set(messageIds))
+    const uniqueIds = Array.from(new Set(messageIds.filter(Boolean)))
+    if (!uniqueIds.length) {
+      return
+    }
     const readAt = new Date().toISOString()
 
     // Optimistic local patch first so the UI doesn't flicker waiting for realtime.
