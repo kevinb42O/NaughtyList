@@ -1,17 +1,17 @@
 export const levelXpBase = 250
 
+function nonNegativeNumber(value) {
+  const numberValue = Number(value ?? 0)
+
+  return Number.isFinite(numberValue) ? Math.max(0, numberValue) : 0
+}
+
 export function profileXpTotal(profile) {
-  return Number(profile?.xp_total ?? 0)
+  return nonNegativeNumber(profile?.xp_total)
 }
 
 export function profileLevel(profile) {
-  const resolvedLevel = Math.max(1, Number(profile?.level ?? levelForXp(profileXpTotal(profile))))
-
-  if (hasCompletedProgressionProfile(profile)) {
-    return resolvedLevel
-  }
-
-  return Math.min(2, resolvedLevel)
+  return levelForXp(profileXpTotal(profile))
 }
 
 export function hasCompletedProgressionProfile(profile) {
@@ -26,20 +26,20 @@ export function hasCompletedProgressionProfile(profile) {
 }
 
 export function profileStreakFreezes(profile) {
-  return Number(profile?.streak_freezes ?? 0)
+  return nonNegativeNumber(profile?.streak_freezes)
 }
 
 export function levelForXp(xpTotal) {
-  return Math.max(1, Math.floor(Math.sqrt(Math.max(0, Number(xpTotal ?? 0)) / levelXpBase)) + 1)
+  return Math.max(1, Math.floor(Math.sqrt(nonNegativeNumber(xpTotal) / levelXpBase)) + 1)
 }
 
 export function xpForLevelStart(level) {
-  const normalizedLevel = Math.max(1, Number(level ?? 1))
+  const normalizedLevel = Math.max(1, nonNegativeNumber(level) || 1)
   return (normalizedLevel - 1) * (normalizedLevel - 1) * levelXpBase
 }
 
 export function xpForNextLevel(level) {
-  const normalizedLevel = Math.max(1, Number(level ?? 1))
+  const normalizedLevel = Math.max(1, nonNegativeNumber(level) || 1)
   return normalizedLevel * normalizedLevel * levelXpBase
 }
 
