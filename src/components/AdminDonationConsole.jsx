@@ -153,6 +153,23 @@ function AdminDonationConsole() {
           </div>
           <p className="mt-2 text-sm leading-6 text-gray-400">Grant a cosmetic supporter badge without creating a traceable payment record.</p>
         </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-4">
+          {donationTiers.map((tier) => (
+            <button
+              key={tier.key}
+              type="button"
+              onClick={() => setGrantTier(tier.key)}
+              className={`min-h-16 rounded-2xl border p-3 text-left transition ${
+                grantTier === tier.key
+                  ? `${tier.tone} ring-1 ring-white/10`
+                  : 'border-white/10 bg-black/25 text-gray-400 hover:border-white/20 hover:bg-white/[0.04]'
+              }`}
+            >
+              <span className="block text-sm font-black uppercase tracking-[0.16em] text-white">{tier.label}</span>
+              <span className="mt-1 block text-xs font-bold uppercase tracking-[0.14em] text-gray-500">{formatDonationAmount(tier.amountCents)}+</span>
+            </button>
+          ))}
+        </div>
         <div>
           <label htmlFor="grant-profile" className="intel-label mb-2 block">Profile</label>
           <select id="grant-profile" value={grantProfileId} onChange={(event) => setGrantProfileId(event.target.value)} className="field min-h-12">
