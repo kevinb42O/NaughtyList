@@ -1887,6 +1887,7 @@ function IntelProvider({ children }) {
           body: {
             type: 'public-mention',
             senderUserId: user.id,
+            messageId: sentMessage.id,
             recipientUserIds: mentionRecipientIds,
             mentionEveryone,
             displayName,

@@ -35,6 +35,27 @@ function normalizeUrl(value: unknown) {
   return trimmed.startsWith('/') && !trimmed.startsWith('//') ? trimmed.slice(0, 120) : '/'
 }
 
+function normalizeHandle(value: unknown) {
+  return String(value ?? '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_]/g, '')
+}
+
+function mentionHandle(profile: { id?: string | null; display_name?: string | null }) {
+  const displayName = normalizeHandle(profile.display_name || 'Unknown Operator')
+  return displayName || `operator${String(profile.id ?? '').slice(0, 6)}`
+}
+
+function mentionTokens(value: unknown) {
+  const matches = String(value ?? '').match(/@[a-zA-Z0-9_]+/g) ?? []
+  return new Set(matches.map((token) => token.slice(1).toLowerCase()))
+}
+
+function hasEveryoneMention(value: unknown) {
+  return /(^|\s)@all(?=$|\s|[.,!?;:])/i.test(String(value ?? ''))
+}
+
 async function getRequestUser(supabase: ReturnType<typeof createClient>, req: Request) {
   const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
   if (!token) throw new Error('You must be logged in to send push notifications')
@@ -69,6 +90,61 @@ async function requireModerator(supabase: ReturnType<typeof createClient>, userI
   }
 }
 
+async function getProfile(supabase: ReturnType<typeof createClient>, userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, display_name, clan_tag')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+async function resolvePublicMention(supabase: ReturnType<typeof createClient>, messageId: unknown, requestUserId: string, fallbackMessage: unknown) {
+  let messageBody = typeof fallbackMessage === 'string' ? fallbackMessage : ''
+  let messageVerified = false
+
+  if (typeof messageId === 'string' && messageId) {
+    const { data, error } = await supabase
+      .from('public_chat_messages')
+      .select('id, user_id, body')
+      .eq('id', messageId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data || data.user_id !== requestUserId) {
+      throw new Error('Public mention message could not be verified')
+    }
+
+    messageBody = data.body || ''
+    messageVerified = true
+  }
+
+  const tokens = mentionTokens(messageBody)
+  if (!tokens.size && !hasEveryoneMention(messageBody)) {
+    return { messageBody, messageVerified, mentionEveryone: false, recipientIds: [] as string[] }
+  }
+
+  const mentionEveryone = hasEveryoneMention(messageBody)
+  if (mentionEveryone) {
+    return { messageBody, messageVerified, mentionEveryone, recipientIds: [] as string[] }
+  }
+
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+
+  if (error) throw error
+
+  const recipientIds = (profiles ?? [])
+    .filter((profile) => profile.id !== requestUserId && tokens.has(mentionHandle(profile).toLowerCase()))
+    .map((profile) => profile.id)
+    .slice(0, 20)
+
+  return { messageBody, messageVerified, mentionEveryone, recipientIds }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -86,10 +162,9 @@ Deno.serve(async (req) => {
       type,
       displayName,
       clanTag,
-      senderUserId,
+      messageId,
       recipientUserId,
       recipientUserIds,
-      mentionEveryone,
       message,
       title: customTitle,
       body: customBody,
@@ -133,7 +208,10 @@ Deno.serve(async (req) => {
 
     const isCustom = type === 'custom-notification'
     const isPublicMention = type === 'public-mention'
-    const isPublicMentionAll = isPublicMention && mentionEveryone === true
+    const resolvedPublicMention = isPublicMention
+      ? await resolvePublicMention(supabase, messageId, requestUser.id, message)
+      : { messageBody: typeof message === 'string' ? message : '', messageVerified: false, mentionEveryone: false, recipientIds: [] as string[] }
+    const isPublicMentionAll = isPublicMention && resolvedPublicMention.mentionEveryone
     if (isCustom) {
       await requireAdmin(supabase, requestUser.id)
     }
@@ -142,9 +220,12 @@ Deno.serve(async (req) => {
       await requireModerator(supabase, requestUser.id)
     }
 
-    const publicMentionRecipientIds = isPublicMention && !isPublicMentionAll && Array.isArray(recipientUserIds)
-      ? recipientUserIds.filter((id) => typeof id === 'string' && id !== requestUser.id).slice(0, 20)
+    const hintedPublicMentionRecipientIds = isPublicMention && !isPublicMentionAll && Array.isArray(recipientUserIds)
+      ? recipientUserIds.filter((id) => typeof id === 'string' && id !== requestUser.id)
       : []
+    const publicMentionRecipientIds = resolvedPublicMention.recipientIds.length
+      ? resolvedPublicMention.recipientIds
+      : resolvedPublicMention.messageVerified ? [] : hintedPublicMentionRecipientIds.slice(0, 20)
 
     if (isPublicMention && !isPublicMentionAll && !publicMentionRecipientIds.length) {
       return new Response(JSON.stringify({ sent: 0, failed: 0 }), {
@@ -171,8 +252,11 @@ Deno.serve(async (req) => {
 
     if (dbError) throw dbError
 
-    const tag = clanTag ? `[${clanTag}] ` : ''
-    const name = `${tag}${displayName || 'Someone'}`
+    const senderProfile = await getProfile(supabase, requestUser.id)
+    const resolvedDisplayName = senderProfile?.display_name || displayName || 'Someone'
+    const resolvedClanTag = senderProfile?.clan_tag || clanTag || ''
+    const tag = resolvedClanTag ? `[${resolvedClanTag}] ` : ''
+    const name = `${tag}${resolvedDisplayName}`
     const title = trimCustomText(customTitle, 120)
     const body = trimCustomText(customBody, 400)
     const url = normalizeUrl(customUrl)
@@ -186,15 +270,15 @@ Deno.serve(async (req) => {
         ? {
             title: 'NEW DIRECT MESSAGE',
             body: `${name}: ${trimMessage(message)}`,
-            url: senderUserId ? `/messages?to=${senderUserId}` : '/messages',
-            tag: `dm-${senderUserId ?? 'new'}`,
+            url: `/messages?to=${requestUser.id}`,
+            tag: `dm-${requestUser.id}`,
           }
         : isPublicMention
           ? {
               title: 'TAGGED IN PUBLIC CHAT',
-              body: `${name}: ${trimMessage(message)}`,
+              body: `${name}: ${trimMessage(resolvedPublicMention.messageBody || message)}`,
               url: '/chat',
-              tag: isPublicMentionAll ? `public-mention-all-${senderUserId ?? 'new'}` : `public-mention-${senderUserId ?? 'new'}`,
+              tag: isPublicMentionAll ? `public-mention-all-${requestUser.id}` : `public-mention-${requestUser.id}`,
             }
         : isCustom
           ? {
