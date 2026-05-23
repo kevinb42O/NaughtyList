@@ -1,5 +1,14 @@
 export const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+export const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+export const imageAcceptValue = [...allowedImageTypes, ...allowedImageExtensions].join(',')
 export const maxImageUploadSize = 10 * 1024 * 1024
+const imageTypesByExtension = new Map([
+  ['jpg', 'image/jpeg'],
+  ['jpeg', 'image/jpeg'],
+  ['png', 'image/png'],
+  ['webp', 'image/webp'],
+  ['gif', 'image/gif'],
+])
 
 export function formatFileSize(bytes) {
   if (!Number.isFinite(bytes)) return ''
@@ -12,13 +21,22 @@ export function validateImageFile(file) {
     throw new Error('Choose an image first.')
   }
 
-  if (!allowedImageTypes.includes(file.type)) {
+  if (!getImageContentType(file)) {
     throw new Error('Use a JPEG, PNG, WebP, or GIF image.')
   }
 
   if (file.size > maxImageUploadSize) {
     throw new Error(`Images must be ${formatFileSize(maxImageUploadSize)} or smaller.`)
   }
+}
+
+export function getImageContentType(file) {
+  if (allowedImageTypes.includes(file?.type)) {
+    return file.type
+  }
+
+  const extension = String(file?.name ?? '').split('.').pop()?.toLowerCase()
+  return imageTypesByExtension.get(extension) ?? ''
 }
 
 function uploadWithProgress(uploadUrl, file, onProgress) {
@@ -48,12 +66,13 @@ function uploadWithProgress(uploadUrl, file, onProgress) {
 
 async function uploadImage(supabase, file, onProgress) {
   validateImageFile(file)
+  const contentType = getImageContentType(file)
   onProgress?.(1)
 
   const { data, error } = await supabase.functions.invoke('get-upload-url', {
     body: {
       fileName: file.name,
-      contentType: file.type,
+      contentType,
       fileSize: file.size,
     },
   })

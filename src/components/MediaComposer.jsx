@@ -1,7 +1,7 @@
 import { LoaderCircle, Plus, Send, Sticker, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { allowedImageTypes, uploadChatImage } from '../utils/media.js'
+import { imageAcceptValue, uploadChatImage } from '../utils/media.js'
 import GifPickerModal from './GifPickerModal.jsx'
 
 function MediaPreview({ pendingMedia, onClear }) {
@@ -88,7 +88,7 @@ function MediaComposer({
         ) : null}
         {accessory}
         <div className="flex min-h-12 items-center gap-1.5 rounded-full border border-white/10 bg-zinc-950/90 px-1.5 py-1.5 shadow-inner shadow-black/35">
-          <input ref={fileInputRef} type="file" accept={allowedImageTypes.join(',')} onChange={handleFileChange} className="hidden" />
+          <input ref={fileInputRef} type="file" accept={imageAcceptValue} onChange={handleFileChange} className="hidden" />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}

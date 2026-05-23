@@ -14,7 +14,7 @@ import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
 import { profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } from '../utils/gameAccounts.js'
-import { uploadProfileImage, validateImageFile } from '../utils/media.js'
+import { imageAcceptValue, uploadProfileImage, validateImageFile } from '../utils/media.js'
 import { clanPrefix } from '../utils/profiles.js'
 import { avatarStreakRequirement, formatDaysUntilReward, nextStreakReward, profileLoginStreak } from '../utils/streaks.js'
 import { formatDonationAmount } from '../utils/supporters.js'
@@ -370,7 +370,7 @@ function Profile() {
           style={profileHeroBannerStyle}
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/88" />
-          <input ref={bannerFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleBannerImageChange} className="hidden" />
+          <input ref={bannerFileInputRef} type="file" accept={imageAcceptValue} onChange={handleBannerImageChange} className="hidden" />
           <div className="absolute right-3 top-3 z-50 flex flex-wrap justify-end gap-2 sm:right-4 sm:top-4">
             <button
               type="button"
@@ -405,7 +405,7 @@ function Profile() {
                   size="3xl"
                   className="rounded-[2.25rem] bg-[#050608] p-1.5 shadow-2xl shadow-black/70 sm:[&>span:first-child]:h-36 sm:[&>span:first-child]:w-36"
                 />
-                <input ref={avatarFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarImageChange} className="hidden" />
+                <input ref={avatarFileInputRef} type="file" accept={imageAcceptValue} onChange={handleAvatarImageChange} className="hidden" />
                 <button
                   type="button"
                   onClick={() => avatarFileInputRef.current?.click()}
