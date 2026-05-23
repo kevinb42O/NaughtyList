@@ -1,4 +1,4 @@
-import { BadgeCheck, HeartHandshake } from 'lucide-react'
+import { BadgeCheck, HeartHandshake, ShieldCheck } from 'lucide-react'
 import { hasSupporterReward, supporterTierMeta } from '../utils/supporters.js'
 
 function SupporterBadge({ compact = false, profile }) {
@@ -7,7 +7,7 @@ function SupporterBadge({ compact = false, profile }) {
   }
 
   const tier = supporterTierMeta(profile.supporter_tier)
-  const Icon = profile.supporter_tier === 'founder' ? BadgeCheck : HeartHandshake
+  const Icon = profile.supporter_tier === 'colonel' ? ShieldCheck : profile.supporter_tier === 'founder' ? BadgeCheck : HeartHandshake
 
   return (
     <span

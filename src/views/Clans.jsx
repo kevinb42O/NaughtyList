@@ -17,6 +17,10 @@ function roleBadgeTone(role) {
     return 'border-orange-400/40 bg-orange-400/10 text-orange-100'
   }
 
+  if (role === 'colonel') {
+    return 'border-red-300/45 bg-red-400/12 text-red-100'
+  }
+
   if (role === 'veteran') {
     return 'border-sky-400/40 bg-sky-400/10 text-sky-100'
   }
@@ -1025,6 +1029,7 @@ function Clans() {
                             </p>
                             {member.role === 'owner' ? <Crown className="h-4 w-4 text-yellow-300" aria-hidden="true" /> : null}
                             {member.role === 'officer' ? <Shield className="h-4 w-4 text-orange-200" aria-hidden="true" /> : null}
+                            {member.role === 'colonel' ? <Shield className="h-4 w-4 text-red-200" aria-hidden="true" /> : null}
                             {member.role === 'veteran' ? <Star className="h-4 w-4 text-sky-200" aria-hidden="true" /> : null}
                             {member.role === 'sergeant' ? <Star className="h-4 w-4 text-teal-200" aria-hidden="true" /> : null}
                             <RolePill role={member.role} />
@@ -1054,6 +1059,7 @@ function Clans() {
                               <option value="member">Member</option>
                               <option value="sergeant">Sergeant</option>
                               <option value="veteran">Veteran</option>
+                              <option value="colonel">Colonel</option>
                               <option value="officer">Officer</option>
                             </select>
                           ) : null}

@@ -26,6 +26,15 @@ export const donationTiers = [
     frame: 'gold',
     description: 'Founder-grade badge, gold frame, and permanent early-support signal.',
   },
+  {
+    key: 'colonel',
+    label: 'Colonel',
+    amountCents: 5000,
+    short: 'Colonel',
+    tone: 'border-red-300/55 bg-red-400/12 text-red-100 shadow-[0_0_18px_rgba(248,113,113,0.16)]',
+    frame: 'ruby',
+    description: 'Colonel badge, command frame, and highest public support signal.',
+  },
 ]
 
 const tierRank = {
@@ -33,6 +42,7 @@ const tierRank = {
   supporter: 1,
   backer: 2,
   founder: 3,
+  colonel: 4,
 }
 
 export function formatDonationAmount(amountCents, currency = 'eur') {
@@ -65,6 +75,7 @@ export function supporterFrameClass(profile) {
     emerald: 'ring-2 ring-emerald-300/25 shadow-[0_0_22px_rgba(52,211,153,0.16)]',
     cyan: 'ring-2 ring-cyan-300/25 shadow-[0_0_22px_rgba(34,211,238,0.16)]',
     gold: 'ring-2 ring-yellow-300/30 shadow-[0_0_24px_rgba(250,204,21,0.2)]',
+    ruby: 'ring-2 ring-red-300/30 shadow-[0_0_24px_rgba(248,113,113,0.2)]',
   }
 
   return frames[frame] ?? frames.emerald
