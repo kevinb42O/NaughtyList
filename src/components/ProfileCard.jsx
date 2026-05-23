@@ -47,7 +47,7 @@ function ProfileCard({ profile, onlineUserIds }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <ProfileAvatar profile={profile} online={online} showOnline size="md" />
+            <ProfileAvatar profile={profile} online={online} showOnline size="lg" />
             <div className="min-w-0">
               <h2 className="truncate text-xl font-black uppercase tracking-[0.04em] text-white">
                 {clanPrefix(profile)} {displayProfileName(profile)}

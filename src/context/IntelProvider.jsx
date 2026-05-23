@@ -9,9 +9,15 @@ import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
 const profileSelectBase = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, supporter_tier, supporter_lifetime_amount_cents, supporter_since, supporter_active_until, supporter_badge_enabled, supporter_badge_visible, supporter_wall_visible, supporter_display_name, supporter_profile_frame, supporter_chat_flair, last_seen, created_at, updated_at'
-const profileSelectWithAvatarImage = profileSelectBase.replace('avatar_icon,', 'avatar_icon, avatar_image_url,')
-let profileSelect = profileSelectWithAvatarImage
-let profileAvatarImageColumnAvailable = true
+const profileOptionalMediaColumns = ['avatar_image_url', 'banner_image_url']
+
+function buildProfileSelect(optionalColumns = profileOptionalMediaColumns) {
+  const mediaColumns = optionalColumns.length ? `${optionalColumns.join(', ')}, ` : ''
+  return profileSelectBase.replace('avatar_icon, role', `avatar_icon, ${mediaColumns}role`)
+}
+
+let availableProfileOptionalColumns = new Set(profileOptionalMediaColumns)
+let profileSelect = buildProfileSelect(profileOptionalMediaColumns)
 const clanSelect = 'id, name, tag, description, badge_icon, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
@@ -79,19 +85,37 @@ function normalizeChatMedia(media) {
   }
 }
 
-function isMissingAvatarImageColumnError(error) {
+function getMissingProfileOptionalColumns(error) {
   const message = `${error?.code ?? ''} ${error?.message ?? ''} ${error?.details ?? ''} ${error?.hint ?? ''}`.toLowerCase()
-  return message.includes('avatar_image_url') && (
+  const isMissingColumnError =
     message.includes('column') ||
     message.includes('schema cache') ||
     message.includes('could not find') ||
     message.includes('does not exist')
-  )
+
+  if (!isMissingColumnError) {
+    return []
+  }
+
+  return profileOptionalMediaColumns.filter((column) => message.includes(column))
 }
 
-function disableProfileAvatarImageColumn() {
-  profileAvatarImageColumnAvailable = false
-  profileSelect = profileSelectBase
+function disableProfileOptionalColumns(columns = []) {
+  let changed = false
+
+  columns.forEach((column) => {
+    if (availableProfileOptionalColumns.delete(column)) {
+      changed = true
+    }
+  })
+
+  if (changed) {
+    profileSelect = buildProfileSelect(profileOptionalMediaColumns.filter((column) => availableProfileOptionalColumns.has(column)))
+  }
+}
+
+function hasProfileOptionalColumn(column) {
+  return availableProfileOptionalColumns.has(column)
 }
 
 function normalizeProfileRecord(profileRecord) {
@@ -102,6 +126,7 @@ function normalizeProfileRecord(profileRecord) {
   return {
     ...profileRecord,
     avatar_image_url: profileRecord.avatar_image_url ?? null,
+    banner_image_url: profileRecord.banner_image_url ?? null,
   }
 }
 
@@ -206,6 +231,7 @@ function profileRecordMatches(currentProfile, nextProfile) {
     currentProfile.bio === nextProfile.bio &&
     currentProfile.avatar_icon === nextProfile.avatar_icon &&
     currentProfile.avatar_image_url === nextProfile.avatar_image_url &&
+    currentProfile.banner_image_url === nextProfile.banner_image_url &&
     currentProfile.role === nextProfile.role &&
     currentProfile.clan_tag === nextProfile.clan_tag &&
     currentProfile.login_streak_count === nextProfile.login_streak_count &&
@@ -435,12 +461,14 @@ function IntelProvider({ children }) {
       .select(profileSelect)
       .order('created_at', { ascending: true })
 
-    if (profilesError && isMissingAvatarImageColumnError(profilesError)) {
-      disableProfileAvatarImageColumn()
+    let missingColumns = getMissingProfileOptionalColumns(profilesError)
+    while (profilesError && missingColumns.length) {
+      disableProfileOptionalColumns(missingColumns)
       ;({ data, error: profilesError } = await supabase
         .from('profiles')
-        .select(profileSelectBase)
+        .select(profileSelect)
         .order('created_at', { ascending: true }))
+      missingColumns = getMissingProfileOptionalColumns(profilesError)
     }
 
     if (profilesError) {
@@ -948,13 +976,15 @@ function IntelProvider({ children }) {
       .eq('id', userId)
       .maybeSingle()
 
-    if (profileError && isMissingAvatarImageColumnError(profileError)) {
-      disableProfileAvatarImageColumn()
+    let missingColumns = getMissingProfileOptionalColumns(profileError)
+    while (profileError && missingColumns.length) {
+      disableProfileOptionalColumns(missingColumns)
       ;({ data, error: profileError } = await supabase
         .from('profiles')
-        .select(profileSelectBase)
+        .select(profileSelect)
         .eq('id', userId)
         .maybeSingle())
+      missingColumns = getMissingProfileOptionalColumns(profileError)
     }
 
     if (profileError) {
@@ -1291,7 +1321,9 @@ function IntelProvider({ children }) {
     const nextAvatarIcon = updates.avatarIcon || defaultAvatarIconKey
     const currentAvatarIcon = profile?.avatar_icon ?? defaultAvatarIconKey
     const currentAvatarImageUrl = profile?.avatar_image_url ?? ''
+    const currentBannerImageUrl = profile?.banner_image_url ?? ''
     const nextAvatarImageUrl = typeof updates.avatarImageUrl === 'string' ? updates.avatarImageUrl.trim() : currentAvatarImageUrl
+    const nextBannerImageUrl = typeof updates.bannerImageUrl === 'string' ? updates.bannerImageUrl.trim() : currentBannerImageUrl
     const previousBio = profile?.bio?.trim() ?? ''
     const nextBio = updates.bio?.trim() ?? ''
     const previousAccountIds = new Set(gameAccountIds(normalizeGameAccounts(profile?.game_accounts)).map((id) => id.toLowerCase()))
@@ -1310,8 +1342,12 @@ function IntelProvider({ children }) {
       game_accounts: normalizedGameAccounts,
     }
 
-    if (profileAvatarImageColumnAvailable) {
+    if (hasProfileOptionalColumn('avatar_image_url')) {
       profileUpdates.avatar_image_url = nextAvatarImageUrl || null
+    }
+
+    if (hasProfileOptionalColumn('banner_image_url')) {
+      profileUpdates.banner_image_url = nextBannerImageUrl || null
     }
 
     let { data, error: updateError } = await supabase
@@ -1321,15 +1357,19 @@ function IntelProvider({ children }) {
       .select(profileSelect)
       .single()
 
-    if (updateError && isMissingAvatarImageColumnError(updateError)) {
-      disableProfileAvatarImageColumn()
-      delete profileUpdates.avatar_image_url
+    let missingColumns = getMissingProfileOptionalColumns(updateError)
+    while (updateError && missingColumns.length) {
+      disableProfileOptionalColumns(missingColumns)
+      missingColumns.forEach((column) => {
+        delete profileUpdates[column]
+      })
       ;({ data, error: updateError } = await supabase
         .from('profiles')
         .update(profileUpdates)
         .eq('id', user.id)
-        .select(profileSelectBase)
+        .select(profileSelect)
         .single())
+      missingColumns = getMissingProfileOptionalColumns(updateError)
     }
 
     if (updateError) {
@@ -1344,7 +1384,11 @@ function IntelProvider({ children }) {
       await awardActivityXp('profile_bio_added')
     }
 
-    if (nextAvatarIcon !== currentAvatarIcon || (profileAvatarImageColumnAvailable && nextAvatarImageUrl !== currentAvatarImageUrl)) {
+    if (
+      nextAvatarIcon !== currentAvatarIcon ||
+      (hasProfileOptionalColumn('avatar_image_url') && nextAvatarImageUrl !== currentAvatarImageUrl) ||
+      (hasProfileOptionalColumn('banner_image_url') && nextBannerImageUrl !== currentBannerImageUrl)
+    ) {
       await awardActivityXp('profile_avatar_updated')
     }
 

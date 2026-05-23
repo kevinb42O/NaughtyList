@@ -61,6 +61,14 @@ function PublicProfile() {
   const level = profileLevel(profile)
   const xpTotal = profileXpTotal(profile)
   const levelState = levelProgress(profile)
+  const bannerImageUrl = profile.banner_image_url ?? ''
+  const profileHeroBannerStyle = bannerImageUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(5, 6, 8, 0.08), rgba(5, 6, 8, 0.78)), url("${bannerImageUrl}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : undefined
 
   async function copyGameAccountId(accountId) {
     await navigator.clipboard.writeText(accountId)
@@ -111,43 +119,64 @@ function PublicProfile() {
         </div>
       </div>
 
-      <section className="panel rounded-[1.8rem] p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          <ProfileAvatar profile={profile} online={online} showOnline size="xl" />
+      <section className="panel overflow-hidden rounded-[1.8rem]">
+        <div
+          className="relative h-40 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-56"
+          style={profileHeroBannerStyle}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/85" />
+        </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
-                {clanPrefix(profile)} {displayProfileName(profile)}
-              </h2>
-              <OnlineDot online={online} />
-              <RoleBadge role={profile.role} compact />
-              <StreakBadge profile={profile} />
-              <SupporterBadge profile={profile} />
-              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
-                LV {level}
-              </span>
+        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="-mt-14 flex flex-col gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-end gap-4">
+              <ProfileAvatar
+                profile={profile}
+                online={online}
+                showOnline
+                size="2xl"
+                className="rounded-[2rem] bg-[#050608] p-1.5 shadow-2xl shadow-black/60"
+              />
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
+                    {clanPrefix(profile)} {displayProfileName(profile)}
+                  </h2>
+                  <OnlineDot online={online} />
+                  <RoleBadge role={profile.role} compact />
+                  <StreakBadge profile={profile} />
+                  <SupporterBadge profile={profile} />
+                  <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
+                    LV {level}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                    {gameAccounts.length} linked account{gameAccounts.length === 1 ? '' : 's'}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
+                    Last seen {formatEuropeanDateTime(profile.last_seen)}
+                  </span>
+                  <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100">
+                    {loginStreak} day streak
+                  </span>
+                  <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-cyan-100">
+                    {xpTotal} XP
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                {gameAccounts.length} linked account{gameAccounts.length === 1 ? '' : 's'}
-              </span>
-              <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
-                Last seen {formatEuropeanDateTime(profile.last_seen)}
-              </span>
-              <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100">
-                {loginStreak} day streak
-              </span>
-              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-cyan-100">
-                {xpTotal} XP
-              </span>
+            <div className="rounded-[1.2rem] border border-white/10 bg-black/30 px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-400">
+              {bannerImageUrl ? 'Custom banner' : 'Default banner'}
             </div>
+          </div>
 
-            <div className="mt-4 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
-              <p className="intel-label mb-2">Bio</p>
-              <p className="whitespace-pre-wrap text-sm leading-6 text-gray-300">{bio || 'No bio set yet.'}</p>
-            </div>
+          <div className="mt-4 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+            <p className="intel-label mb-2">Bio</p>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-gray-300">{bio || 'No bio set yet.'}</p>
           </div>
         </div>
       </section>

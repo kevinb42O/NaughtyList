@@ -58,6 +58,10 @@ function Profile() {
   const [avatarImageFile, setAvatarImageFile] = useState(null)
   const [avatarImagePreviewUrl, setAvatarImagePreviewUrl] = useState('')
   const [avatarUploadProgress, setAvatarUploadProgress] = useState(0)
+  const [bannerImageUrl, setBannerImageUrl] = useState(profile?.banner_image_url ?? '')
+  const [bannerImageFile, setBannerImageFile] = useState(null)
+  const [bannerImagePreviewUrl, setBannerImagePreviewUrl] = useState('')
+  const [bannerUploadProgress, setBannerUploadProgress] = useState(0)
   const [gameAccounts, setGameAccounts] = useState(() => profileGameAccounts(profile))
   const [newId, setNewId] = useState('')
 
@@ -87,6 +91,9 @@ function Profile() {
     setAvatarImageUrl(profile?.avatar_image_url ?? '')
     setAvatarImageFile(null)
     setAvatarUploadProgress(0)
+    setBannerImageUrl(profile?.banner_image_url ?? '')
+    setBannerImageFile(null)
+    setBannerUploadProgress(0)
     setGameAccounts(profileGameAccounts(profile))
     setSupporterBadgeVisible(profile?.supporter_badge_visible ?? true)
     setSupporterWallVisible(profile?.supporter_wall_visible ?? false)
@@ -105,6 +112,18 @@ function Profile() {
     return () => URL.revokeObjectURL(previewUrl)
   }, [avatarImageFile])
 
+  useEffect(() => {
+    if (!bannerImageFile) {
+      setBannerImagePreviewUrl('')
+      return undefined
+    }
+
+    const previewUrl = URL.createObjectURL(bannerImageFile)
+    setBannerImagePreviewUrl(previewUrl)
+
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [bannerImageFile])
+
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />
   }
@@ -113,6 +132,14 @@ function Profile() {
   const viewerRole = isAdmin ? 'admin' : isModerator ? 'moderator' : 'user'
   const currentProfileAvatar = profile?.avatar_icon ?? defaultAvatarIconKey
   const displayedAvatarImageUrl = avatarImagePreviewUrl || avatarImageUrl
+  const displayedBannerImageUrl = bannerImagePreviewUrl || bannerImageUrl
+  const profileHeroBannerStyle = displayedBannerImageUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(5, 6, 8, 0.08), rgba(5, 6, 8, 0.78)), url("${displayedBannerImageUrl}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : undefined
   const pendingInviteCount = clanInvites.filter((invite) => invite.invitee_user_id === user?.id).length
   const pendingRequestCount = clanJoinRequests.filter((request) => request.user_id === user?.id).length
   const loginStreak = profileLoginStreak(profile)
@@ -184,10 +211,37 @@ function Profile() {
     }
   }
 
+  function handleBannerImageChange(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    setSaveStatus('')
+    setSaveError('')
+
+    if (!file) {
+      return
+    }
+
+    try {
+      validateImageFile(file)
+      setBannerImageFile(file)
+      setBannerUploadProgress(0)
+    } catch (validationError) {
+      setSaveError(validationError.message)
+    }
+  }
+
   function handleUseIconAvatar() {
     setAvatarImageFile(null)
     setAvatarImageUrl('')
     setAvatarUploadProgress(0)
+    setSaveStatus('')
+    setSaveError('')
+  }
+
+  function handleUseDefaultBanner() {
+    setBannerImageFile(null)
+    setBannerImageUrl('')
+    setBannerUploadProgress(0)
     setSaveStatus('')
     setSaveError('')
   }
@@ -206,14 +260,28 @@ function Profile() {
 
     try {
       let nextAvatarImageUrl = avatarImageUrl
+      let nextBannerImageUrl = bannerImageUrl
 
       if (avatarImageFile) {
         nextAvatarImageUrl = await uploadProfileImage(supabase, avatarImageFile, setAvatarUploadProgress)
       }
 
-      await updateProfile({ displayName, bio, avatarIcon, avatarImageUrl: nextAvatarImageUrl, gameAccounts })
+      if (bannerImageFile) {
+        nextBannerImageUrl = await uploadProfileImage(supabase, bannerImageFile, setBannerUploadProgress)
+      }
+
+      await updateProfile({
+        displayName,
+        bio,
+        avatarIcon,
+        avatarImageUrl: nextAvatarImageUrl,
+        bannerImageUrl: nextBannerImageUrl,
+        gameAccounts,
+      })
       setAvatarImageFile(null)
       setAvatarImageUrl(nextAvatarImageUrl)
+      setBannerImageFile(null)
+      setBannerImageUrl(nextBannerImageUrl)
       setSaveStatus('Profile saved.')
     } catch (err) {
       setSaveError(err.message)
@@ -294,27 +362,60 @@ function Profile() {
         Update your display name, bio, review your clan status, track game accounts, and manage your password.
       </PageHeader>
 
-      <div className="mb-6 flex items-center gap-4 rounded-[1.8rem] border border-white/10 bg-black/30 p-5">
-        <ProfileAvatar iconKey={avatarIcon} imageUrl={displayedAvatarImageUrl} online={isOnline} showOnline size="lg" />
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
-            {clanPrefix(profile)} {displayName || 'No name set'}
-          </h2>
-          <div className="mt-1.5 flex flex-wrap items-center gap-3">
-            <OnlineDot online={isOnline} />
-            <RoleBadge role={profile?.role} compact />
-            <StreakBadge profile={profile} />
-            <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
-              LV {currentLevel} · {currentXp} XP
-            </span>
-            <SupporterBadge profile={profile} />
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">{user?.email}</span>
-          </div>
-          <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-gray-400">
-            {bio.trim() || 'No bio set yet.'}
-          </p>
+      <section className="panel mb-6 overflow-hidden rounded-[1.8rem]">
+        <div
+          className="relative h-36 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-52"
+          style={profileHeroBannerStyle}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/85" />
+          {!displayedBannerImageUrl ? (
+            <div className="absolute inset-x-0 bottom-3 px-5 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-400 sm:px-6">
+              Add a banner to customize your profile page.
+            </div>
+          ) : null}
         </div>
-      </div>
+
+        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="-mt-14 flex flex-col gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-end gap-4">
+              <ProfileAvatar
+                iconKey={avatarIcon}
+                imageUrl={displayedAvatarImageUrl}
+                online={isOnline}
+                showOnline
+                size="2xl"
+                className="rounded-[2rem] bg-[#050608] p-1.5 shadow-2xl shadow-black/60"
+              />
+              <div className="min-w-0">
+                <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
+                  {clanPrefix(profile)} {displayName || 'No name set'}
+                </h2>
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                  <OnlineDot online={isOnline} />
+                  <RoleBadge role={profile?.role} compact />
+                  <StreakBadge profile={profile} />
+                  <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">
+                    LV {currentLevel} · {currentXp} XP
+                  </span>
+                  <SupporterBadge profile={profile} />
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">{user?.email}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.2rem] border border-white/10 bg-black/30 px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-400">
+              {displayedBannerImageUrl ? 'Custom banner active' : 'Default banner active'}
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+            <p className="intel-label mb-2">Bio</p>
+            <p className="max-w-3xl whitespace-pre-wrap text-sm leading-6 text-gray-300">
+              {bio.trim() || 'No bio set yet.'}
+            </p>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <form onSubmit={handleSaveProfile} className="grid gap-5">
@@ -329,38 +430,73 @@ function Profile() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <div className="mb-5 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <ProfileAvatar iconKey={avatarIcon} imageUrl={displayedAvatarImageUrl} profile={profile} size="lg" />
-                      <div>
-                        <p className="intel-label">Profile Picture</p>
-                        <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-600">
-                          {displayedAvatarImageUrl ? 'Photo active' : 'Icon active'}
-                        </p>
-                      </div>
+                  <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/30">
+                    <div
+                      className="relative h-32 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-40"
+                      style={profileHeroBannerStyle}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/85" />
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/18">
-                        <Upload className="h-4 w-4" aria-hidden="true" />
-                        Upload Photo
-                        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarImageChange} className="sr-only" />
-                      </label>
-                      {displayedAvatarImageUrl ? (
-                        <button
-                          type="button"
-                          onClick={handleUseIconAvatar}
-                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
-                        >
-                          <X className="h-4 w-4" aria-hidden="true" />
-                          Use Icon
-                        </button>
-                      ) : null}
+
+                    <div className="px-4 pb-4">
+                      <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="flex items-end gap-3">
+                          <ProfileAvatar
+                            iconKey={avatarIcon}
+                            imageUrl={displayedAvatarImageUrl}
+                            profile={profile}
+                            size="2xl"
+                            className="rounded-[2rem] bg-[#050608] p-1.5 shadow-2xl shadow-black/60"
+                          />
+                          <div>
+                            <p className="intel-label">Profile Appearance</p>
+                            <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-600">
+                              {displayedBannerImageUrl ? 'Banner active' : 'Default banner'} · {displayedAvatarImageUrl ? 'Photo active' : 'Icon active'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/18">
+                            <Upload className="h-4 w-4" aria-hidden="true" />
+                            Upload Banner
+                            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleBannerImageChange} className="sr-only" />
+                          </label>
+                          {displayedBannerImageUrl ? (
+                            <button
+                              type="button"
+                              onClick={handleUseDefaultBanner}
+                              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
+                            >
+                              <X className="h-4 w-4" aria-hidden="true" />
+                              Remove Banner
+                            </button>
+                          ) : null}
+                          <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/18">
+                            <Upload className="h-4 w-4" aria-hidden="true" />
+                            Upload Photo
+                            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarImageChange} className="sr-only" />
+                          </label>
+                          {displayedAvatarImageUrl ? (
+                            <button
+                              type="button"
+                              onClick={handleUseIconAvatar}
+                              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
+                            >
+                              <X className="h-4 w-4" aria-hidden="true" />
+                              Use Icon
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">
                     <Image className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>JPEG, PNG, WebP, or GIF · up to {formatFileSize(10 * 1024 * 1024)}</span>
+                    <span>JPEG, PNG, WebP, or GIF · up to {formatFileSize(10 * 1024 * 1024)} · Banner shows on full profile pages</span>
+                    {bannerImageFile ? <span className="text-cyan-100">Banner queued: {bannerImageFile.name}</span> : null}
                     {avatarImageFile ? <span className="text-cyan-100">Queued: {avatarImageFile.name}</span> : null}
+                    {saving && bannerUploadProgress > 0 && bannerUploadProgress < 100 ? <span className="text-cyan-100">Banner {bannerUploadProgress}%</span> : null}
                     {saving && avatarUploadProgress > 0 && avatarUploadProgress < 100 ? <span className="text-cyan-100">Uploading {avatarUploadProgress}%</span> : null}
                   </div>
                 </div>
