@@ -8,7 +8,10 @@ import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMap
 import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
-const profileSelect = 'id, display_name, bio, avatar_icon, avatar_image_url, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, supporter_tier, supporter_lifetime_amount_cents, supporter_since, supporter_active_until, supporter_badge_enabled, supporter_badge_visible, supporter_wall_visible, supporter_display_name, supporter_profile_frame, supporter_chat_flair, last_seen, created_at, updated_at'
+const profileSelectBase = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, supporter_tier, supporter_lifetime_amount_cents, supporter_since, supporter_active_until, supporter_badge_enabled, supporter_badge_visible, supporter_wall_visible, supporter_display_name, supporter_profile_frame, supporter_chat_flair, last_seen, created_at, updated_at'
+const profileSelectWithAvatarImage = profileSelectBase.replace('avatar_icon,', 'avatar_icon, avatar_image_url,')
+let profileSelect = profileSelectWithAvatarImage
+let profileAvatarImageColumnAvailable = true
 const clanSelect = 'id, name, tag, description, badge_icon, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
@@ -74,6 +77,36 @@ function normalizeChatMedia(media) {
     mediaUrl: String(media.mediaUrl),
     mediaType,
   }
+}
+
+function isMissingAvatarImageColumnError(error) {
+  const message = `${error?.code ?? ''} ${error?.message ?? ''} ${error?.details ?? ''} ${error?.hint ?? ''}`.toLowerCase()
+  return message.includes('avatar_image_url') && (
+    message.includes('column') ||
+    message.includes('schema cache') ||
+    message.includes('could not find') ||
+    message.includes('does not exist')
+  )
+}
+
+function disableProfileAvatarImageColumn() {
+  profileAvatarImageColumnAvailable = false
+  profileSelect = profileSelectBase
+}
+
+function normalizeProfileRecord(profileRecord) {
+  if (!profileRecord) {
+    return profileRecord
+  }
+
+  return {
+    ...profileRecord,
+    avatar_image_url: profileRecord.avatar_image_url ?? null,
+  }
+}
+
+function normalizeProfileRecords(profileRecords = []) {
+  return profileRecords.map((profileRecord) => normalizeProfileRecord(profileRecord))
 }
 
 function assertMessageHasContent(body, mediaUrl) {
@@ -348,18 +381,20 @@ function IntelProvider({ children }) {
   }, [publicMessages, user?.id])
 
   const applyProfileRecord = useCallback((nextProfile) => {
-    if (!nextProfile?.id) {
+    const normalizedProfile = normalizeProfileRecord(nextProfile)
+
+    if (!normalizedProfile?.id) {
       return
     }
 
-    setProfile((currentProfile) => (currentProfile?.id === nextProfile.id || user?.id === nextProfile.id ? nextProfile : currentProfile))
+    setProfile((currentProfile) => (currentProfile?.id === normalizedProfile.id || user?.id === normalizedProfile.id ? normalizedProfile : currentProfile))
     setProfiles((currentProfiles) => {
-      const exists = currentProfiles.some((currentProfile) => currentProfile.id === nextProfile.id)
+      const exists = currentProfiles.some((currentProfile) => currentProfile.id === normalizedProfile.id)
       if (!exists) {
         return currentProfiles
       }
 
-      return currentProfiles.map((currentProfile) => (currentProfile.id === nextProfile.id ? nextProfile : currentProfile))
+      return currentProfiles.map((currentProfile) => (currentProfile.id === normalizedProfile.id ? normalizedProfile : currentProfile))
     })
   }, [user?.id])
 
@@ -395,16 +430,24 @@ function IntelProvider({ children }) {
   }
 
   const fetchProfiles = useCallback(async () => {
-    const { data, error: profilesError } = await supabase
+    let { data, error: profilesError } = await supabase
       .from('profiles')
       .select(profileSelect)
       .order('created_at', { ascending: true })
+
+    if (profilesError && isMissingAvatarImageColumnError(profilesError)) {
+      disableProfileAvatarImageColumn()
+      ;({ data, error: profilesError } = await supabase
+        .from('profiles')
+        .select(profileSelectBase)
+        .order('created_at', { ascending: true }))
+    }
 
     if (profilesError) {
       throw profilesError
     }
 
-    const incoming = data ?? []
+    const incoming = normalizeProfileRecords(data ?? [])
     let resolved = incoming
     setProfiles((current) => {
       const merged = mergeProfileRecords(current, incoming)
@@ -899,18 +942,28 @@ function IntelProvider({ children }) {
       return null
     }
 
-    const { data, error: profileError } = await supabase
+    let { data, error: profileError } = await supabase
       .from('profiles')
       .select(profileSelect)
       .eq('id', userId)
       .maybeSingle()
 
+    if (profileError && isMissingAvatarImageColumnError(profileError)) {
+      disableProfileAvatarImageColumn()
+      ;({ data, error: profileError } = await supabase
+        .from('profiles')
+        .select(profileSelectBase)
+        .eq('id', userId)
+        .maybeSingle())
+    }
+
     if (profileError) {
       throw profileError
     }
 
-    setProfile(data)
-    return data
+    const normalizedProfile = normalizeProfileRecord(data)
+    setProfile(normalizedProfile)
+    return normalizedProfile
   }, [])
 
   const refreshAfterClanMutation = useCallback(async () => {
@@ -1248,33 +1301,50 @@ function IntelProvider({ children }) {
       throw new Error(`That avatar is locked: ${getAvatarIconLockLabel(nextAvatarIcon)}.`)
     }
 
-    const { data, error: updateError } = await supabase
+    const profileUpdates = {
+      display_name: updates.displayName?.trim() ?? '',
+      bio: updates.bio?.trim() ?? '',
+      avatar_icon: nextAvatarIcon,
+      ...(typeof updates.clanTag === 'string' ? { clan_tag: updates.clanTag.trim() } : {}),
+      activision_ids: gameAccountIds(normalizedGameAccounts),
+      game_accounts: normalizedGameAccounts,
+    }
+
+    if (profileAvatarImageColumnAvailable) {
+      profileUpdates.avatar_image_url = nextAvatarImageUrl || null
+    }
+
+    let { data, error: updateError } = await supabase
       .from('profiles')
-      .update({
-        display_name: updates.displayName?.trim() ?? '',
-        bio: updates.bio?.trim() ?? '',
-        avatar_icon: nextAvatarIcon,
-        avatar_image_url: nextAvatarImageUrl || null,
-        ...(typeof updates.clanTag === 'string' ? { clan_tag: updates.clanTag.trim() } : {}),
-        activision_ids: gameAccountIds(normalizedGameAccounts),
-        game_accounts: normalizedGameAccounts,
-      })
+      .update(profileUpdates)
       .eq('id', user.id)
       .select(profileSelect)
       .single()
+
+    if (updateError && isMissingAvatarImageColumnError(updateError)) {
+      disableProfileAvatarImageColumn()
+      delete profileUpdates.avatar_image_url
+      ;({ data, error: updateError } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', user.id)
+        .select(profileSelectBase)
+        .single())
+    }
 
     if (updateError) {
       throw updateError
     }
 
-    applyProfileRecord(data)
+    const normalizedProfile = normalizeProfileRecord(data)
+    applyProfileRecord(normalizedProfile)
     await awardActivityXp('profile_saved')
 
     if (!previousBio && nextBio) {
       await awardActivityXp('profile_bio_added')
     }
 
-    if (nextAvatarIcon !== currentAvatarIcon || nextAvatarImageUrl !== currentAvatarImageUrl) {
+    if (nextAvatarIcon !== currentAvatarIcon || (profileAvatarImageColumnAvailable && nextAvatarImageUrl !== currentAvatarImageUrl)) {
       await awardActivityXp('profile_avatar_updated')
     }
 
