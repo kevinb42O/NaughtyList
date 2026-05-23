@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { Camera, HeartHandshake, KeyRound, Lock, Plus, Save, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
 import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'
@@ -83,6 +83,8 @@ function Profile() {
   const [savingSupporterPrefs, setSavingSupporterPrefs] = useState(false)
   const [supporterStatus, setSupporterStatus] = useState('')
   const [supporterError, setSupporterError] = useState('')
+  const avatarFileInputRef = useRef(null)
+  const bannerFileInputRef = useRef(null)
 
   useEffect(() => {
     setDisplayName(profile?.display_name ?? '')
@@ -368,17 +370,21 @@ function Profile() {
           style={profileHeroBannerStyle}
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/88" />
-          <div className="absolute bottom-3 right-3 z-20 flex flex-wrap justify-end gap-2">
-            <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/85 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 shadow-lg shadow-black/40 transition hover:border-cyan-300/45 hover:bg-zinc-900 sm:min-h-11">
+          <input ref={bannerFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleBannerImageChange} className="hidden" />
+          <div className="absolute right-3 top-3 z-50 flex flex-wrap justify-end gap-2 sm:right-4 sm:top-4">
+            <button
+              type="button"
+              onClick={() => bannerFileInputRef.current?.click()}
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/90 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 shadow-lg shadow-black/40 transition hover:border-cyan-300/45 hover:bg-zinc-900 sm:min-h-11"
+            >
               <Camera className="h-4 w-4" aria-hidden="true" />
               Edit Cover
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleBannerImageChange} className="sr-only" />
-            </label>
+            </button>
             {displayedBannerImageUrl ? (
               <button
                 type="button"
                 onClick={handleUseDefaultBanner}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/85 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 shadow-lg shadow-black/40 transition hover:border-red-400/45 hover:bg-zinc-900 sm:min-h-11"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/90 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 shadow-lg shadow-black/40 transition hover:border-red-400/45 hover:bg-zinc-900 sm:min-h-11"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
                 Remove Cover
@@ -399,10 +405,16 @@ function Profile() {
                   size="3xl"
                   className="rounded-[2.25rem] bg-[#050608] p-1.5 shadow-2xl shadow-black/70 sm:[&>span:first-child]:h-36 sm:[&>span:first-child]:w-36"
                 />
-                <label className="absolute bottom-2 right-2 z-30 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-zinc-950 text-gray-100 shadow-lg shadow-black/50 transition hover:border-cyan-300/45 hover:bg-zinc-900" aria-label="Edit profile picture" title="Edit profile picture">
+                <input ref={avatarFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarImageChange} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => avatarFileInputRef.current?.click()}
+                  className="absolute bottom-2 right-2 z-30 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-zinc-950 text-gray-100 shadow-lg shadow-black/50 transition hover:border-cyan-300/45 hover:bg-zinc-900"
+                  aria-label="Edit profile picture"
+                  title="Edit profile picture"
+                >
                   <Camera className="h-4 w-4" aria-hidden="true" />
-                  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarImageChange} className="sr-only" />
-                </label>
+                </button>
               </div>
 
               <div className="min-w-0 pt-1 sm:pb-2">
