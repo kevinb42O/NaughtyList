@@ -146,14 +146,32 @@ export const updateLogDays = [
   },
   {
     date: '2026-05-22',
-    label: 'Today',
+    label: 'Day Seven',
     title: 'XP leveling fixes plus professional chat replies, typing, receipts, and update history',
     summary:
       'Today fixed XP-based profile leveling, then upgraded daily chat workflows with replies, public/DM typing indicators, DM delivered/read receipts, stronger auto-scroll, and this full public update history.',
     updates: [
       ['670a1f6', 'Fix XP-based profile leveling', 'Fixed profile leveling based on XP.'],
       ['f6a42b0', 'Replies, typing indicators, and DM receipts', 'Added public/DM replies, realtime typing indicators, DM delivered/read receipts, and hardened chat scrolling.'],
-      ['current', 'Public update log', 'Added this quiet, complete update log based on the GitHub commit history.'],
+      ['2f848e3', 'Public update log', 'Added this quiet, complete update log based on the GitHub commit history.'],
+      ['1a614ba', 'Fix chat compatibility before reply migration', 'Protected chat from reply-column migration ordering issues so older database schemas keep working during rollout.'],
+    ],
+  },
+  {
+    date: '2026-05-23',
+    label: 'Today',
+    title: 'Profile photos, custom banners, daily claim animation, and team-card identity',
+    summary:
+      'Today turned profiles into real identity surfaces: uploaded profile photos, cover banners, GIF-ready media uploads, safer schema fallbacks, clickable cover controls, animated daily rewards, and banner-backed team cards.',
+    updates: [
+      ['586d47e', 'Profile photo uploads', 'Added uploaded profile pictures that override avatar icons across profile cards, public profiles, chat, DMs, and layout while keeping icons available.'],
+      ['9254242', 'Profile media schema fallback', 'Made profile fetches and saves tolerate optional media columns so chat, team, and daily state keep working during migrations.'],
+      ['976ae2a', 'Profile banners', 'Added custom profile cover banners, database support, upload flow, previews, and public profile rendering.'],
+      ['3476387', 'Facebook-style profile cover layout', 'Refined profile pages into a cover-photo layout with larger overlapping profile photos and tighter responsive spacing.'],
+      ['7b8a6e9', 'Clickable cover upload control', 'Fixed cover and avatar upload controls with reliable hidden input refs and safer layering.'],
+      ['bd6dc3a', 'GIF profile banner uploads', 'Made GIF support explicit for profile banners, avatars, and chat media picker validation.'],
+      ['fde725a', 'Team cards use user banners', 'Used each profile banner as that user card background in the team directory with dark overlays for readability.'],
+      ['current', 'Complete updates page rebuild', 'Rebuilt the update log into a scannable release dashboard with search, filters, latest-drop summary, and refreshed history.'],
     ],
   },
 ]
