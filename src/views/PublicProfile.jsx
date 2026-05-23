@@ -121,24 +121,24 @@ function PublicProfile() {
 
       <section className="panel overflow-hidden rounded-[1.8rem]">
         <div
-          className="relative h-40 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-56"
+          className="relative h-44 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-64"
           style={profileHeroBannerStyle}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/85" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/88" />
         </div>
 
-        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
-          <div className="-mt-14 flex flex-col gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-end gap-4">
+        <div className="px-4 pb-5 sm:px-6 sm:pb-6">
+          <div className="-mt-16 flex flex-col gap-4 sm:-mt-20 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
               <ProfileAvatar
                 profile={profile}
                 online={online}
                 showOnline
-                size="2xl"
-                className="rounded-[2rem] bg-[#050608] p-1.5 shadow-2xl shadow-black/60"
+                size="3xl"
+                className="rounded-[2.25rem] bg-[#050608] p-1.5 shadow-2xl shadow-black/70 sm:[&>span:first-child]:h-36 sm:[&>span:first-child]:w-36"
               />
 
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 pt-1 sm:pb-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
                     {clanPrefix(profile)} {displayProfileName(profile)}

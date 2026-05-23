@@ -110,6 +110,7 @@ function ProfileAvatar({ className = '', iconKey, imageUrl, online, profile, sho
     lg: 'h-14 w-14 rounded-3xl',
     xl: 'h-16 w-16 rounded-3xl',
     '2xl': 'h-24 w-24 rounded-[2rem]',
+    '3xl': 'h-28 w-28 rounded-[2.25rem]',
   }
   const iconSizes = {
     sm: 'h-4 w-4',
@@ -117,6 +118,7 @@ function ProfileAvatar({ className = '', iconKey, imageUrl, online, profile, sho
     lg: 'h-7 w-7',
     xl: 'h-8 w-8',
     '2xl': 'h-10 w-10',
+    '3xl': 'h-12 w-12',
   }
   const dotSizes = {
     sm: 'h-3 w-3 -bottom-0.5 -right-0.5',
@@ -124,6 +126,7 @@ function ProfileAvatar({ className = '', iconKey, imageUrl, online, profile, sho
     lg: 'h-4 w-4 -bottom-1 -right-1',
     xl: 'h-4 w-4 -bottom-1 -right-1',
     '2xl': 'h-5 w-5 -bottom-1 -right-1',
+    '3xl': 'h-5 w-5 -bottom-1 -right-1',
   }
 
   return (
