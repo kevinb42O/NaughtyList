@@ -8,7 +8,7 @@ import { mapPlayerFromSupabase, mapPlayerToSupabase } from '../utils/supabaseMap
 import { subscribeToPush } from '../utils/push.js'
 import { IntelContext } from './intelContext.js'
 
-const profileSelect = 'id, display_name, bio, avatar_icon, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, supporter_tier, supporter_lifetime_amount_cents, supporter_since, supporter_active_until, supporter_badge_enabled, supporter_badge_visible, supporter_wall_visible, supporter_display_name, supporter_profile_frame, supporter_chat_flair, last_seen, created_at, updated_at'
+const profileSelect = 'id, display_name, bio, avatar_icon, avatar_image_url, role, clan_tag, activision_ids, game_accounts, login_streak_count, longest_login_streak_count, last_streak_login_date, xp_total, level, streak_freezes, daily_checkin_count, supporter_tier, supporter_lifetime_amount_cents, supporter_since, supporter_active_until, supporter_badge_enabled, supporter_badge_visible, supporter_wall_visible, supporter_display_name, supporter_profile_frame, supporter_chat_flair, last_seen, created_at, updated_at'
 const clanSelect = 'id, name, tag, description, badge_icon, created_by, created_at, updated_at, archived_at'
 const messageReactionTables = {
   public: 'public_chat_message_reactions',
@@ -172,6 +172,7 @@ function profileRecordMatches(currentProfile, nextProfile) {
     currentProfile.display_name === nextProfile.display_name &&
     currentProfile.bio === nextProfile.bio &&
     currentProfile.avatar_icon === nextProfile.avatar_icon &&
+    currentProfile.avatar_image_url === nextProfile.avatar_image_url &&
     currentProfile.role === nextProfile.role &&
     currentProfile.clan_tag === nextProfile.clan_tag &&
     currentProfile.login_streak_count === nextProfile.login_streak_count &&
@@ -1236,6 +1237,8 @@ function IntelProvider({ children }) {
     const normalizedGameAccounts = normalizeGameAccounts(updates.gameAccounts)
     const nextAvatarIcon = updates.avatarIcon || defaultAvatarIconKey
     const currentAvatarIcon = profile?.avatar_icon ?? defaultAvatarIconKey
+    const currentAvatarImageUrl = profile?.avatar_image_url ?? ''
+    const nextAvatarImageUrl = typeof updates.avatarImageUrl === 'string' ? updates.avatarImageUrl.trim() : currentAvatarImageUrl
     const previousBio = profile?.bio?.trim() ?? ''
     const nextBio = updates.bio?.trim() ?? ''
     const previousAccountIds = new Set(gameAccountIds(normalizeGameAccounts(profile?.game_accounts)).map((id) => id.toLowerCase()))
@@ -1251,6 +1254,7 @@ function IntelProvider({ children }) {
         display_name: updates.displayName?.trim() ?? '',
         bio: updates.bio?.trim() ?? '',
         avatar_icon: nextAvatarIcon,
+        avatar_image_url: nextAvatarImageUrl || null,
         ...(typeof updates.clanTag === 'string' ? { clan_tag: updates.clanTag.trim() } : {}),
         activision_ids: gameAccountIds(normalizedGameAccounts),
         game_accounts: normalizedGameAccounts,
@@ -1270,7 +1274,7 @@ function IntelProvider({ children }) {
       await awardActivityXp('profile_bio_added')
     }
 
-    if (nextAvatarIcon !== currentAvatarIcon) {
+    if (nextAvatarIcon !== currentAvatarIcon || nextAvatarImageUrl !== currentAvatarImageUrl) {
       await awardActivityXp('profile_avatar_updated')
     }
 

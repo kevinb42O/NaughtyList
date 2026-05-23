@@ -46,7 +46,7 @@ function uploadWithProgress(uploadUrl, file, onProgress) {
   })
 }
 
-export async function uploadChatImage(supabase, file, onProgress) {
+async function uploadImage(supabase, file, onProgress) {
   validateImageFile(file)
   onProgress?.(1)
 
@@ -73,10 +73,20 @@ export async function uploadChatImage(supabase, file, onProgress) {
   await uploadWithProgress(data.uploadUrl, file, onProgress)
   onProgress?.(100)
 
+  return data.publicUrl
+}
+
+export async function uploadChatImage(supabase, file, onProgress) {
+  const publicUrl = await uploadImage(supabase, file, onProgress)
+
   return {
-    mediaUrl: data.publicUrl,
+    mediaUrl: publicUrl,
     mediaType: 'image',
   }
+}
+
+export async function uploadProfileImage(supabase, file, onProgress) {
+  return uploadImage(supabase, file, onProgress)
 }
 
 export function messageHasMedia(message) {

@@ -100,9 +100,10 @@ export function getAvatarIconLockLabel(iconOrKey) {
   return ''
 }
 
-function ProfileAvatar({ className = '', iconKey, online, profile, showOnline = false, size = 'md' }) {
+function ProfileAvatar({ className = '', iconKey, imageUrl, online, profile, showOnline = false, size = 'md' }) {
   const option = getAvatarIconOption(iconKey ?? profile?.avatar_icon)
   const Icon = option?.Icon ?? UserRound
+  const profileImageUrl = imageUrl ?? profile?.avatar_image_url ?? ''
   const sizeClasses = {
     sm: 'h-8 w-8 rounded-full',
     md: 'h-10 w-10 rounded-2xl',
@@ -126,10 +127,14 @@ function ProfileAvatar({ className = '', iconKey, online, profile, showOnline = 
     <span className={`relative inline-flex shrink-0 ${className}`}>
       <span
         className={`flex items-center justify-center overflow-hidden border border-white/10 bg-gradient-to-br ${option.glow} shadow-lg shadow-black/25 ring-1 ring-white/[0.03] ${supporterFrameClass(profile)} ${sizeClasses[size] ?? sizeClasses.md}`}
-        title={option.label}
-        aria-label={`${option.label} avatar`}
+        title={profileImageUrl ? 'Profile picture' : option.label}
+        aria-label={profileImageUrl ? 'Profile picture avatar' : `${option.label} avatar`}
       >
-        <Icon className={`${iconSizes[size] ?? iconSizes.md} ${option.accent}`} aria-hidden="true" />
+        {profileImageUrl ? (
+          <img src={profileImageUrl} alt="" className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+        ) : (
+          <Icon className={`${iconSizes[size] ?? iconSizes.md} ${option.accent}`} aria-hidden="true" />
+        )}
       </span>
       {showOnline ? (
         <span

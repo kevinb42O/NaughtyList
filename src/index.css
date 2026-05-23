@@ -402,6 +402,35 @@ button:disabled {
   .daily-ops-celebrate {
     animation: daily-ops-pulse 1.2s ease-out 1;
   }
+
+  .daily-ops-claim-ready {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.26), 0 0 24px rgb(239 68 68 / 0.2);
+    animation: daily-ops-claim-breathe 1.85s ease-in-out infinite;
+  }
+
+  .daily-ops-claim-ready::before {
+    content: "";
+    position: absolute;
+    inset: -35% -55%;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 32%, rgb(254 202 202 / 0.28), transparent 58%);
+    transform: translateX(-48%) rotate(8deg);
+    animation: daily-ops-claim-sweep 2.25s ease-in-out infinite;
+  }
+
+  .daily-ops-claim-ready > svg,
+  .daily-ops-claim-ready > span {
+    position: relative;
+    z-index: 1;
+  }
+
+  .daily-ops-claim-ready > svg {
+    animation: daily-ops-claim-icon 1.25s ease-in-out infinite;
+  }
 }
 
 @keyframes daily-ops-scan {
@@ -425,5 +454,58 @@ button:disabled {
 
   100% {
     box-shadow: 0 0 0 rgb(239 68 68 / 0), 0 0 34px rgb(239 68 68 / 0.1);
+  }
+}
+
+@keyframes daily-ops-claim-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.16), 0 0 22px rgb(239 68 68 / 0.18);
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgb(239 68 68 / 0.1), 0 0 34px rgb(239 68 68 / 0.34);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes daily-ops-claim-sweep {
+  0%,
+  42% {
+    transform: translateX(-55%) rotate(8deg);
+    opacity: 0;
+  }
+
+  58% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(55%) rotate(8deg);
+    opacity: 0;
+  }
+}
+
+@keyframes daily-ops-claim-icon {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  45% {
+    transform: scale(1.12) rotate(-4deg);
+  }
+
+  70% {
+    transform: scale(1.04) rotate(3deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-ops-claim-ready,
+  .daily-ops-claim-ready::before,
+  .daily-ops-claim-ready > svg {
+    animation: none;
   }
 }

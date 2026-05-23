@@ -120,9 +120,9 @@ function DailyOpsSummary({ onOpen, className = '' }) {
           <button
             type="button"
             onClick={onOpen}
-            className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] transition ${claimedToday ? 'border-white/10 bg-white/5 text-gray-300 hover:border-red-400/35 hover:text-red-100' : 'border-red-500/50 bg-red-500/12 text-red-100 hover:bg-red-500/20'}`}
+            className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] transition ${claimedToday ? 'border-white/10 bg-white/5 text-gray-300 hover:border-red-400/35 hover:text-red-100' : 'daily-ops-claim-ready border-red-500/50 bg-red-500/12 text-red-100 hover:bg-red-500/20'}`}
           >
-            {claimedToday ? 'View' : 'Claim'}
+            <span>{claimedToday ? 'View' : 'Claim'}</span>
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
@@ -302,10 +302,10 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
               type="button"
               onClick={handleClaim}
               disabled={claiming || claimedToday}
-              className={`inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border px-5 text-sm font-black uppercase tracking-[0.16em] transition active:scale-[0.98] disabled:scale-100 ${claimedToday ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100' : 'border-red-400/55 bg-red-500/16 text-red-50 hover:bg-red-500/24'} disabled:opacity-70`}
+              className={`inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border px-5 text-sm font-black uppercase tracking-[0.16em] transition active:scale-[0.98] disabled:scale-100 ${claimedToday ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100' : claiming ? 'border-red-400/55 bg-red-500/16 text-red-50 hover:bg-red-500/24' : 'daily-ops-claim-ready border-red-400/55 bg-red-500/16 text-red-50 hover:bg-red-500/24'} disabled:opacity-70`}
             >
               <CalendarCheck className="h-4 w-4" aria-hidden="true" />
-              {claiming ? 'Securing' : claimedToday ? 'Claimed' : 'Claim Daily'}
+              <span>{claiming ? 'Securing' : claimedToday ? 'Claimed' : 'Claim Daily'}</span>
             </button>
             {xpFlash ? (
               <span className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-yellow-300/45 bg-yellow-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-yellow-100">

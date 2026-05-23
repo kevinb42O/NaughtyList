@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { HeartHandshake, KeyRound, Lock, Plus, Save, Trash2 } from 'lucide-react'
+import { HeartHandshake, Image, KeyRound, Lock, Plus, Save, Trash2, Upload, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
@@ -14,6 +14,7 @@ import { useIntel } from '../context/useIntel.js'
 import { supabase } from '../lib/supabase.js'
 import { profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } from '../utils/gameAccounts.js'
+import { formatFileSize, uploadProfileImage, validateImageFile } from '../utils/media.js'
 import { clanPrefix } from '../utils/profiles.js'
 import { avatarStreakRequirement, formatDaysUntilReward, nextStreakReward, profileLoginStreak } from '../utils/streaks.js'
 import { formatDonationAmount } from '../utils/supporters.js'
@@ -53,6 +54,10 @@ function Profile() {
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '')
   const [bio, setBio] = useState(profile?.bio ?? '')
   const [avatarIcon, setAvatarIcon] = useState(profile?.avatar_icon ?? defaultAvatarIconKey)
+  const [avatarImageUrl, setAvatarImageUrl] = useState(profile?.avatar_image_url ?? '')
+  const [avatarImageFile, setAvatarImageFile] = useState(null)
+  const [avatarImagePreviewUrl, setAvatarImagePreviewUrl] = useState('')
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState(0)
   const [gameAccounts, setGameAccounts] = useState(() => profileGameAccounts(profile))
   const [newId, setNewId] = useState('')
 
@@ -79,11 +84,26 @@ function Profile() {
     setDisplayName(profile?.display_name ?? '')
     setBio(profile?.bio ?? '')
     setAvatarIcon(profile?.avatar_icon ?? defaultAvatarIconKey)
+    setAvatarImageUrl(profile?.avatar_image_url ?? '')
+    setAvatarImageFile(null)
+    setAvatarUploadProgress(0)
     setGameAccounts(profileGameAccounts(profile))
     setSupporterBadgeVisible(profile?.supporter_badge_visible ?? true)
     setSupporterWallVisible(profile?.supporter_wall_visible ?? false)
     setSupporterDisplayName(profile?.supporter_display_name ?? '')
   }, [profile])
+
+  useEffect(() => {
+    if (!avatarImageFile) {
+      setAvatarImagePreviewUrl('')
+      return undefined
+    }
+
+    const previewUrl = URL.createObjectURL(avatarImageFile)
+    setAvatarImagePreviewUrl(previewUrl)
+
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [avatarImageFile])
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />
@@ -92,6 +112,7 @@ function Profile() {
   const isOnline = onlineUserIds.includes(user?.id)
   const viewerRole = isAdmin ? 'admin' : isModerator ? 'moderator' : 'user'
   const currentProfileAvatar = profile?.avatar_icon ?? defaultAvatarIconKey
+  const displayedAvatarImageUrl = avatarImagePreviewUrl || avatarImageUrl
   const pendingInviteCount = clanInvites.filter((invite) => invite.invitee_user_id === user?.id).length
   const pendingRequestCount = clanJoinRequests.filter((request) => request.user_id === user?.id).length
   const loginStreak = profileLoginStreak(profile)
@@ -144,6 +165,33 @@ function Profile() {
     setGameAccounts((currentAccounts) => currentAccounts.filter((_, accountIndex) => accountIndex !== index))
   }
 
+  function handleAvatarImageChange(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    setSaveStatus('')
+    setSaveError('')
+
+    if (!file) {
+      return
+    }
+
+    try {
+      validateImageFile(file)
+      setAvatarImageFile(file)
+      setAvatarUploadProgress(0)
+    } catch (validationError) {
+      setSaveError(validationError.message)
+    }
+  }
+
+  function handleUseIconAvatar() {
+    setAvatarImageFile(null)
+    setAvatarImageUrl('')
+    setAvatarUploadProgress(0)
+    setSaveStatus('')
+    setSaveError('')
+  }
+
   async function handleSaveProfile(event) {
     event.preventDefault()
     setSaving(true)
@@ -157,7 +205,15 @@ function Profile() {
     }
 
     try {
-      await updateProfile({ displayName, bio, avatarIcon, gameAccounts })
+      let nextAvatarImageUrl = avatarImageUrl
+
+      if (avatarImageFile) {
+        nextAvatarImageUrl = await uploadProfileImage(supabase, avatarImageFile, setAvatarUploadProgress)
+      }
+
+      await updateProfile({ displayName, bio, avatarIcon, avatarImageUrl: nextAvatarImageUrl, gameAccounts })
+      setAvatarImageFile(null)
+      setAvatarImageUrl(nextAvatarImageUrl)
       setSaveStatus('Profile saved.')
     } catch (err) {
       setSaveError(err.message)
@@ -239,7 +295,7 @@ function Profile() {
       </PageHeader>
 
       <div className="mb-6 flex items-center gap-4 rounded-[1.8rem] border border-white/10 bg-black/30 p-5">
-        <ProfileAvatar iconKey={avatarIcon} online={isOnline} showOnline size="lg" />
+        <ProfileAvatar iconKey={avatarIcon} imageUrl={displayedAvatarImageUrl} online={isOnline} showOnline size="lg" />
         <div>
           <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
             {clanPrefix(profile)} {displayName || 'No name set'}
@@ -272,6 +328,43 @@ function Profile() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
+                <div className="mb-5 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <ProfileAvatar iconKey={avatarIcon} imageUrl={displayedAvatarImageUrl} profile={profile} size="lg" />
+                      <div>
+                        <p className="intel-label">Profile Picture</p>
+                        <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-gray-600">
+                          {displayedAvatarImageUrl ? 'Photo active' : 'Icon active'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/18">
+                        <Upload className="h-4 w-4" aria-hidden="true" />
+                        Upload Photo
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarImageChange} className="sr-only" />
+                      </label>
+                      {displayedAvatarImageUrl ? (
+                        <button
+                          type="button"
+                          onClick={handleUseIconAvatar}
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                          Use Icon
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">
+                    <Image className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>JPEG, PNG, WebP, or GIF · up to {formatFileSize(10 * 1024 * 1024)}</span>
+                    {avatarImageFile ? <span className="text-cyan-100">Queued: {avatarImageFile.name}</span> : null}
+                    {saving && avatarUploadProgress > 0 && avatarUploadProgress < 100 ? <span className="text-cyan-100">Uploading {avatarUploadProgress}%</span> : null}
+                  </div>
+                </div>
+
                 <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p className="intel-label">Avatar Badges</p>
