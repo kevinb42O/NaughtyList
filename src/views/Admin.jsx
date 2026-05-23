@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminDonationConsole from '../components/AdminDonationConsole.jsx'
 import AdminPushConsole from '../components/AdminPushConsole.jsx'
+import CollapsiblePanel from '../components/CollapsiblePanel.jsx'
 import EditPlayerModal from '../components/EditPlayerModal.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -11,6 +12,7 @@ import { useIntel } from '../context/useIntel.js'
 import { formatEuropeanDateTime } from '../utils/dates.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 import { getThreatStyle } from '../utils/threat.js'
+import Moderator from './Moderator.jsx'
 
 const roleOptions = ['user', 'moderator']
 
@@ -32,6 +34,7 @@ function Admin() {
   const [workingId, setWorkingId] = useState('')
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [activeToolset, setActiveToolset] = useState('admin')
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const adminProfile = profiles.find((nextProfile) => nextProfile.role === 'admin')
@@ -228,11 +231,51 @@ function Admin() {
         Send tactical push alerts, manage tracked operators, and control account access.
       </PageHeader>
 
+      <section className="panel mb-5 rounded-[1.8rem] p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            { value: 'admin', label: 'Admin Functions', icon: Crown },
+            { value: 'moderator', label: 'Moderator Functions', icon: Shield },
+          ].map((option) => {
+            const Icon = option.icon
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setActiveToolset(option.value)}
+                aria-pressed={activeToolset === option.value}
+                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full border px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] transition ${
+                  activeToolset === option.value
+                    ? 'border-red-500/55 bg-red-500/14 text-red-100'
+                    : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200'
+                }`}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {activeToolset === 'moderator' ? (
+        <Moderator embedded />
+      ) : (
+        <>
+
       <AdminPushConsole />
 
       <AdminDonationConsole />
 
-      <section className="panel rounded-[1.8rem] p-5">
+      <CollapsiblePanel
+        className="mb-5"
+        eyebrow="Admin"
+        title="Access Overview"
+        description="Check account health, moderator coverage, and filter the admin worklists."
+        icon={Crown}
+        meta={`${stats.total} profiles`}
+      >
         <div className="mb-4 flex items-center gap-3">
           <Crown className="h-5 w-5 text-red-200" aria-hidden="true" />
           <div>
@@ -261,7 +304,7 @@ function Admin() {
           </div>
         </div>
 
-        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-red-200" aria-hidden="true" />
             <input
@@ -271,15 +314,26 @@ function Admin() {
               placeholder="Search operators, profiles, clans, or IDs"
             />
           </div>
-          <Link
-            to="/moderator"
+          <button
+            type="button"
+            onClick={() => setActiveToolset('moderator')}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-orange-400/30 bg-orange-400/10 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-100 transition hover:bg-orange-400/20"
           >
             <Shield className="h-4 w-4" aria-hidden="true" />
             Mod Queue
-          </Link>
+          </button>
         </div>
+      </CollapsiblePanel>
 
+      <CollapsiblePanel
+        className="mb-5"
+        defaultOpen={false}
+        eyebrow="Roster"
+        title="Tracked Operators"
+        description="Remove fake, duplicate, or stale operator records."
+        icon={Trash2}
+        meta={`${visiblePlayers.length} shown`}
+      >
         <div className="mb-4 border-b border-white/10 pb-4">
           <p className="intel-label mb-2">Tracked Operators</p>
           <p className="text-sm text-gray-500">Admins can remove fake, duplicate, or stale operator records here.</p>
@@ -343,6 +397,16 @@ function Admin() {
           )}
         </div>
 
+      </CollapsiblePanel>
+
+      <CollapsiblePanel
+        defaultOpen={false}
+        eyebrow="Accounts"
+        title="Access Control"
+        description="Promote moderators or remove accounts that should no longer have access."
+        icon={Shield}
+        meta={`${visibleProfiles.length} shown`}
+      >
         <div className="mb-4 border-b border-white/10 pb-4">
           <p className="intel-label mb-2">Accounts</p>
           <p className="text-sm text-gray-500">Promote moderators or remove accounts that should no longer have access.</p>
@@ -439,11 +503,18 @@ function Admin() {
           ))}
         </div>
 
-        {status ? <p className="mt-4 text-sm font-bold text-green-200">{status}</p> : null}
-        {error ? <p className="mt-4 text-sm font-bold text-red-200">{error}</p> : null}
-      </section>
+      </CollapsiblePanel>
+
+      {status || error ? (
+        <section className="panel mt-5 rounded-[1.4rem] p-4">
+          {status ? <p className="text-sm font-bold text-green-200">{status}</p> : null}
+          {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
+        </section>
+      ) : null}
 
       <EditPlayerModal open={editModalOpen} onClose={closeEditModal} player={editingPlayer} />
+        </>
+      )}
     </div>
   )
 }

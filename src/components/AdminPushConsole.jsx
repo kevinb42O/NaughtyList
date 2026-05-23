@@ -1,6 +1,7 @@
 import { Bell, Clock3, Link as LinkIcon, RefreshCcw, Send, Smartphone, Sparkles, Trash2, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
+import CollapsiblePanel from './CollapsiblePanel.jsx'
 
 const maxTitleLength = 120
 const maxBodyLength = 400
@@ -131,12 +132,15 @@ function AdminPushConsole() {
   }
 
   return (
-    <section className="panel mb-5 rounded-[1.8rem] p-5">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="intel-label mb-2">Push Console</p>
-          <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">Custom Notifications</h2>
-        </div>
+    <CollapsiblePanel
+      className="mb-5"
+      eyebrow="Push Console"
+      title="Custom Notifications"
+      description="Send tactical push alerts to subscribed devices."
+      icon={Bell}
+      meta={`${activeDevices} devices`}
+    >
+      <div className="mb-5 flex justify-end">
         <button
           type="button"
           onClick={handleRefresh}
@@ -360,7 +364,7 @@ function AdminPushConsole() {
           </div>
         </aside>
       </form>
-    </section>
+    </CollapsiblePanel>
   )
 }
 

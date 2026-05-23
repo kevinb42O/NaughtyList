@@ -1,6 +1,7 @@
 import { ArchiveRestore, ArchiveX, CheckCircle2, Clock, Crosshair, Search, ShieldAlert, ShieldCheck, Siren, Trash2, Undo2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import CollapsiblePanel from '../components/CollapsiblePanel.jsx'
 import EditPlayerModal from '../components/EditPlayerModal.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
@@ -14,15 +15,6 @@ const verdictOptions = [
   { value: 'duplicate', label: 'Duplicate', tone: 'border-orange-400/40 bg-orange-400/10 text-orange-100' },
   { value: 'low_quality', label: 'Low Quality', tone: 'border-red-400/40 bg-red-400/10 text-red-100' },
   { value: 'cleared', label: 'Cleared', tone: 'border-sky-400/40 bg-sky-400/10 text-sky-100' },
-]
-
-const tabOptions = [
-  { value: 'review', label: 'Review' },
-  { value: 'quarantine', label: 'Quarantine' },
-  { value: 'kills', label: 'Kills' },
-  { value: 'chat', label: 'Chat' },
-  { value: 'mutes', label: 'Mutes' },
-  { value: 'log', label: 'Log' },
 ]
 
 function formatDateTime(value) {
@@ -87,7 +79,7 @@ function eventDetailsSummary(event) {
   return details.join(' · ')
 }
 
-function Moderator() {
+function Moderator({ embedded = false }) {
   const {
     user,
     isAuthenticated,
@@ -110,7 +102,6 @@ function Moderator() {
   const [error, setError] = useState('')
   const [workingId, setWorkingId] = useState('')
   const [query, setQuery] = useState('')
-  const [activeTab, setActiveTab] = useState('review')
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [killAdjustmentDrafts, setKillAdjustmentDrafts] = useState({})
@@ -120,15 +111,7 @@ function Moderator() {
   const reviewPlayers = players.filter((player) => !player.quarantinedAt && player.moderationStatus !== 'verified' && player.moderationStatus !== 'cleared')
   const killPlayers = players.filter((player) => (player.killCount ?? 0) > 0)
 
-  const filteredPlayers = useMemo(() => {
-    const source = activeTab === 'quarantine'
-      ? quarantinedPlayers
-      : activeTab === 'review'
-        ? reviewPlayers
-        : activeTab === 'kills'
-          ? killPlayers
-          : players
-
+  function filterPlayers(source) {
     return source.filter((player) => {
       if (!normalizedQuery) {
         return true
@@ -138,29 +121,27 @@ function Moderator() {
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery))
     })
-  }, [activeTab, killPlayers, normalizedQuery, players, quarantinedPlayers, reviewPlayers])
+  }
 
-  const filteredMessages = useMemo(() => {
-    return [...publicMessages]
-      .reverse()
-      .filter((message) => {
-        if (!normalizedQuery) {
-          return true
-        }
+  const filteredMessages = [...publicMessages]
+    .reverse()
+    .filter((message) => {
+      if (!normalizedQuery) {
+        return true
+      }
 
-        return [message.body, message.profile?.display_name, message.profile?.clan_tag]
-          .filter(Boolean)
-          .some((value) => value.toLowerCase().includes(normalizedQuery))
-      })
-  }, [normalizedQuery, publicMessages])
+      return [message.body, message.profile?.display_name, message.profile?.clan_tag]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery))
+    })
 
-  const stats = useMemo(() => ({
+  const stats = {
     review: reviewPlayers.length,
     quarantine: quarantinedPlayers.length,
     kills: players.reduce((totalKills, player) => totalKills + (player.killCount ?? 0), 0),
     mutes: publicChatMutes.length,
     chat: publicMessages.length,
-  }), [players, publicChatMutes.length, publicMessages.length, quarantinedPlayers.length, reviewPlayers.length])
+  }
 
   function closeEditModal() {
     setEditingPlayer(null)
@@ -308,19 +289,26 @@ function Moderator() {
   }
 
   return (
-    <div>
-      <PageHeader eyebrow="Moderator Screen" title="Control Queue">
-        Review intel, quarantine bad records, cool down public chat, and keep every action visible.
-      </PageHeader>
+    <div className={embedded ? 'grid gap-5' : ''}>
+      {!embedded ? (
+        <PageHeader eyebrow="Moderator Screen" title="Control Queue">
+          Review intel, quarantine bad records, cool down public chat, and keep every action visible.
+        </PageHeader>
+      ) : null}
 
-      <section className="panel rounded-[1.8rem] p-5">
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <ShieldAlert className="h-5 w-5 text-orange-200" aria-hidden="true" />
+      <CollapsiblePanel
+        eyebrow="Moderator"
+        title="Queue Overview"
+        description="Search across moderation tools and check the live workload before opening a queue."
+        icon={ShieldAlert}
+        meta={profileDisplayName}
+      >
+        <div className="mb-5 flex flex-wrap items-center gap-3">
           <p className="font-black uppercase tracking-[0.04em] text-white">{profileDisplayName}</p>
           <RoleBadge role={role} />
         </div>
 
-        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(5,minmax(0,120px))]">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(5,minmax(0,120px))]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-red-200" aria-hidden="true" />
             <input
@@ -336,70 +324,73 @@ function Moderator() {
           <StatBlock label="Mutes" value={stats.mutes} />
           <StatBlock label="Chat" value={stats.chat} />
         </div>
+      </CollapsiblePanel>
 
-        <div className="flex flex-wrap gap-2 border-b border-white/10 pb-4">
-          {tabOptions.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setActiveTab(tab.value)}
-              className={[
-                'rounded-full border px-4 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition',
-                activeTab === tab.value
-                  ? 'border-red-500/60 bg-red-500/12 text-red-100'
-                  : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200',
-              ].join(' ')}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <CollapsiblePanel className="mt-5" eyebrow="Review" title="Intel Review" description="Set verdicts on new or questionable operator records." icon={ShieldCheck} meta={`${stats.review} entries`}>
+        <PlayerQueue
+          activeTab="review"
+          players={filterPlayers(reviewPlayers)}
+          workingId={workingId}
+          onEdit={(player) => {
+            setEditingPlayer(player)
+            setEditModalOpen(true)
+          }}
+          onVerdict={handleVerdict}
+          onQuarantine={handleQuarantine}
+          onRestore={handleRestore}
+        />
+      </CollapsiblePanel>
 
-        {activeTab === 'review' || activeTab === 'quarantine' ? (
-          <PlayerQueue
-            activeTab={activeTab}
-            players={filteredPlayers}
-            workingId={workingId}
-            onEdit={(player) => {
-              setEditingPlayer(player)
-              setEditModalOpen(true)
-            }}
-            onVerdict={handleVerdict}
-            onQuarantine={handleQuarantine}
-            onRestore={handleRestore}
-          />
-        ) : null}
+      <CollapsiblePanel className="mt-5" defaultOpen={false} eyebrow="Quarantine" title="Hidden Operators" description="Restore records that were hidden from public lists." icon={ArchiveX} meta={`${quarantinedPlayers.length} hidden`}>
+        <PlayerQueue
+          activeTab="quarantine"
+          players={filterPlayers(quarantinedPlayers)}
+          workingId={workingId}
+          onEdit={(player) => {
+            setEditingPlayer(player)
+            setEditModalOpen(true)
+          }}
+          onVerdict={handleVerdict}
+          onQuarantine={handleQuarantine}
+          onRestore={handleRestore}
+        />
+      </CollapsiblePanel>
 
-        {activeTab === 'kills' ? (
-          <KillQueue
-            players={filteredPlayers}
-            workingId={workingId}
-            killAdjustmentDrafts={killAdjustmentDrafts}
-            onDraftChange={updateKillDraft}
-            onDeduct={handleAdjustKills}
-            onClearAll={handleClearKills}
-          />
-        ) : null}
+      <CollapsiblePanel className="mt-5" defaultOpen={false} eyebrow="Kills" title="Kill Adjustments" description="Deduct accidental or abusive kill logs without deleting the operator." icon={Crosshair} meta={`${stats.kills} logged`}>
+        <KillQueue
+          players={filterPlayers(killPlayers)}
+          workingId={workingId}
+          killAdjustmentDrafts={killAdjustmentDrafts}
+          onDraftChange={updateKillDraft}
+          onDeduct={handleAdjustKills}
+          onClearAll={handleClearKills}
+        />
+      </CollapsiblePanel>
 
-        {activeTab === 'chat' ? (
-          <ChatQueue
-            messages={filteredMessages}
-            workingId={workingId}
-            currentUserId={user?.id}
-            onDelete={handleDeleteMessage}
-            onMute={handleMute}
-          />
-        ) : null}
+      <CollapsiblePanel className="mt-5" defaultOpen={false} eyebrow="Chat" title="Public Chat Cleanup" description="Delete public messages or apply short cooldown mutes." icon={Trash2} meta={`${stats.chat} messages`}>
+        <ChatQueue
+          messages={filteredMessages}
+          workingId={workingId}
+          currentUserId={user?.id}
+          onDelete={handleDeleteMessage}
+          onMute={handleMute}
+        />
+      </CollapsiblePanel>
 
-        {activeTab === 'mutes' ? (
-          <MuteQueue mutes={publicChatMutes} workingId={workingId} onClear={handleClearMute} />
-        ) : null}
+      <CollapsiblePanel className="mt-5" defaultOpen={false} eyebrow="Mutes" title="Active Chat Mutes" description="Clear public chat cooldowns when they are no longer needed." icon={Undo2} meta={`${publicChatMutes.length} active`}>
+        <MuteQueue mutes={publicChatMutes} workingId={workingId} onClear={handleClearMute} />
+      </CollapsiblePanel>
 
-        {activeTab === 'log' ? <ActionLog events={moderationEvents} /> : null}
+      <CollapsiblePanel className="mt-5" defaultOpen={false} eyebrow="Log" title="Moderation Audit" description="Review the recent action trail for accountability." icon={CheckCircle2} meta={`${moderationEvents.length} events`}>
+        <ActionLog events={moderationEvents} />
+      </CollapsiblePanel>
 
-        {status ? <p className="mt-4 text-sm font-bold text-green-200">{status}</p> : null}
-        {error ? <p className="mt-4 text-sm font-bold text-red-200">{error}</p> : null}
-      </section>
+      {status || error ? (
+        <section className="panel mt-5 rounded-[1.4rem] p-4">
+          {status ? <p className="text-sm font-bold text-green-200">{status}</p> : null}
+          {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
+        </section>
+      ) : null}
 
       <EditPlayerModal open={editModalOpen} onClose={closeEditModal} player={editingPlayer} />
     </div>

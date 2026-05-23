@@ -5,6 +5,7 @@ import { useIntel } from '../context/useIntel.js'
 import { formatEuropeanDateTime } from '../utils/dates.js'
 import { displayProfileName } from '../utils/profiles.js'
 import { donationTiers, formatDonationAmount, supporterTierMeta } from '../utils/supporters.js'
+import CollapsiblePanel from './CollapsiblePanel.jsx'
 
 function AdminDonationConsole() {
   const {
@@ -106,15 +107,14 @@ function AdminDonationConsole() {
   }
 
   return (
-    <section className="panel rounded-[1.8rem] p-5">
-      <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <HeartHandshake className="h-5 w-5 text-red-100" aria-hidden="true" />
-          <div>
-            <p className="intel-label">Support Ops</p>
-            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Donations and rewards</h2>
-          </div>
-        </div>
+    <CollapsiblePanel
+      eyebrow="Support Ops"
+      title="Donations and rewards"
+      description="Record support, grant badges, and audit confirmed donations."
+      icon={HeartHandshake}
+      meta={formatDonationAmount(donations.reduce((total, donation) => total + (donation.status === 'confirmed' ? Number(donation.amount_cents ?? 0) : 0), 0))}
+    >
+      <div className="mb-5 flex justify-end">
         <div className="flex flex-wrap gap-2">
           <Link
             to="/support"
@@ -298,7 +298,7 @@ function AdminDonationConsole() {
 
       {status ? <p className="mt-4 text-sm font-bold text-green-200">{status}</p> : null}
       {error ? <p className="mt-4 text-sm font-bold text-red-200">{error}</p> : null}
-    </section>
+    </CollapsiblePanel>
   )
 }
 
