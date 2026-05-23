@@ -1,4 +1,4 @@
-import { ArrowLeft, Reply } from 'lucide-react'
+import { ArrowLeft, Loader2, Reply } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import MediaComposer from '../components/MediaComposer.jsx'
@@ -56,7 +56,10 @@ function ProfileInitial({ profile, online }) {
   return <ProfileAvatar profile={profile} online={online} showOnline size="sm" />
 }
 
-const DirectMessageBubble = memo(function DirectMessageBubble({ directMessage, mine, onReact, onReply, online, ownProfile, receiptLabel, selectedProfile, userId }) {
+const DirectMessageBubble = memo(function DirectMessageBubble({ deletingMediaId, directMessage, mine, onDeleteMedia, onReact, onReply, online, ownProfile, receiptLabel, selectedProfile, userId }) {
+  const canDeleteMedia = mine && Boolean(directMessage.media_url)
+  const deletingMedia = deletingMediaId === directMessage.id
+
   return (
     <>
       <article className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
@@ -72,7 +75,18 @@ const DirectMessageBubble = memo(function DirectMessageBubble({ directMessage, m
             {directMessage.replyToMessage ? (
               <MessageReplyPreview currentUserId={userId} message={directMessage.replyToMessage} />
             ) : null}
-            <MessageMedia mediaUrl={directMessage.media_url} mediaType={directMessage.media_type} />
+            <MessageMedia
+              mediaUrl={directMessage.media_url}
+              mediaType={directMessage.media_type}
+              deleting={deletingMedia}
+              onDelete={canDeleteMedia ? () => onDeleteMedia(directMessage) : undefined}
+            />
+            {deletingMedia ? (
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-red-400/30 bg-black/25 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.14em] text-red-100">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                Deleting picture
+              </div>
+            ) : null}
             <p className="whitespace-pre-wrap break-words">{directMessage.body}</p>
             <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
               {formatMessageTime(directMessage.created_at)}
@@ -116,6 +130,7 @@ function Messages() {
     sendDirectMessage,
     markDirectMessagesRead,
     setMessageReaction,
+    deleteOwnDirectMessageMedia,
   } = useIntel()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedId = searchParams.get('to')
@@ -124,10 +139,12 @@ function Messages() {
   const [replyToMessage, setReplyToMessage] = useState(null)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
+  const [deletingMediaId, setDeletingMediaId] = useState('')
   const sendingRef = useRef(false)
   const markedReadIdsRef = useRef(new Set())
   const markDirectMessagesReadRef = useRef(markDirectMessagesRead)
   const setMessageReactionRef = useRef(setMessageReaction)
+  const deleteOwnDirectMessageMediaRef = useRef(deleteOwnDirectMessageMedia)
   const userId = user?.id ?? ''
 
   useEffect(() => {
@@ -137,6 +154,10 @@ function Messages() {
   useEffect(() => {
     setMessageReactionRef.current = setMessageReaction
   }, [setMessageReaction])
+
+  useEffect(() => {
+    deleteOwnDirectMessageMediaRef.current = deleteOwnDirectMessageMedia
+  }, [deleteOwnDirectMessageMedia])
 
   const unreadCountsBySender = useMemo(() => {
     return directMessages.reduce((counts, directMessage) => {
@@ -300,6 +321,23 @@ function Messages() {
       setError(reactionError.message)
     }
   }, [])
+
+  const handleDeleteMedia = useCallback(async (directMessage) => {
+    if (deletingMediaId) {
+      return
+    }
+
+    setError('')
+    setDeletingMediaId(directMessage.id)
+
+    try {
+      await deleteOwnDirectMessageMediaRef.current(directMessage.id)
+    } catch (deleteError) {
+      setError(deleteError.message)
+    } finally {
+      setDeletingMediaId('')
+    }
+  }, [deletingMediaId])
 
   async function handleSend(event) {
     event.preventDefault()
@@ -473,9 +511,11 @@ function Messages() {
                         ) : null}
 
                         <DirectMessageBubble
+                          deletingMediaId={deletingMediaId}
                           directMessage={directMessage}
                           mine={mine}
                           online={isProfileOnline(selectedProfile, onlineUserIds)}
+                          onDeleteMedia={handleDeleteMedia}
                           onReact={handleReaction}
                           onReply={(directMessage) => setReplyToMessage({ threadId: selectedProfileId, message: directMessage })}
                           ownProfile={profile}

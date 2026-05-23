@@ -2036,6 +2036,57 @@ function IntelProvider({ children }) {
     return sentMessage
   }
 
+  async function deleteOwnDirectMessageMedia(messageId) {
+    if (!user) {
+      throw new Error('You must be logged in to delete DM pictures.')
+    }
+
+    const targetMessage = directMessages.find((directMessage) => directMessage.id === messageId)
+
+    if (!targetMessage?.media_url) {
+      throw new Error('This message has no picture to delete.')
+    }
+
+    if (targetMessage.sender_id !== user.id) {
+      throw new Error('Only the sender can delete this DM picture.')
+    }
+
+    const fallbackBody = targetMessage.body?.trim() ? targetMessage.body : '[image removed]'
+
+    setDirectMessages((currentMessages) =>
+      currentMessages.map((directMessage) =>
+        directMessage.id === messageId
+          ? { ...directMessage, body: fallbackBody, media_url: null, media_type: null }
+          : directMessage,
+      ),
+    )
+
+    const { data, error: deleteError } = await supabase.rpc('delete_own_direct_message_media', {
+      target_message_id: messageId,
+    })
+
+    if (deleteError) {
+      setDirectMessages((currentMessages) =>
+        currentMessages.map((directMessage) =>
+          directMessage.id === messageId
+            ? { ...directMessage, media_url: targetMessage.media_url, media_type: targetMessage.media_type, body: targetMessage.body }
+            : directMessage,
+        ),
+      )
+      throw deleteError
+    }
+
+    if (data) {
+      setDirectMessages((currentMessages) =>
+        currentMessages.map((directMessage) =>
+          directMessage.id === messageId
+            ? { ...directMessage, ...data, sender: directMessage.sender, recipient: directMessage.recipient, replyToMessage: directMessage.replyToMessage, reactions: directMessage.reactions ?? [] }
+            : directMessage,
+        ),
+      )
+    }
+  }
+
   async function markDirectMessageRead(messageId) {
     return markDirectMessagesRead([messageId])
   }
@@ -2585,6 +2636,7 @@ function IntelProvider({ children }) {
     archiveClan,
     sendPublicMessage,
     sendDirectMessage,
+    deleteOwnDirectMessageMedia,
     sendClanMessage,
     setMessageReaction,
     markPublicChatRead,

@@ -1,4 +1,4 @@
-import { Maximize2, X } from 'lucide-react'
+import { Maximize2, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -58,38 +58,57 @@ function MediaLightbox({ media, onClose }) {
   return createPortal(lightbox, document.body)
 }
 
-function MessageMedia({ mediaUrl, mediaType }) {
+function MessageMedia({ mediaUrl, mediaType, onDelete, deleting = false }) {
   const [open, setOpen] = useState(false)
   const isGif = mediaType === 'gif'
 
   if (!mediaUrl) return null
 
   const media = { mediaUrl, mediaType }
+  const deleteLabel = isGif ? 'Delete GIF from message' : 'Delete picture from message'
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="group relative mb-2 block w-full overflow-hidden rounded-xl border border-white/10 bg-black/35 text-left"
-        aria-label={isGif ? 'Open GIF preview' : 'Open image preview'}
-      >
-        <span className="chat-media-frame">
-          <img
-            src={mediaUrl}
-            alt={isGif ? 'Shared GIF' : 'Shared image'}
-            loading="lazy"
-            decoding="async"
-            draggable="false"
-          />
-        </span>
-        <span className="absolute left-2 top-2 rounded-full border border-black/30 bg-black/70 px-2 py-1 text-[0.56rem] font-black uppercase tracking-[0.16em] text-white/85">
-          {isGif ? 'GIF' : 'IMG'}
-        </span>
-        <span className="absolute bottom-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-black/70 text-white/80 opacity-0 transition group-hover:opacity-100">
-          <Maximize2 className="h-4 w-4" aria-hidden="true" />
-        </span>
-      </button>
+      <div className="relative mb-2">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="group block w-full overflow-hidden rounded-xl border border-white/10 bg-black/35 text-left"
+          aria-label={isGif ? 'Open GIF preview' : 'Open image preview'}
+        >
+          <span className="chat-media-frame">
+            <img
+              src={mediaUrl}
+              alt={isGif ? 'Shared GIF' : 'Shared image'}
+              loading="lazy"
+              decoding="async"
+              draggable="false"
+            />
+          </span>
+          <span className="absolute left-2 top-2 rounded-full border border-black/30 bg-black/70 px-2 py-1 text-[0.56rem] font-black uppercase tracking-[0.16em] text-white/85">
+            {isGif ? 'GIF' : 'IMG'}
+          </span>
+          <span className="absolute bottom-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-black/70 text-white/80 opacity-0 transition group-hover:opacity-100">
+            <Maximize2 className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </button>
+
+        {onDelete ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onDelete()
+            }}
+            disabled={deleting}
+            className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-red-400/35 bg-red-950/85 text-red-100 shadow-lg shadow-black/30 transition hover:border-red-300 hover:bg-red-500/25 disabled:opacity-60"
+            aria-label={deleteLabel}
+            title={deleteLabel}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
       {open ? <MediaLightbox media={media} onClose={() => setOpen(false)} /> : null}
     </>
   )
