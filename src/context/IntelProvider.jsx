@@ -2141,6 +2141,41 @@ function IntelProvider({ children }) {
     await refresh()
   }
 
+  async function adjustPlayerKills(playerId, killsToRemove) {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can adjust kills.')
+    }
+
+    const normalizedKillCount = Math.max(0, Math.floor(Number(killsToRemove) || 0))
+
+    if (normalizedKillCount < 1) {
+      throw new Error('Remove at least one kill.')
+    }
+
+    const { data, error: adjustError } = await supabase.rpc('moderator_adjust_player_kills', {
+      target_player_id: playerId,
+      kills_to_remove: normalizedKillCount,
+    })
+
+    if (adjustError) {
+      throw adjustError
+    }
+
+    const result = Array.isArray(data) ? data[0] : data
+
+    if (!result) {
+      throw new Error('Kill adjustment did not return a result.')
+    }
+
+    await refresh()
+
+    if ((result.removed_count ?? 0) < 1) {
+      throw new Error('No kills were available to remove.')
+    }
+
+    return result
+  }
+
   async function mutePublicChatUser(userId, minutes, reason = '') {
     if (!isModerator) {
       throw new Error('Only moderators and admins can mute public chat.')
@@ -2523,6 +2558,7 @@ function IntelProvider({ children }) {
     setPlayerVerdict,
     quarantinePlayer,
     restorePlayer,
+    adjustPlayerKills,
     registerPlayerKill,
     fetchPlayerKillLog,
     deletePlayer,

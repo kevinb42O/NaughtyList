@@ -1,4 +1,4 @@
-import { ArchiveRestore, ArchiveX, CheckCircle2, Clock, Search, ShieldAlert, ShieldCheck, Siren, Trash2, Undo2 } from 'lucide-react'
+import { ArchiveRestore, ArchiveX, CheckCircle2, Clock, Crosshair, Search, ShieldAlert, ShieldCheck, Siren, Trash2, Undo2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import EditPlayerModal from '../components/EditPlayerModal.jsx'
@@ -19,6 +19,7 @@ const verdictOptions = [
 const tabOptions = [
   { value: 'review', label: 'Review' },
   { value: 'quarantine', label: 'Quarantine' },
+  { value: 'kills', label: 'Kills' },
   { value: 'chat', label: 'Chat' },
   { value: 'mutes', label: 'Mutes' },
   { value: 'log', label: 'Log' },
@@ -40,6 +41,7 @@ function verdictMeta(value) {
 function eventLabel(event) {
   const target = event.targetProfile ? displayProfileName(event.targetProfile) : 'target'
   const status = event.details?.status ? verdictMeta(event.details.status).label : ''
+  const removedCount = Number(event.details?.removedCount ?? 0)
 
   switch (event.event_type) {
     case 'player_verdict':
@@ -48,6 +50,8 @@ function eventLabel(event) {
       return 'Quarantined operator'
     case 'player_restored':
       return 'Restored operator'
+    case 'player_kills_adjusted':
+      return removedCount > 0 ? `Removed ${removedCount} ${removedCount === 1 ? 'kill' : 'kills'}` : 'Adjusted kill count'
     case 'public_chat_muted':
       return `Muted ${target}`
     case 'public_chat_mute_cleared':
@@ -57,6 +61,30 @@ function eventLabel(event) {
     default:
       return event.event_type.replaceAll('_', ' ')
   }
+}
+
+function eventDetailsSummary(event) {
+  const details = []
+  const removedCount = Number(event.details?.removedCount ?? NaN)
+  const remainingKillCount = Number(event.details?.remainingKillCount ?? NaN)
+
+  if (Number.isFinite(removedCount) && removedCount > 0) {
+    details.push(`removed ${removedCount}`)
+  }
+
+  if (Number.isFinite(remainingKillCount)) {
+    details.push(`${remainingKillCount} remaining`)
+  }
+
+  if (event.details?.reason) {
+    details.push(event.details.reason)
+  }
+
+  if (event.details?.note) {
+    details.push(event.details.note)
+  }
+
+  return details.join(' · ')
 }
 
 function Moderator() {
@@ -73,6 +101,7 @@ function Moderator() {
     setPlayerVerdict,
     quarantinePlayer,
     restorePlayer,
+    adjustPlayerKills,
     mutePublicChatUser,
     clearPublicChatMute,
     deletePublicMessage,
@@ -84,13 +113,21 @@ function Moderator() {
   const [activeTab, setActiveTab] = useState('review')
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [killAdjustmentDrafts, setKillAdjustmentDrafts] = useState({})
 
   const normalizedQuery = query.trim().toLowerCase()
   const quarantinedPlayers = players.filter((player) => Boolean(player.quarantinedAt))
   const reviewPlayers = players.filter((player) => !player.quarantinedAt && player.moderationStatus !== 'verified' && player.moderationStatus !== 'cleared')
+  const killPlayers = players.filter((player) => (player.killCount ?? 0) > 0)
 
   const filteredPlayers = useMemo(() => {
-    const source = activeTab === 'quarantine' ? quarantinedPlayers : activeTab === 'review' ? reviewPlayers : players
+    const source = activeTab === 'quarantine'
+      ? quarantinedPlayers
+      : activeTab === 'review'
+        ? reviewPlayers
+        : activeTab === 'kills'
+          ? killPlayers
+          : players
 
     return source.filter((player) => {
       if (!normalizedQuery) {
@@ -101,7 +138,7 @@ function Moderator() {
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery))
     })
-  }, [activeTab, normalizedQuery, players, quarantinedPlayers, reviewPlayers])
+  }, [activeTab, killPlayers, normalizedQuery, players, quarantinedPlayers, reviewPlayers])
 
   const filteredMessages = useMemo(() => {
     return [...publicMessages]
@@ -120,9 +157,10 @@ function Moderator() {
   const stats = useMemo(() => ({
     review: reviewPlayers.length,
     quarantine: quarantinedPlayers.length,
+    kills: players.reduce((totalKills, player) => totalKills + (player.killCount ?? 0), 0),
     mutes: publicChatMutes.length,
     chat: publicMessages.length,
-  }), [publicChatMutes.length, publicMessages.length, quarantinedPlayers.length, reviewPlayers.length])
+  }), [players, publicChatMutes.length, publicMessages.length, quarantinedPlayers.length, reviewPlayers.length])
 
   function closeEditModal() {
     setEditingPlayer(null)
@@ -135,8 +173,8 @@ function Moderator() {
     setWorkingId(id)
 
     try {
-      await action()
-      setStatus(successMessage)
+      const nextStatus = await action()
+      setStatus(nextStatus || successMessage)
     } catch (actionError) {
       setError(actionError.message)
     } finally {
@@ -160,6 +198,63 @@ function Moderator() {
 
   async function handleRestore(player) {
     await runAction(`restore-${player.id}`, 'Operator restored.', () => restorePlayer(player.id))
+  }
+
+  function updateKillDraft(playerId, value) {
+    if (value === '') {
+      setKillAdjustmentDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [playerId]: '',
+      }))
+      return
+    }
+
+    const numericValue = Number.parseInt(value, 10)
+
+    if (Number.isNaN(numericValue)) {
+      return
+    }
+
+    setKillAdjustmentDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [playerId]: String(Math.max(0, numericValue)),
+    }))
+  }
+
+  async function handleAdjustKills(player, requestedCount) {
+    const currentKillCount = player.killCount ?? 0
+    const safeRequestedCount = Math.min(Math.max(Number(requestedCount) || 0, 0), currentKillCount)
+
+    if (currentKillCount < 1) {
+      setStatus('')
+      setError(`${player.name} has no kills to remove.`)
+      return
+    }
+
+    if (safeRequestedCount < 1) {
+      setStatus('')
+      setError('Enter a kill count to deduct.')
+      return
+    }
+
+    await runAction(`kills-${player.id}`, 'Kill count adjusted.', async () => {
+      const result = await adjustPlayerKills(player.id, safeRequestedCount)
+      const removedCount = result.removed_count ?? safeRequestedCount
+      const remainingKillCount = result.remaining_kill_count ?? Math.max(currentKillCount - removedCount, 0)
+
+      setKillAdjustmentDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [player.id]: remainingKillCount > 0 ? String(Math.min(safeRequestedCount, remainingKillCount)) : '',
+      }))
+
+      return remainingKillCount === 0
+        ? `Cleared all kills for ${player.name}.`
+        : `Removed ${removedCount} ${removedCount === 1 ? 'kill' : 'kills'} from ${player.name}. ${remainingKillCount} remain.`
+    })
+  }
+
+  async function handleClearKills(player) {
+    await handleAdjustKills(player, player.killCount ?? 0)
   }
 
   async function handleDeleteMessage(messageId) {
@@ -225,7 +320,7 @@ function Moderator() {
           <RoleBadge role={role} />
         </div>
 
-        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,130px))]">
+        <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(5,minmax(0,120px))]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-red-200" aria-hidden="true" />
             <input
@@ -237,6 +332,7 @@ function Moderator() {
           </div>
           <StatBlock label="Review" value={stats.review} />
           <StatBlock label="Hidden" value={stats.quarantine} />
+          <StatBlock label="Kills" value={stats.kills} />
           <StatBlock label="Mutes" value={stats.mutes} />
           <StatBlock label="Chat" value={stats.chat} />
         </div>
@@ -271,6 +367,17 @@ function Moderator() {
             onVerdict={handleVerdict}
             onQuarantine={handleQuarantine}
             onRestore={handleRestore}
+          />
+        ) : null}
+
+        {activeTab === 'kills' ? (
+          <KillQueue
+            players={filteredPlayers}
+            workingId={workingId}
+            killAdjustmentDrafts={killAdjustmentDrafts}
+            onDraftChange={updateKillDraft}
+            onDeduct={handleAdjustKills}
+            onClearAll={handleClearKills}
           />
         ) : null}
 
@@ -417,6 +524,104 @@ function ChatQueue({ messages, workingId, currentUserId, onDelete, onMute }) {
   )
 }
 
+function KillQueue({ players, workingId, killAdjustmentDrafts, onDraftChange, onDeduct, onClearAll }) {
+  if (!players.length) {
+    return <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">No logged kills to adjust right now.</div>
+  }
+
+  const sortedPlayers = [...players].sort((firstPlayer, secondPlayer) => {
+    const killDifference = (secondPlayer.killCount ?? 0) - (firstPlayer.killCount ?? 0)
+
+    if (killDifference !== 0) {
+      return killDifference
+    }
+
+    return firstPlayer.name.localeCompare(secondPlayer.name)
+  })
+
+  return (
+    <div className="mt-4 grid gap-3">
+      {sortedPlayers.map((player) => {
+        const currentKillCount = player.killCount ?? 0
+        const draftValue = killAdjustmentDrafts[player.id] ?? ''
+        const requestedCount = Number.parseInt(draftValue, 10)
+        const safeRequestedCount = Number.isNaN(requestedCount)
+          ? 0
+          : Math.min(Math.max(requestedCount, 0), currentKillCount)
+        const lastKillClanTag = player.lastKillClanTag || player.lastKillProfileClanTag
+        const clearWorking = workingId === `kills-${player.id}`
+
+        return (
+          <article key={player.id} className="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="truncate text-lg font-black uppercase tracking-[0.04em] text-white">{player.name}</h2>
+                  <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">
+                    {currentKillCount} {currentKillCount === 1 ? 'kill' : 'kills'}
+                  </span>
+                </div>
+
+                {player.lastKillAt ? (
+                  <p className="mt-2 text-sm font-bold text-gray-400">
+                    Latest logger: {lastKillClanTag ? `[${lastKillClanTag}] ` : ''}{player.lastKillDisplayName || 'Operator'} · {formatDateTime(player.lastKillAt)}
+                  </p>
+                ) : null}
+
+                <p className="mt-2 text-xs font-black uppercase tracking-[0.16em] text-gray-500">
+                  Result after deduction: {Math.max(currentKillCount - safeRequestedCount, 0)} kills
+                </p>
+              </div>
+
+              <div className="w-full rounded-2xl border border-white/10 bg-black/30 p-3 lg:max-w-md">
+                <div className="mb-2 flex items-center gap-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
+                  <Crosshair className="h-4 w-4 text-red-100" aria-hidden="true" />
+                  Kill control
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    type="number"
+                    min="1"
+                    max={currentKillCount}
+                    inputMode="numeric"
+                    value={draftValue}
+                    onChange={(event) => onDraftChange(player.id, event.target.value)}
+                    className="field min-h-11 w-full text-center sm:w-24"
+                    placeholder="0"
+                    aria-label={`Kills to deduct for ${player.name}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onDeduct(player, safeRequestedCount)}
+                    disabled={clearWorking || safeRequestedCount < 1}
+                    className="mod-button border-yellow-500/50 bg-yellow-500/12 text-yellow-100 hover:bg-yellow-500/20"
+                  >
+                    Deduct
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onClearAll(player)}
+                    disabled={clearWorking || currentKillCount < 1}
+                    className="mod-button border-red-500/50 bg-red-500/12 text-red-100 hover:bg-red-500/20"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Clear All
+                  </button>
+                </div>
+
+                <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
+                  Deduction clamps at zero automatically.
+                </p>
+              </div>
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
 function MuteQueue({ mutes, workingId, onClear }) {
   if (!mutes.length) {
     return <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/25 p-5 text-sm font-bold text-gray-500">No active public chat mutes.</div>
@@ -458,7 +663,7 @@ function ActionLog({ events }) {
             <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">{formatDateTime(event.created_at)}</span>
           </div>
           <p className="mt-2 text-sm text-gray-500">
-            By {displayProfileName(event.actorProfile)}{event.details?.reason ? ` · ${event.details.reason}` : ''}{event.details?.note ? ` · ${event.details.note}` : ''}
+            By {displayProfileName(event.actorProfile)}{eventDetailsSummary(event) ? ` · ${eventDetailsSummary(event)}` : ''}
           </p>
         </article>
       ))}
