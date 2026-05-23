@@ -1,4 +1,4 @@
-import { Banknote, BadgeCheck, Check, Copy, EyeOff, HeartHandshake, Lock, QrCode, ShieldCheck } from 'lucide-react'
+import { Banknote, BadgeCheck, Check, Coffee, Copy, ExternalLink, EyeOff, HeartHandshake, Lock, QrCode, ShieldCheck } from 'lucide-react'
 import QRCode from 'qrcode'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -11,6 +11,7 @@ const bankTransferReferencePrefix = '21RATS'
 const bankTransferIban = 'BE43 7380 0488 6701'
 const bankTransferIbanCompact = bankTransferIban.replace(/\s+/g, '')
 const bankTransferName = '21RATS'
+const kofiSupportUrl = 'https://ko-fi.com/delantaarn'
 
 function parseEuroAmount(value) {
   const normalized = String(value ?? '').trim().replace(',', '.')
@@ -201,6 +202,16 @@ function Support() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
+              <a
+                href={kofiSupportUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-400/45 bg-red-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/22"
+              >
+                <Coffee className="h-4 w-4" aria-hidden="true" />
+                Pay with Ko-fi
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
               <div className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-5 text-sm font-black uppercase tracking-[0.18em] text-emerald-100">
                 <QrCode className="h-4 w-4" aria-hidden="true" />
                 {selectedAmountCents > 0 ? `QR ${formatDonationAmount(selectedAmountCents)}` : 'QR Open Amount'}
@@ -275,6 +286,35 @@ function Support() {
               </p>
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section className="panel rounded-[1.8rem] p-5 sm:p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <Coffee className="h-5 w-5 text-red-100" aria-hidden="true" />
+          <div>
+            <p className="intel-label">Ko-fi</p>
+            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Fast card payment</h2>
+          </div>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="rounded-[1.3rem] border border-white/10 bg-black/25 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500">Reward Reference</p>
+            <p className="mt-2 break-words font-mono text-sm font-black text-white">{transferReference}</p>
+            <p className="mt-3 text-sm leading-6 text-gray-400">
+              Add this reference to the Ko-fi message so the supporter reward can be attached to {attachedProfileLabel}.
+            </p>
+          </div>
+          <a
+            href={kofiSupportUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-red-400/45 bg-red-500/14 px-6 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/22"
+          >
+            <Coffee className="h-4 w-4" aria-hidden="true" />
+            Open Ko-fi
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          </a>
         </div>
       </section>
 
