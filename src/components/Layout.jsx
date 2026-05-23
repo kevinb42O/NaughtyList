@@ -233,7 +233,7 @@ function Layout() {
                         ? 'border-red-500/50 bg-red-500/12 text-red-100'
                       : dropping
                         ? 'border-white/10 bg-white/5 text-gray-500 opacity-60'
-                        : 'border-yellow-400/40 bg-yellow-400/10 text-yellow-100 hover:bg-yellow-400/20',
+                        : 'drop-in-ready border-yellow-400/40 bg-yellow-400/10 text-yellow-100 hover:bg-yellow-400/20',
                   ].join(' ')}
                 >
                   <Zap className="h-3.5 w-3.5" aria-hidden="true" />

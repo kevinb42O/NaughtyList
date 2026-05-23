@@ -431,6 +431,56 @@ button:disabled {
   .daily-ops-claim-ready > svg {
     animation: daily-ops-claim-icon 1.25s ease-in-out infinite;
   }
+
+  .drop-in-ready {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-color: rgb(250 204 21 / 0.55);
+    background: linear-gradient(180deg, rgb(250 204 21 / 0.18), rgb(234 179 8 / 0.1));
+    box-shadow:
+      inset 0 0 0 1px rgb(254 240 138 / 0.2),
+      0 0 20px rgb(250 204 21 / 0.2);
+    will-change: transform;
+  }
+
+  .drop-in-ready::before {
+    content: "";
+    position: absolute;
+    inset: -120%;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, rgb(254 240 138 / 0.25) 0%, rgb(250 204 21 / 0.04) 44%, transparent 68%);
+    animation: drop-in-aura 2.8s ease-in-out infinite;
+  }
+
+  .drop-in-ready::after {
+    content: "";
+    position: absolute;
+    inset: -38% -18%;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(118deg, transparent 34%, rgb(254 240 138 / 0.38), transparent 62%);
+    transform: translateX(-68%) skewX(-14deg);
+    animation: drop-in-sweep 3.2s ease-in-out infinite;
+  }
+
+  .drop-in-ready > svg,
+  .drop-in-ready > span {
+    position: relative;
+    z-index: 1;
+  }
+
+  .drop-in-ready > svg {
+    animation: drop-in-zap 1.9s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .drop-in-ready:hover {
+    box-shadow:
+      inset 0 0 0 1px rgb(254 240 138 / 0.26),
+      0 0 26px rgb(250 204 21 / 0.3);
+  }
 }
 
 @keyframes daily-ops-scan {
@@ -502,10 +552,58 @@ button:disabled {
   }
 }
 
+@keyframes drop-in-aura {
+  0%,
+  100% {
+    opacity: 0.56;
+    transform: scale(0.86);
+  }
+
+  50% {
+    opacity: 0.92;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes drop-in-sweep {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateX(-70%) skewX(-14deg);
+  }
+
+  58% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(70%) skewX(-14deg);
+  }
+}
+
+@keyframes drop-in-zap {
+  0%,
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+
+  45% {
+    transform: translateY(-1px) scale(1.1) rotate(-5deg);
+  }
+
+  72% {
+    transform: translateY(0) scale(1.04) rotate(3deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .daily-ops-claim-ready,
   .daily-ops-claim-ready::before,
-  .daily-ops-claim-ready > svg {
+  .daily-ops-claim-ready > svg,
+  .drop-in-ready::before,
+  .drop-in-ready::after,
+  .drop-in-ready > svg {
     animation: none;
   }
 }
