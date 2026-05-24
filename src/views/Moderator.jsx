@@ -50,6 +50,10 @@ function eventLabel(event) {
       return `Cleared mute for ${target}`
     case 'public_chat_deleted':
       return `Deleted public chat from ${target}`
+    case 'public_chat_pruned':
+      return 'Pruned old public chat'
+    case 'public_chat_cleared':
+      return 'Cleared public chat'
     default:
       return event.event_type.replaceAll('_', ' ')
   }
@@ -72,6 +76,14 @@ function eventDetailsSummary(event) {
     details.push(event.details.reason)
   }
 
+  if (Number.isFinite(Number(event.details?.deletedCount))) {
+    details.push(`${Number(event.details.deletedCount)} deleted`)
+  }
+
+  if (Number.isFinite(Number(event.details?.olderThanDays))) {
+    details.push(`older than ${Number(event.details.olderThanDays)} days`)
+  }
+
   if (event.details?.note) {
     details.push(event.details.note)
   }
@@ -84,6 +96,7 @@ function Moderator({ embedded = false }) {
     user,
     isAuthenticated,
     isModerator,
+    isAdmin,
     role,
     profileDisplayName,
     players,
@@ -97,6 +110,7 @@ function Moderator({ embedded = false }) {
     mutePublicChatUser,
     clearPublicChatMute,
     deletePublicMessage,
+    prunePublicChat,
   } = useIntel()
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
@@ -242,6 +256,30 @@ function Moderator({ embedded = false }) {
     await runAction(`message-${messageId}`, 'Public chat message deleted.', () => deletePublicMessage(messageId))
   }
 
+  async function handlePrunePublicChat({ olderThanDays = 3, clearAll = false }) {
+    const normalizedDays = Math.max(1, Math.floor(Number(olderThanDays) || 3))
+    const confirmation = clearAll
+      ? window.prompt('This clears all public chat history. Type CLEAR PUBLIC CHAT to continue.')
+      : window.confirm(`Delete public chat messages older than ${normalizedDays} days?`)
+
+    if (clearAll ? confirmation !== 'CLEAR PUBLIC CHAT' : !confirmation) {
+      return
+    }
+
+    await runAction(
+      clearAll ? 'prune-public-chat-all' : `prune-public-chat-${normalizedDays}`,
+      clearAll ? 'Public chat cleared.' : 'Old public chat pruned.',
+      async () => {
+        const result = await prunePublicChat({ olderThanDays: normalizedDays, clearAll })
+        const count = result.deletedCount ?? 0
+
+        return clearAll
+          ? `Cleared ${count} public chat ${count === 1 ? 'message' : 'messages'}.`
+          : `Deleted ${count} public chat ${count === 1 ? 'message' : 'messages'} older than ${normalizedDays} days.`
+      },
+    )
+  }
+
   async function handleMute(message, minutes) {
     if (!message.user_id || message.user_id === user?.id) return
     const reason = window.prompt(`Mute ${displayProfileName(message.profile)} for ${minutes} minutes?`, 'Public chat cleanup')
@@ -368,6 +406,11 @@ function Moderator({ embedded = false }) {
       </CollapsiblePanel>
 
       <CollapsiblePanel className="mt-5" defaultOpen={false} eyebrow="Chat" title="Public Chat Cleanup" description="Delete public messages or apply short cooldown mutes." icon={Trash2} meta={`${stats.chat} messages`}>
+        <PublicChatRetentionControls
+          isAdmin={isAdmin}
+          workingId={workingId}
+          onPrune={handlePrunePublicChat}
+        />
         <ChatQueue
           messages={filteredMessages}
           workingId={workingId}
@@ -475,6 +518,46 @@ function PlayerQueue({ activeTab, players, workingId, onEdit, onVerdict, onQuara
           </article>
         )
       })}
+    </div>
+  )
+}
+
+function PublicChatRetentionControls({ isAdmin, workingId, onPrune }) {
+  const pruneWorking = workingId === 'prune-public-chat-3'
+  const clearWorking = workingId === 'prune-public-chat-all'
+
+  return (
+    <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-lg font-black uppercase tracking-[0.04em] text-white">Retention</p>
+          <p className="mt-1 text-sm font-bold leading-6 text-gray-500">
+            Keep recent context, remove old public history, and log every cleanup action.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onPrune({ olderThanDays: 3 })}
+            disabled={pruneWorking}
+            className="mod-button border-green-500/50 bg-green-500/12 text-green-100 hover:bg-green-500/20"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            Older Than 3d
+          </button>
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={() => onPrune({ clearAll: true })}
+              disabled={clearWorking}
+              className="mod-button border-red-500/50 bg-red-500/12 text-red-100 hover:bg-red-500/20"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Clear All
+            </button>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }

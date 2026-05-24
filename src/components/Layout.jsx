@@ -46,8 +46,20 @@ function Layout() {
   useEffect(() => {
     const root = document.documentElement
     const textInputSelector = 'input, textarea, select, [contenteditable="true"]'
+    let frameId = 0
 
     function updateVisualViewportBottom() {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId)
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0
+        measureVisualViewport()
+      })
+    }
+
+    function measureVisualViewport() {
       const visualViewport = window.visualViewport
       const viewportHeight = visualViewport?.height ?? window.innerHeight
       const bottomOffset = visualViewport
@@ -56,6 +68,7 @@ function Layout() {
       const activeElement = document.activeElement
       const textFieldFocused = Boolean(activeElement?.matches?.(textInputSelector))
       const phoneViewport = window.matchMedia('(max-width: 640px)').matches
+      const keyboardVisible = phoneViewport && (textFieldFocused || bottomOffset > 120)
 
       if (bottomNavRef.current) {
         root.style.setProperty('--mobile-bottom-nav-height', `${Math.round(bottomNavRef.current.offsetHeight)}px`)
@@ -63,7 +76,7 @@ function Layout() {
 
       root.style.setProperty('--visual-viewport-height', `${Math.round(viewportHeight)}px`)
       root.style.setProperty('--visual-viewport-bottom', `${Math.round(bottomOffset)}px`)
-      setKeyboardActive(textFieldFocused && phoneViewport)
+      setKeyboardActive(keyboardVisible)
     }
 
     updateVisualViewportBottom()
@@ -71,14 +84,17 @@ function Layout() {
     window.addEventListener('focusin', updateVisualViewportBottom)
     window.addEventListener('focusout', updateVisualViewportBottom)
     window.visualViewport?.addEventListener('resize', updateVisualViewportBottom)
-    window.visualViewport?.addEventListener('scroll', updateVisualViewportBottom)
+    window.screen.orientation?.addEventListener?.('change', updateVisualViewportBottom)
 
     return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId)
+      }
       window.removeEventListener('resize', updateVisualViewportBottom)
       window.removeEventListener('focusin', updateVisualViewportBottom)
       window.removeEventListener('focusout', updateVisualViewportBottom)
       window.visualViewport?.removeEventListener('resize', updateVisualViewportBottom)
-      window.visualViewport?.removeEventListener('scroll', updateVisualViewportBottom)
+      window.screen.orientation?.removeEventListener?.('change', updateVisualViewportBottom)
       root.style.removeProperty('--visual-viewport-bottom')
       root.style.removeProperty('--visual-viewport-height')
       root.style.removeProperty('--mobile-bottom-nav-height')

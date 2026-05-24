@@ -52,7 +52,7 @@ function MediaComposer({
     const textArea = textAreaRef.current
     if (!textArea) return
 
-    textArea.style.height = '0px'
+    textArea.style.height = 'auto'
     textArea.style.height = `${Math.min(textArea.scrollHeight, 128)}px`
   }, [value])
 

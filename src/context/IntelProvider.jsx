@@ -150,6 +150,15 @@ function isMissingReplyColumnError(error) {
   )
 }
 
+function isMissingPushSubscriptionAuditFunctionError(error) {
+  const message = `${error?.code ?? ''} ${error?.message ?? ''} ${error?.details ?? ''} ${error?.hint ?? ''}`.toLowerCase()
+  return message.includes('admin_push_subscription_audit') && (
+    message.includes('schema cache') ||
+    message.includes('does not exist') ||
+    message.includes('could not find')
+  )
+}
+
 function sortReactions(reactions = []) {
   return [...reactions].sort((first, second) => {
     const createdAtComparison = String(first.created_at ?? '').localeCompare(String(second.created_at ?? ''))
@@ -334,6 +343,8 @@ function IntelProvider({ children }) {
     sent_notifications: 0,
   })
   const [pushEvents, setPushEvents] = useState([])
+  const [pushAudience, setPushAudience] = useState([])
+  const [pushAudienceAvailable, setPushAudienceAvailable] = useState(null)
   const [donations, setDonations] = useState([])
   const [supporterWall, setSupporterWall] = useState([])
   const [publicChatMutes, setPublicChatMutes] = useState([])
@@ -2141,6 +2152,41 @@ function IntelProvider({ children }) {
     await fetchModerationEvents()
   }
 
+  async function prunePublicChat({ olderThanDays = 3, clearAll = false } = {}) {
+    if (!isModerator) {
+      throw new Error('Only moderators and admins can prune public chat.')
+    }
+
+    if (clearAll && !isAdmin) {
+      throw new Error('Only admins can clear all public chat.')
+    }
+
+    const normalizedDays = Math.max(1, Math.floor(Number(olderThanDays) || 3))
+    const { data, error: pruneError } = await supabase.rpc('prune_public_chat_messages', {
+      older_than_days: normalizedDays,
+      clear_all: Boolean(clearAll),
+    })
+
+    if (pruneError) {
+      throw pruneError
+    }
+
+    const result = Array.isArray(data) ? data[0] : data
+    const deletedCount = Number(result?.deleted_count ?? 0)
+
+    if (clearAll) {
+      setPublicMessages([])
+    } else {
+      const cutoffTime = Date.now() - normalizedDays * 24 * 60 * 60 * 1000
+      setPublicMessages((currentMessages) =>
+        currentMessages.filter((message) => new Date(message.created_at).getTime() >= cutoffTime),
+      )
+    }
+
+    await fetchModerationEvents()
+    return { deletedCount }
+  }
+
   async function setPlayerVerdict(playerId, nextStatus, note = '') {
     if (!isModerator) {
       throw new Error('Only moderators and admins can update verdicts.')
@@ -2511,19 +2557,35 @@ function IntelProvider({ children }) {
     if (!isAdmin) {
       setPushSummary({ subscribed_users: 0, active_subscriptions: 0, sent_notifications: 0 })
       setPushEvents([])
+      setPushAudience([])
+      setPushAudienceAvailable(null)
       return null
     }
 
-    const { data, error: pushError } = await withTimeout(
-      supabase.functions.invoke('send-push', {
-        body: { type: 'push-stats' },
-      }),
-      12000,
-      'Push console request timed out.',
-    )
+    const [
+      { data, error: pushError },
+      { data: audienceRows, error: audienceError },
+    ] = await Promise.all([
+      withTimeout(
+        supabase.functions.invoke('send-push', {
+          body: { type: 'push-stats' },
+        }),
+        12000,
+        'Push console request timed out.',
+      ),
+      withTimeout(
+        supabase.rpc('admin_push_subscription_audit'),
+        12000,
+        'Push subscriber audit request timed out.',
+      ),
+    ])
 
     if (pushError) {
       throw pushError
+    }
+
+    if (audienceError && !isMissingPushSubscriptionAuditFunctionError(audienceError)) {
+      throw audienceError
     }
 
     const nextSummary = data?.summary ?? {
@@ -2531,9 +2593,17 @@ function IntelProvider({ children }) {
       active_subscriptions: 0,
       sent_notifications: 0,
     }
+    const audienceAvailable = !audienceError
+
     setPushSummary(nextSummary)
     setPushEvents(data?.events ?? [])
-    return data
+    setPushAudience(audienceAvailable ? audienceRows ?? [] : [])
+    setPushAudienceAvailable(audienceAvailable)
+    return {
+      ...data,
+      audience: audienceAvailable ? audienceRows ?? [] : [],
+      audienceAvailable,
+    }
   }, [isAdmin])
 
   const sendCustomPush = useCallback(async ({ title, body, url }) => {
@@ -2582,6 +2652,8 @@ function IntelProvider({ children }) {
     clanInvites,
     pushSummary,
     pushEvents,
+    pushAudience,
+    pushAudienceAvailable,
     donations,
     supporterWall,
     dailyCheckInResult,
@@ -2643,6 +2715,7 @@ function IntelProvider({ children }) {
     markDirectMessageRead,
     markDirectMessagesRead,
     deletePublicMessage,
+    prunePublicChat,
     mutePublicChatUser,
     clearPublicChatMute,
     deleteClanMessage,

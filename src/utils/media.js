@@ -39,11 +39,11 @@ export function getImageContentType(file) {
   return imageTypesByExtension.get(extension) ?? ''
 }
 
-function uploadWithProgress(uploadUrl, file, onProgress) {
+function uploadWithProgress(uploadUrl, file, contentType, onProgress) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest()
     request.open('PUT', uploadUrl)
-    request.setRequestHeader('Content-Type', file.type)
+    request.setRequestHeader('Content-Type', contentType)
 
     request.upload.onprogress = (event) => {
       if (!event.lengthComputable || typeof onProgress !== 'function') return
@@ -56,19 +56,23 @@ function uploadWithProgress(uploadUrl, file, onProgress) {
         return
       }
 
-      reject(new Error('Image upload failed. Check the R2 bucket CORS settings.'))
+      reject(new Error(`Image upload failed (${request.status}).`))
     }
 
     request.onerror = () => reject(new Error('Image upload failed.'))
+    request.ontimeout = () => reject(new Error('Image upload timed out.'))
+    request.timeout = 60000
     request.send(file)
   })
 }
 
-async function uploadImage(supabase, file, onProgress) {
-  validateImageFile(file)
-  const contentType = getImageContentType(file)
-  onProgress?.(1)
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
+async function createUploadUrl(supabase, file, contentType) {
   const { data, error } = await supabase.functions.invoke('get-upload-url', {
     body: {
       fileName: file.name,
@@ -89,7 +93,29 @@ async function uploadImage(supabase, file, onProgress) {
     throw new Error('Upload service returned an invalid response.')
   }
 
-  await uploadWithProgress(data.uploadUrl, file, onProgress)
+  return data
+}
+
+async function uploadImage(supabase, file, onProgress) {
+  validateImageFile(file)
+  const contentType = getImageContentType(file)
+  onProgress?.(1)
+
+  let data
+  try {
+    data = await createUploadUrl(supabase, file, contentType)
+  } catch {
+    await wait(350)
+    data = await createUploadUrl(supabase, file, contentType)
+  }
+
+  try {
+    await uploadWithProgress(data.uploadUrl, file, contentType, onProgress)
+  } catch {
+    onProgress?.(1)
+    await uploadWithProgress(data.uploadUrl, file, contentType, onProgress)
+  }
+
   onProgress?.(100)
 
   return data.publicUrl

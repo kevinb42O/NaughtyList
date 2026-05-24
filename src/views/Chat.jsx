@@ -1,5 +1,5 @@
 import { Crown, Eye, MessageSquare, Reply, Shield } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
 import MediaComposer from '../components/MediaComposer.jsx'
@@ -154,6 +154,7 @@ function Chat() {
   const [clanMessageState, setClanMessageState] = useState({ clanId: '', messages: [] })
   const [clanLoading, setClanLoading] = useState(false)
   const [replyToMessage, setReplyToMessage] = useState(null)
+  const sendingRef = useRef(false)
   const myClanId = myClan?.id ?? ''
 
   const availableClanRooms = useMemo(() => {
@@ -325,10 +326,11 @@ function Chat() {
     const nextMedia = pendingMedia
     const nextReplyToMessage = activeRoom === 'public' ? activeReplyToMessage : null
 
-    if (sending || (!nextMessage && !nextMedia?.mediaUrl)) {
+    if (sendingRef.current || (!nextMessage && !nextMedia?.mediaUrl)) {
       return
     }
 
+    sendingRef.current = true
     setSending(true)
     setError('')
     setMessage('')
@@ -370,6 +372,7 @@ function Chat() {
       setReplyToMessage(nextReplyToMessage ? { roomKey: activeRoomKey, message: nextReplyToMessage } : null)
       setError(chatError.message)
     } finally {
+      sendingRef.current = false
       setSending(false)
     }
   }

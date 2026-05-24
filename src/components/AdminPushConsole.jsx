@@ -1,7 +1,12 @@
-import { Bell, Clock3, Link as LinkIcon, RefreshCcw, Send, Smartphone, Sparkles, Trash2, Users } from 'lucide-react'
+import { Bell, Clock3, Link as LinkIcon, RefreshCcw, Search, Send, Smartphone, Sparkles, Trash2, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useIntel } from '../context/useIntel.js'
+import { formatEuropeanDateTime } from '../utils/dates.js'
+import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
 import CollapsiblePanel from './CollapsiblePanel.jsx'
+import OnlineDot from './OnlineDot.jsx'
+import RoleBadge from './RoleBadge.jsx'
 
 const maxTitleLength = 120
 const maxBodyLength = 400
@@ -47,8 +52,14 @@ const urlPresets = [
   { label: 'Profile', value: '/profile' },
 ]
 
+const audienceFilters = [
+  { value: 'all', label: 'All' },
+  { value: 'enabled', label: 'Enabled' },
+  { value: 'missing', label: 'Missing' },
+]
+
 function AdminPushConsole() {
-  const { pushSummary, pushEvents, fetchPushConsole, sendCustomPush } = useIntel()
+  const { pushSummary, pushEvents, pushAudience, pushAudienceAvailable, profiles, onlineUserIds, fetchPushConsole, sendCustomPush } = useIntel()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [url, setUrl] = useState('/')
@@ -56,12 +67,23 @@ function AdminPushConsole() {
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [working, setWorking] = useState(false)
+  const [audienceFilter, setAudienceFilter] = useState('all')
+  const [audienceQuery, setAudienceQuery] = useState('')
 
   const subscribedUsers = Number(pushSummary?.subscribed_users ?? 0)
   const activeDevices = Number(pushSummary?.active_subscriptions ?? 0)
   const sentNotifications = Number(pushSummary?.sent_notifications ?? 0)
+  const totalProfiles = profiles.length
+  const missingSetupCount = Math.max(totalProfiles - subscribedUsers, 0)
+  const setupCoverage = totalProfiles ? Math.round((subscribedUsers / totalProfiles) * 100) : 0
 
   const canSend = title.trim() && body.trim() && !working && activeDevices > 0
+  const normalizedAudienceQuery = audienceQuery.trim().toLowerCase()
+
+  const pushAudienceByUserId = useMemo(
+    () => new Map(pushAudience.map((entry) => [entry.user_id, entry])),
+    [pushAudience],
+  )
 
   const preview = useMemo(
     () => ({
@@ -70,6 +92,55 @@ function AdminPushConsole() {
     }),
     [body, title],
   )
+
+  const roster = useMemo(() => {
+    return [...profiles]
+      .map((nextProfile) => {
+        const audienceEntry = pushAudienceByUserId.get(nextProfile.id)
+        const deviceCount = Number(audienceEntry?.device_count ?? 0)
+
+        return {
+          profile: nextProfile,
+          deviceCount,
+          online: isProfileOnline(nextProfile, onlineUserIds),
+          hasPushEnabled: deviceCount > 0,
+          firstEnabledAt: audienceEntry?.first_enabled_at ?? null,
+          latestEnabledAt: audienceEntry?.latest_enabled_at ?? null,
+        }
+      })
+      .filter((entry) => {
+        const matchesFilter =
+          audienceFilter === 'all' ||
+          (audienceFilter === 'enabled' ? entry.hasPushEnabled : !entry.hasPushEnabled)
+        const matchesQuery =
+          !normalizedAudienceQuery ||
+          displayProfileName(entry.profile).toLowerCase().includes(normalizedAudienceQuery) ||
+          entry.profile.clan_tag?.toLowerCase().includes(normalizedAudienceQuery) ||
+          entry.profile.id.toLowerCase().includes(normalizedAudienceQuery)
+
+        return matchesFilter && matchesQuery
+      })
+      .sort((first, second) => {
+        if (first.hasPushEnabled !== second.hasPushEnabled) {
+          return Number(second.hasPushEnabled) - Number(first.hasPushEnabled)
+        }
+
+        if (first.deviceCount !== second.deviceCount) {
+          return second.deviceCount - first.deviceCount
+        }
+
+        const latestEnabledComparison = String(second.latestEnabledAt ?? '').localeCompare(String(first.latestEnabledAt ?? ''))
+        if (latestEnabledComparison !== 0) {
+          return latestEnabledComparison
+        }
+
+        if (first.online !== second.online) {
+          return Number(second.online) - Number(first.online)
+        }
+
+        return displayProfileName(first.profile).localeCompare(displayProfileName(second.profile))
+      })
+  }, [audienceFilter, normalizedAudienceQuery, onlineUserIds, profiles, pushAudienceByUserId])
 
   useEffect(() => {
     fetchPushConsole().catch((pushError) => setError(pushError.message))
@@ -152,22 +223,149 @@ function AdminPushConsole() {
         </button>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
           <Users className="mb-3 h-5 w-5 text-cyan-100" aria-hidden="true" />
           <p className="text-3xl font-black text-white">{subscribedUsers}</p>
-          <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/70">Abonnees</p>
+          <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/70">Push Enabled</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
           <Smartphone className="mb-3 h-5 w-5 text-gray-300" aria-hidden="true" />
           <p className="text-3xl font-black text-white">{activeDevices}</p>
           <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-500">Devices</p>
         </div>
+        <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4">
+          <Bell className="mb-3 h-5 w-5 text-amber-100" aria-hidden="true" />
+          <p className="text-3xl font-black text-white">{missingSetupCount}</p>
+          <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-amber-100/70">Needs Setup</p>
+        </div>
         <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-4">
           <Bell className="mb-3 h-5 w-5 text-red-100" aria-hidden="true" />
           <p className="text-3xl font-black text-white">{sentNotifications}</p>
-          <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100/70">Verzonden</p>
+          <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100/70">Sent</p>
         </div>
+      </div>
+
+      <div className="mb-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+        <div className="mb-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="intel-label">Phone Setup Audit</p>
+            <p className="mt-1 text-sm font-bold text-gray-400">
+              Admin-only view of which accounts currently have phone notifications enabled. Coverage: {setupCoverage}%.
+            </p>
+          </div>
+
+          {pushAudienceAvailable === false ? null : (
+            <div className="grid gap-3 xl:min-w-[460px] xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-100/70" aria-hidden="true" />
+                <input
+                  value={audienceQuery}
+                  onChange={(event) => setAudienceQuery(event.target.value)}
+                  className="field min-h-11 pl-11"
+                  placeholder="Search profile, clan tag, or user ID"
+                />
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {audienceFilters.map((filterOption) => {
+                  const count =
+                    filterOption.value === 'enabled'
+                      ? subscribedUsers
+                      : filterOption.value === 'missing'
+                        ? missingSetupCount
+                        : totalProfiles
+
+                  return (
+                    <button
+                      key={filterOption.value}
+                      type="button"
+                      onClick={() => setAudienceFilter(filterOption.value)}
+                      className={`rounded-full border px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition ${
+                        audienceFilter === filterOption.value
+                          ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
+                          : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200'
+                      }`}
+                    >
+                      {filterOption.label} {count}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {pushAudienceAvailable === false ? (
+          <p className="rounded-xl border border-dashed border-amber-400/30 bg-amber-400/10 p-4 text-sm font-bold text-amber-100">
+            Detailed per-user push setup requires the latest database migration. Aggregate stats still work, but the roster is hidden until
+            the new admin audit function is available.
+          </p>
+        ) : (
+          <div className="grid gap-3">
+            {roster.length ? (
+              roster.map((entry) => (
+                <article
+                  key={entry.profile.id}
+                  className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+                    entry.hasPushEnabled
+                      ? 'border-emerald-400/20 bg-emerald-400/8'
+                      : 'border-white/10 bg-white/5'
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <OnlineDot online={entry.online} label={false} />
+                      <p className="truncate text-sm font-black uppercase tracking-[0.04em] text-white">
+                        {clanPrefix(entry.profile)} {displayProfileName(entry.profile)}
+                      </p>
+                      <RoleBadge role={entry.profile.role} compact />
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] ${
+                          entry.hasPushEnabled
+                            ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100'
+                            : 'border-amber-400/35 bg-amber-400/10 text-amber-100'
+                        }`}
+                      >
+                        {entry.hasPushEnabled ? 'Push Enabled' : 'Needs Setup'}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-gray-400">
+                      <span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1">
+                        {entry.deviceCount} device{entry.deviceCount === 1 ? '' : 's'}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1">
+                        Last enabled {formatEuropeanDateTime(entry.latestEnabledAt, 'never')}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1">
+                        First enabled {formatEuropeanDateTime(entry.firstEnabledAt, 'never')}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1">
+                        Seen {formatEuropeanDateTime(entry.profile.last_seen)}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 truncate text-xs font-bold text-gray-500">{entry.profile.id}</p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <Link
+                      to={`/messages?to=${entry.profile.id}`}
+                      className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-400/20"
+                    >
+                      DM
+                    </Link>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-xl border border-dashed border-white/10 bg-white/5 p-4 text-sm font-bold text-gray-500">
+                No profiles match the current push setup filter.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mb-5 rounded-2xl border border-white/10 bg-black/25 p-4">
