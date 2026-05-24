@@ -38,7 +38,10 @@ function AddPlayerModal({ open, onClose }) {
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    window.setTimeout(() => dialogRef.current?.focus(), 0)
+    window.setTimeout(() => {
+      dialogRef.current?.scrollTo({ top: 0 })
+      dialogRef.current?.focus({ preventScroll: true })
+    }, 0)
 
     return () => {
       document.body.style.overflow = previousOverflow
@@ -111,22 +114,22 @@ function AddPlayerModal({ open, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/80 px-3 py-4 backdrop-blur-md sm:px-5 sm:py-8">
+    <div className="fixed inset-0 z-[80] h-[var(--visual-viewport-height)] overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-md sm:px-5 sm:py-8">
       <button
         type="button"
-        className="fixed inset-0 h-full w-full cursor-default"
+        className="absolute inset-0 h-full w-full cursor-default"
         onClick={resetAndClose}
         aria-label="Close add operator modal"
       />
 
-      <div className="relative mx-auto flex min-h-full w-full max-w-4xl items-center">
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-4xl items-center">
         <section
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
           tabIndex={-1}
-          className="panel relative my-auto max-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[1.5rem] border-red-500/20 shadow-2xl shadow-black sm:max-h-[calc(100vh-4rem)] sm:rounded-[2rem]"
+          className="panel relative my-auto max-h-full w-full overflow-y-auto overscroll-contain rounded-[1.5rem] border-red-500/20 shadow-2xl shadow-black outline-none [-webkit-overflow-scrolling:touch] [touch-action:pan-y] sm:rounded-[2rem]"
         >
           <div className="sticky top-0 z-10 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
             <div className="flex items-start justify-between gap-4">
@@ -172,7 +175,7 @@ function AddPlayerModal({ open, onClose }) {
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="max-h-[calc(100vh-10rem)] overflow-y-auto p-4 sm:max-h-[calc(100vh-12rem)] sm:p-6">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6">
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
                 <div className="grid gap-5">
                   <div className="grid gap-4 sm:grid-cols-2">
