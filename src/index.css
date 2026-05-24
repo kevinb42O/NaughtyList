@@ -180,6 +180,48 @@ button:disabled {
     z-index: 1;
   }
 
+  .profile-clan-tag {
+    color: rgb(229 231 235);
+    text-shadow: 0 1px 12px rgb(0 0 0 / 0.82);
+  }
+
+  .profile-name-glow {
+    position: relative;
+    display: inline-block;
+    animation: profile-name-glow 2.7s ease-in-out infinite;
+    text-shadow:
+      0 0 9px var(--profile-name-glow-soft),
+      0 0 20px var(--profile-name-glow-strong),
+      0 1px 14px rgb(0 0 0 / 0.85);
+  }
+
+  .profile-name-glow--admin {
+    color: #fff6b8;
+    --profile-name-glow-soft: rgb(250 204 21 / 0.58);
+    --profile-name-glow-strong: rgb(234 179 8 / 0.42);
+  }
+
+  .profile-name-glow--moderator {
+    color: #fed7aa;
+    --profile-name-glow-soft: rgb(251 146 60 / 0.58);
+    --profile-name-glow-strong: rgb(239 68 68 / 0.38);
+  }
+
+  @keyframes profile-name-glow {
+    0%,
+    100% {
+      filter: brightness(1);
+    }
+
+    50% {
+      filter: brightness(1.23);
+      text-shadow:
+        0 0 13px var(--profile-name-glow-soft),
+        0 0 30px var(--profile-name-glow-strong),
+        0 1px 14px rgb(0 0 0 / 0.85);
+    }
+  }
+
   @media (min-width: 641px) {
     .clan-section-panel {
       -webkit-backdrop-filter: blur(18px);

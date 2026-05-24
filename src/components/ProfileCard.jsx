@@ -5,10 +5,11 @@ import { profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
 import OnlineDot from './OnlineDot.jsx'
 import ProfileAvatar from './ProfileAvatar.jsx'
+import ProfileDisplayName from './ProfileDisplayName.jsx'
 import RoleBadge from './RoleBadge.jsx'
 import StreakBadge from './StreakBadge.jsx'
 import SupporterBadge from './SupporterBadge.jsx'
-import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
+import { displayProfileName, isProfileOnline } from '../utils/profiles.js'
 
 function ProfileCard({ profile, onlineUserIds }) {
   const navigate = useNavigate()
@@ -20,7 +21,7 @@ function ProfileCard({ profile, onlineUserIds }) {
   const bannerImageUrl = profile.banner_image_url ?? ''
   const cardStyle = bannerImageUrl
     ? {
-        backgroundImage: `linear-gradient(135deg, rgba(5, 6, 8, 0.9), rgba(5, 6, 8, 0.74) 44%, rgba(5, 6, 8, 0.94)), linear-gradient(180deg, rgba(5, 6, 8, 0.52), rgba(5, 6, 8, 0.96)), url("${bannerImageUrl}")`,
+        backgroundImage: `url("${bannerImageUrl}")`,
         backgroundPosition: 'center',
         backgroundSize: 'cover',
       }
@@ -59,7 +60,7 @@ function ProfileCard({ profile, onlineUserIds }) {
             <ProfileAvatar profile={profile} online={online} showOnline size="lg" className={bannerImageUrl ? 'rounded-3xl bg-black/70 p-1 shadow-xl shadow-black/50' : ''} />
             <div className="min-w-0">
               <h2 className="truncate text-xl font-black uppercase tracking-[0.04em] text-white">
-                {clanPrefix(profile)} {displayProfileName(profile)}
+                <ProfileDisplayName profile={profile} />
               </h2>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <OnlineDot online={online} />

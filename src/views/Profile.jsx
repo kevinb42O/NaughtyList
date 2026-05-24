@@ -7,6 +7,7 @@ import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
+import ProfileDisplayName from '../components/ProfileDisplayName.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import StreakBadge from '../components/StreakBadge.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
@@ -15,7 +16,6 @@ import { supabase } from '../lib/supabase.js'
 import { profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } from '../utils/gameAccounts.js'
 import { imageAcceptValue, uploadProfileImage, validateImageFile } from '../utils/media.js'
-import { clanPrefix } from '../utils/profiles.js'
 import { avatarStreakRequirement, formatDaysUntilReward, nextStreakReward, profileLoginStreak } from '../utils/streaks.js'
 import { formatDonationAmount } from '../utils/supporters.js'
 
@@ -137,7 +137,7 @@ function Profile() {
   const displayedBannerImageUrl = bannerImagePreviewUrl || bannerImageUrl
   const profileHeroBannerStyle = displayedBannerImageUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, rgba(5, 6, 8, 0.08), rgba(5, 6, 8, 0.78)), url("${displayedBannerImageUrl}")`,
+        backgroundImage: `url("${displayedBannerImageUrl}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }
@@ -369,7 +369,6 @@ function Profile() {
           className="relative h-44 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-64"
           style={profileHeroBannerStyle}
         >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/88" />
           <input ref={bannerFileInputRef} type="file" accept={imageAcceptValue} onChange={handleBannerImageChange} className="hidden" />
           <div className="absolute right-3 top-3 z-50 flex flex-wrap justify-end gap-2 sm:right-4 sm:top-4">
             <button
@@ -419,7 +418,7 @@ function Profile() {
 
               <div className="min-w-0 pt-1 sm:pb-2">
                 <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
-                  {clanPrefix(profile)} {displayName || 'No name set'}
+                  <ProfileDisplayName profile={{ ...profile, display_name: displayName }} fallbackName="No name set" />
                 </h2>
                 <div className="mt-1.5 flex flex-wrap items-center gap-3">
                   <OnlineDot online={isOnline} />

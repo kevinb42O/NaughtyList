@@ -4,6 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
+import ProfileDisplayName from '../components/ProfileDisplayName.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
 import StreakBadge from '../components/StreakBadge.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
@@ -64,7 +65,7 @@ function PublicProfile() {
   const bannerImageUrl = profile.banner_image_url ?? ''
   const profileHeroBannerStyle = bannerImageUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, rgba(5, 6, 8, 0.08), rgba(5, 6, 8, 0.78)), url("${bannerImageUrl}")`,
+        backgroundImage: `url("${bannerImageUrl}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }
@@ -123,9 +124,7 @@ function PublicProfile() {
         <div
           className="relative h-44 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-64"
           style={profileHeroBannerStyle}
-        >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#050608]/88" />
-        </div>
+        />
 
         <div className="px-4 pb-5 sm:px-6 sm:pb-6">
           <div className="-mt-16 flex flex-col gap-4 sm:-mt-20 sm:flex-row sm:items-end sm:justify-between">
@@ -141,7 +140,7 @@ function PublicProfile() {
               <div className="min-w-0 flex-1 pt-1 sm:pb-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
-                    {clanPrefix(profile)} {displayProfileName(profile)}
+                    <ProfileDisplayName profile={profile} />
                   </h2>
                   <OnlineDot online={online} />
                   <RoleBadge role={profile.role} compact />
