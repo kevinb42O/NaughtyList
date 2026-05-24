@@ -21,7 +21,7 @@ function ProfileCard({ profile, onlineUserIds }) {
   const bannerImageUrl = profile.banner_image_url ?? ''
   const cardStyle = bannerImageUrl
     ? {
-        backgroundImage: `url("${bannerImageUrl}")`,
+        backgroundImage: `linear-gradient(135deg, rgba(5, 6, 8, 0.5), rgba(5, 6, 8, 0.28) 42%, rgba(5, 6, 8, 0.62)), url("${bannerImageUrl}")`,
         backgroundPosition: 'center',
         backgroundSize: 'cover',
       }
