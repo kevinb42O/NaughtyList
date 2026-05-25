@@ -24,6 +24,9 @@ export function useMobileViewportPanelHeight(
   const panelRef = useRef(null)
   const frameRef = useRef(0)
   const lastLayoutRef = useRef({ height: null, keyboard: false, top: 0 })
+  const lastOrientationRef = useRef('')
+  const focusedPanelInputRef = useRef(false)
+  const layoutViewportHeightRef = useRef(0)
   const timeoutIdsRef = useRef([])
   const [panelLayout, setPanelLayout] = useState({ height: null, keyboard: false, top: 0 })
 
@@ -37,6 +40,8 @@ export function useMobileViewportPanelHeight(
 
     if (!panel || !window.matchMedia('(max-width: 639px)').matches) {
       lastLayoutRef.current = { height: null, keyboard: false, top: 0 }
+      focusedPanelInputRef.current = false
+      layoutViewportHeightRef.current = 0
       setPanelLayout((currentLayout) => (
         currentLayout.height === null && !currentLayout.keyboard && currentLayout.top === 0
           ? currentLayout
@@ -47,24 +52,46 @@ export function useMobileViewportPanelHeight(
 
     const visualViewport = window.visualViewport
     const activeElement = document.activeElement
-    const composerFocused = Boolean(panel.contains(activeElement) && activeElement?.matches?.(mobileInputSelector))
+    const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
+    if (lastOrientationRef.current !== orientation) {
+      lastOrientationRef.current = orientation
+      layoutViewportHeightRef.current = window.innerHeight
+    }
+
     const viewportHeight = visualViewport?.height ?? window.innerHeight
-    const keyboardVisible = composerFocused && (
-      visualViewportKeyboardInset(visualViewport) > keyboardInsetThreshold ||
-      viewportHeight < window.innerHeight - keyboardInsetThreshold
+    const viewportTop = Math.max(0, visualViewport?.offsetTop ?? 0)
+    const composerFocused = Boolean(activeElement?.matches?.(mobileInputSelector) && panel.contains(activeElement))
+
+    if (composerFocused) {
+      focusedPanelInputRef.current = true
+    }
+
+    layoutViewportHeightRef.current = Math.max(layoutViewportHeightRef.current, window.innerHeight)
+    const referenceViewportHeight = layoutViewportHeightRef.current || window.innerHeight
+    const keyboardInset = Math.max(
+      visualViewportKeyboardInset(visualViewport),
+      referenceViewportHeight - viewportHeight - viewportTop,
     )
+    const keyboardLikelyVisible = keyboardInset > keyboardInsetThreshold
+
+    if (!composerFocused && !keyboardLikelyVisible) {
+      focusedPanelInputRef.current = false
+      layoutViewportHeightRef.current = Math.max(viewportHeight + viewportTop, window.innerHeight)
+    }
+
+    const keyboardVisible = (composerFocused || focusedPanelInputRef.current) && keyboardLikelyVisible
     let nextLayout
 
     if (keyboardVisible) {
       nextLayout = {
         height: Math.max(1, Math.floor(viewportHeight - focusedBottomGapFallback)),
         keyboard: true,
-        top: Math.max(0, Math.round(visualViewport?.offsetTop ?? 0)),
+        top: Math.round(viewportTop),
       }
     } else {
       const navHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0
-      const viewportTop = window.scrollY + (visualViewport?.offsetTop ?? 0)
-      const viewportBottom = viewportTop + viewportHeight
+      const layoutViewportTop = window.scrollY + viewportTop
+      const viewportBottom = layoutViewportTop + viewportHeight
       const panelTop = panel.getBoundingClientRect().top + window.scrollY
       const bottomReserve = composerFocused ? focusedBottomGap : navHeight + idleBottomGap
       const availableHeight = Math.floor(viewportBottom - panelTop - bottomReserve)
@@ -77,13 +104,8 @@ export function useMobileViewportPanelHeight(
     }
 
     const currentLayout = lastLayoutRef.current
-    const keyboardContinuing = currentLayout.keyboard && nextLayout.keyboard
-    const heightChanged = currentLayout.height === null || (
-      keyboardContinuing
-        ? nextLayout.height < currentLayout.height - 3
-        : Math.abs(currentLayout.height - nextLayout.height) >= 3
-    )
-    const topChanged = !keyboardContinuing && Math.abs(currentLayout.top - nextLayout.top) >= 3
+    const heightChanged = currentLayout.height === null || Math.abs(currentLayout.height - nextLayout.height) >= 3
+    const topChanged = Math.abs(currentLayout.top - nextLayout.top) >= 3
 
     if (!heightChanged && !topChanged && currentLayout.keyboard === nextLayout.keyboard) {
       return
@@ -120,6 +142,7 @@ export function useMobileViewportPanelHeight(
 
     window.addEventListener('resize', settlePanelHeight)
     window.addEventListener('scroll', settlePanelHeight, { passive: true })
+    window.addEventListener('orientationchange', settlePanelHeight)
     window.addEventListener('focusin', settlePanelHeight)
     window.addEventListener('focusout', settlePanelHeight)
     window.visualViewport?.addEventListener('resize', settlePanelHeight)
@@ -134,6 +157,7 @@ export function useMobileViewportPanelHeight(
       clearTimeouts()
       window.removeEventListener('resize', settlePanelHeight)
       window.removeEventListener('scroll', settlePanelHeight)
+      window.removeEventListener('orientationchange', settlePanelHeight)
       window.removeEventListener('focusin', settlePanelHeight)
       window.removeEventListener('focusout', settlePanelHeight)
       window.visualViewport?.removeEventListener('resize', settlePanelHeight)

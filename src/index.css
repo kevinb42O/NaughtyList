@@ -255,13 +255,20 @@ button:disabled {
   @media (max-width: 640px) {
     .chat-stable-panel--keyboard {
       position: fixed;
+      left: 0;
+      right: 0;
       inset-inline: 0;
       z-index: 70;
+      width: 100%;
       width: 100vw;
       max-width: none;
       border-inline: 0;
       border-radius: 0;
       box-shadow: none;
+    }
+
+    .chat-stable-panel--keyboard .chat-composer-form {
+      padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));
     }
   }
 
