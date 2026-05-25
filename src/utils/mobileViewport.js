@@ -16,6 +16,7 @@ export function useMobileViewportPanelHeight(
   const frameRef = useRef(0)
   const lastLayoutRef = useRef({ height: null, keyboard: false, top: 0 })
   const focusedPanelInputRef = useRef(false)
+  const keyboardTopRef = useRef(0)
   const timeoutIdsRef = useRef([])
   const [panelLayout, setPanelLayout] = useState({ height: null, keyboard: false, top: 0 })
 
@@ -30,6 +31,7 @@ export function useMobileViewportPanelHeight(
     if (!panel || !window.matchMedia('(max-width: 639px)').matches) {
       lastLayoutRef.current = { height: null, keyboard: false, top: 0 }
       focusedPanelInputRef.current = false
+      keyboardTopRef.current = 0
       setPanelLayout((currentLayout) => (
         currentLayout.height === null && !currentLayout.keyboard && currentLayout.top === 0
           ? currentLayout
@@ -47,16 +49,19 @@ export function useMobileViewportPanelHeight(
       focusedPanelInputRef.current = true
     } else if (!activeElement?.matches?.(mobileInputSelector)) {
       focusedPanelInputRef.current = false
+      keyboardTopRef.current = 0
     }
 
     const keyboardVisible = focusedPanelInputRef.current
     let nextLayout
 
     if (keyboardVisible) {
+      keyboardTopRef.current = Math.max(keyboardTopRef.current, Math.round(visualViewport?.offsetTop ?? 0))
+
       nextLayout = {
         height: Math.max(1, Math.floor(viewportHeight - focusedBottomGapFallback)),
         keyboard: true,
-        top: 0,
+        top: keyboardTopRef.current,
       }
     } else {
       const navHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0

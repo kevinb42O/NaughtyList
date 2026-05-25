@@ -295,6 +295,14 @@ function Messages() {
   })
 
   useEffect(() => {
+    if (!threadKeyboardActive) {
+      return
+    }
+
+    forceStickToBottom()
+  }, [forceStickToBottom, threadKeyboardActive])
+
+  useEffect(() => {
     if (!hasSelectedThread || !window.matchMedia('(max-width: 1023px)').matches) return
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [hasSelectedThread, selectedProfileId])

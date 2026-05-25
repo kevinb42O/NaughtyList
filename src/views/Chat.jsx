@@ -258,6 +258,15 @@ function Chat() {
         ...(chatKeyboardActive ? { top: `${chatPanelTop}px` } : {}),
       }
     : undefined
+
+  useEffect(() => {
+    if (!chatKeyboardActive) {
+      return
+    }
+
+    forceStickToBottom()
+  }, [chatKeyboardActive, forceStickToBottom])
+
   const activeReplyToMessage = useMemo(() => {
     if (!replyToMessage || replyToMessage.roomKey !== activeRoomKey || activeRoom !== 'public') {
       return null
