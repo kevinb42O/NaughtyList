@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const mobileInputSelector = 'input, textarea, select, [contenteditable="true"]'
+const keyboardInsetThreshold = 80
+const focusedTopGap = 6
+
+function visualViewportKeyboardInset(visualViewport) {
+  if (!visualViewport) {
+    return 0
+  }
+
+  return Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop)
+}
 
 export function useMobileViewportPanelHeight(
   dependencyKey,
@@ -13,7 +23,13 @@ export function useMobileViewportPanelHeight(
   const panelRef = useRef(null)
   const frameRef = useRef(0)
   const lastHeightRef = useRef(null)
+  const timeoutIdsRef = useRef([])
   const [panelHeight, setPanelHeight] = useState(null)
+
+  const clearTimeouts = useCallback(() => {
+    timeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+    timeoutIdsRef.current = []
+  }, [])
 
   const measurePanelHeight = useCallback(() => {
     const panel = panelRef.current
@@ -28,8 +44,20 @@ export function useMobileViewportPanelHeight(
     const activeElement = document.activeElement
     const composerFocused = Boolean(panel.contains(activeElement) && activeElement?.matches?.(mobileInputSelector))
     const navHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0
-    const viewportBottom = (visualViewport?.height ?? window.innerHeight) + (visualViewport?.offsetTop ?? 0)
-    const panelTop = panel.getBoundingClientRect().top
+    const viewportHeight = visualViewport?.height ?? window.innerHeight
+    const viewportTop = window.scrollY + (visualViewport?.offsetTop ?? 0)
+    const viewportBottom = viewportTop + viewportHeight
+    const panelTop = panel.getBoundingClientRect().top + window.scrollY
+    const panelVisualTop = panelTop - viewportTop
+    const keyboardVisible = composerFocused && (
+      visualViewportKeyboardInset(visualViewport) > keyboardInsetThreshold ||
+      viewportHeight < window.innerHeight - keyboardInsetThreshold
+    )
+
+    if (keyboardVisible && panelVisualTop > focusedTopGap + 1) {
+      window.scrollBy({ top: panelVisualTop - focusedTopGap, left: 0, behavior: 'auto' })
+    }
+
     const bottomReserve = composerFocused ? focusedBottomGap : navHeight + idleBottomGap
     const availableHeight = Math.floor(viewportBottom - panelTop - bottomReserve)
     const nextHeight = Math.max(minimumHeight, availableHeight)
@@ -48,42 +76,52 @@ export function useMobileViewportPanelHeight(
     }
 
     frameRef.current = window.requestAnimationFrame(() => {
-      frameRef.current = 0
-      measurePanelHeight()
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = 0
+        measurePanelHeight()
+      })
     })
   }, [measurePanelHeight])
 
-  useEffect(() => {
+  const settlePanelHeight = useCallback(() => {
+    clearTimeouts()
     updatePanelHeight()
 
-    const delayedUpdate = window.setTimeout(updatePanelHeight, 80)
-    window.addEventListener('resize', updatePanelHeight)
-    window.addEventListener('focusin', updatePanelHeight)
-    window.addEventListener('focusout', updatePanelHeight)
-    window.visualViewport?.addEventListener('resize', updatePanelHeight)
-    window.screen.orientation?.addEventListener?.('change', updatePanelHeight)
+    ;[60, 160, 320].forEach((delay) => {
+      timeoutIdsRef.current.push(window.setTimeout(updatePanelHeight, delay))
+    })
+  }, [clearTimeouts, updatePanelHeight])
+
+  useEffect(() => {
+    settlePanelHeight()
+
+    window.addEventListener('resize', settlePanelHeight)
+    window.addEventListener('scroll', settlePanelHeight, { passive: true })
+    window.addEventListener('focusin', settlePanelHeight)
+    window.addEventListener('focusout', settlePanelHeight)
+    window.visualViewport?.addEventListener('resize', settlePanelHeight)
+    window.visualViewport?.addEventListener('scroll', settlePanelHeight)
+    window.screen.orientation?.addEventListener?.('change', settlePanelHeight)
 
     return () => {
       if (frameRef.current) {
         window.cancelAnimationFrame(frameRef.current)
         frameRef.current = 0
       }
-      window.clearTimeout(delayedUpdate)
-      window.removeEventListener('resize', updatePanelHeight)
-      window.removeEventListener('focusin', updatePanelHeight)
-      window.removeEventListener('focusout', updatePanelHeight)
-      window.visualViewport?.removeEventListener('resize', updatePanelHeight)
-      window.screen.orientation?.removeEventListener?.('change', updatePanelHeight)
+      clearTimeouts()
+      window.removeEventListener('resize', settlePanelHeight)
+      window.removeEventListener('scroll', settlePanelHeight)
+      window.removeEventListener('focusin', settlePanelHeight)
+      window.removeEventListener('focusout', settlePanelHeight)
+      window.visualViewport?.removeEventListener('resize', settlePanelHeight)
+      window.visualViewport?.removeEventListener('scroll', settlePanelHeight)
+      window.screen.orientation?.removeEventListener?.('change', settlePanelHeight)
     }
-  }, [updatePanelHeight])
+  }, [clearTimeouts, settlePanelHeight])
 
   useEffect(() => {
-    updatePanelHeight()
-
-    const delayedUpdate = window.setTimeout(updatePanelHeight, 80)
-
-    return () => window.clearTimeout(delayedUpdate)
-  }, [dependencyKey, updatePanelHeight])
+    settlePanelHeight()
+  }, [dependencyKey, settlePanelHeight])
 
   return [panelRef, panelHeight]
 }

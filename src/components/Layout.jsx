@@ -47,6 +47,7 @@ function Layout() {
     const root = document.documentElement
     const textInputSelector = 'input, textarea, select, [contenteditable="true"]'
     let frameId = 0
+    let timeoutId = 0
 
     function updateVisualViewportBottom() {
       if (frameId) {
@@ -54,9 +55,17 @@ function Layout() {
       }
 
       frameId = window.requestAnimationFrame(() => {
-        frameId = 0
-        measureVisualViewport()
+        frameId = window.requestAnimationFrame(() => {
+          frameId = 0
+          measureVisualViewport()
+        })
       })
+    }
+
+    function settleVisualViewportBottom() {
+      updateVisualViewportBottom()
+      window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(updateVisualViewportBottom, 160)
     }
 
     function measureVisualViewport() {
@@ -79,22 +88,25 @@ function Layout() {
       setKeyboardActive(keyboardVisible)
     }
 
-    updateVisualViewportBottom()
-    window.addEventListener('resize', updateVisualViewportBottom)
-    window.addEventListener('focusin', updateVisualViewportBottom)
-    window.addEventListener('focusout', updateVisualViewportBottom)
-    window.visualViewport?.addEventListener('resize', updateVisualViewportBottom)
-    window.screen.orientation?.addEventListener?.('change', updateVisualViewportBottom)
+    settleVisualViewportBottom()
+    window.addEventListener('resize', settleVisualViewportBottom)
+    window.addEventListener('focusin', settleVisualViewportBottom)
+    window.addEventListener('focusout', settleVisualViewportBottom)
+    window.visualViewport?.addEventListener('resize', settleVisualViewportBottom)
+    window.visualViewport?.addEventListener('scroll', settleVisualViewportBottom)
+    window.screen.orientation?.addEventListener?.('change', settleVisualViewportBottom)
 
     return () => {
       if (frameId) {
         window.cancelAnimationFrame(frameId)
       }
-      window.removeEventListener('resize', updateVisualViewportBottom)
-      window.removeEventListener('focusin', updateVisualViewportBottom)
-      window.removeEventListener('focusout', updateVisualViewportBottom)
-      window.visualViewport?.removeEventListener('resize', updateVisualViewportBottom)
-      window.screen.orientation?.removeEventListener?.('change', updateVisualViewportBottom)
+      window.clearTimeout(timeoutId)
+      window.removeEventListener('resize', settleVisualViewportBottom)
+      window.removeEventListener('focusin', settleVisualViewportBottom)
+      window.removeEventListener('focusout', settleVisualViewportBottom)
+      window.visualViewport?.removeEventListener('resize', settleVisualViewportBottom)
+      window.visualViewport?.removeEventListener('scroll', settleVisualViewportBottom)
+      window.screen.orientation?.removeEventListener?.('change', settleVisualViewportBottom)
       root.style.removeProperty('--visual-viewport-bottom')
       root.style.removeProperty('--visual-viewport-height')
       root.style.removeProperty('--mobile-bottom-nav-height')
