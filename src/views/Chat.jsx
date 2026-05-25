@@ -189,7 +189,7 @@ function Chat() {
 
     return availableClanRooms[0]?.id || ''
   }, [availableClanRooms, canUseClanRoom, myClanId, selectedClanId])
-  const [chatPanelRef, chatPanelHeight] = useMobileViewportPanelHeight(`${activeRoom}:${canUseClanRoom}:${resolvedSelectedClanId}:${selectedClanId}`)
+  const [chatPanelRef, chatPanelHeight, chatKeyboardActive, chatPanelTop] = useMobileViewportPanelHeight(`${activeRoom}:${canUseClanRoom}:${resolvedSelectedClanId}:${selectedClanId}`)
   const selectedClan = availableClanRooms.find((clan) => clan.id === resolvedSelectedClanId) ?? null
   const canSendClanRoomMessage = Boolean(resolvedSelectedClanId && myClanId === resolvedSelectedClanId)
   const clanMessages =
@@ -252,6 +252,12 @@ function Chat() {
     const names = typingUsers.slice(0, 2).map((typingUser) => typingUser.displayName)
     return typingUsers.length > 2 ? `${names.join(', ')} and ${typingUsers.length - 2} more typing...` : `${names.join(', ')} typing...`
   }, [activeRoom, typingUsers])
+  const chatPanelStyle = chatPanelHeight
+    ? {
+        height: `${chatPanelHeight}px`,
+        ...(chatKeyboardActive ? { top: `${chatPanelTop}px` } : {}),
+      }
+    : undefined
   const activeReplyToMessage = useMemo(() => {
     if (!replyToMessage || replyToMessage.roomKey !== activeRoomKey || activeRoom !== 'public') {
       return null
@@ -573,7 +579,7 @@ function Chat() {
         </section>
       ) : null}
 
-      <section ref={chatPanelRef} style={chatPanelHeight ? { height: `${chatPanelHeight}px` } : undefined} className="chat-stable-panel flex h-[calc(var(--visual-viewport-height)-17rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:h-[72vh] sm:min-h-[34rem] sm:rounded-[1.8rem]">
+      <section ref={chatPanelRef} style={chatPanelStyle} className={`chat-stable-panel flex h-[calc(var(--visual-viewport-height)-17rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:h-[72vh] sm:min-h-[34rem] sm:rounded-[1.8rem] ${chatKeyboardActive ? 'chat-stable-panel--keyboard' : ''}`}>
         <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
           <div className="mr-auto min-w-0">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">

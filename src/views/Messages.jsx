@@ -219,7 +219,7 @@ function Messages() {
   }, [fallbackContactId, profiles, selectedId])
   const selectedProfileId = selectedProfile?.id ?? ''
   const hasSelectedThread = Boolean(selectedId && selectedProfileId)
-  const [threadPanelRef, threadPanelHeight] = useMobileViewportPanelHeight(`direct:${selectedProfileId}:${hasSelectedThread}`)
+  const [threadPanelRef, threadPanelHeight, threadKeyboardActive, threadPanelTop] = useMobileViewportPanelHeight(`direct:${selectedProfileId}:${hasSelectedThread}`)
 
   const thread = useMemo(() => {
     if (!selectedProfile || !user) {
@@ -276,6 +276,12 @@ function Messages() {
 
     return thread.some((directMessage) => directMessage.id === replyToMessage.message.id) ? replyToMessage.message : null
   }, [replyToMessage, selectedProfileId, thread])
+  const threadPanelStyle = threadPanelHeight
+    ? {
+        height: `${threadPanelHeight}px`,
+        ...(threadKeyboardActive ? { top: `${threadPanelTop}px` } : {}),
+      }
+    : undefined
   const {
     forceStickToBottom,
     handleScroll,
@@ -467,8 +473,8 @@ function Messages() {
 
         <div
           ref={threadPanelRef}
-          style={threadPanelHeight ? { height: `${threadPanelHeight}px` } : undefined}
-          className={`chat-stable-panel h-[calc(var(--visual-viewport-height)-9.5rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:flex lg:h-[72vh] lg:min-h-[34rem] ${hasSelectedThread ? 'flex' : 'hidden'}`}
+          style={threadPanelStyle}
+          className={`chat-stable-panel h-[calc(var(--visual-viewport-height)-9.5rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:flex lg:h-[72vh] lg:min-h-[34rem] ${hasSelectedThread ? 'flex' : 'hidden'} ${threadKeyboardActive ? 'chat-stable-panel--keyboard' : ''}`}
         >
           {selectedProfile ? (
             <div key={selectedProfileId} className="flex h-full min-h-0 flex-col">
