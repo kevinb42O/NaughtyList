@@ -1,17 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const mobileInputSelector = 'input, textarea, select, [contenteditable="true"]'
-const keyboardInsetThreshold = 80
 const focusedBottomGapFallback = 8
 let keyboardPanelLockCount = 0
-
-function visualViewportKeyboardInset(visualViewport) {
-  if (!visualViewport) {
-    return 0
-  }
-
-  return Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop)
-}
 
 export function useMobileViewportPanelHeight(
   dependencyKey,
@@ -24,9 +15,7 @@ export function useMobileViewportPanelHeight(
   const panelRef = useRef(null)
   const frameRef = useRef(0)
   const lastLayoutRef = useRef({ height: null, keyboard: false, top: 0 })
-  const lastOrientationRef = useRef('')
   const focusedPanelInputRef = useRef(false)
-  const layoutViewportHeightRef = useRef(0)
   const timeoutIdsRef = useRef([])
   const [panelLayout, setPanelLayout] = useState({ height: null, keyboard: false, top: 0 })
 
@@ -41,7 +30,6 @@ export function useMobileViewportPanelHeight(
     if (!panel || !window.matchMedia('(max-width: 639px)').matches) {
       lastLayoutRef.current = { height: null, keyboard: false, top: 0 }
       focusedPanelInputRef.current = false
-      layoutViewportHeightRef.current = 0
       setPanelLayout((currentLayout) => (
         currentLayout.height === null && !currentLayout.keyboard && currentLayout.top === 0
           ? currentLayout
@@ -52,46 +40,28 @@ export function useMobileViewportPanelHeight(
 
     const visualViewport = window.visualViewport
     const activeElement = document.activeElement
-    const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
-    if (lastOrientationRef.current !== orientation) {
-      lastOrientationRef.current = orientation
-      layoutViewportHeightRef.current = window.innerHeight
-    }
-
     const viewportHeight = visualViewport?.height ?? window.innerHeight
-    const viewportTop = Math.max(0, visualViewport?.offsetTop ?? 0)
     const composerFocused = Boolean(activeElement?.matches?.(mobileInputSelector) && panel.contains(activeElement))
 
     if (composerFocused) {
       focusedPanelInputRef.current = true
-    }
-
-    layoutViewportHeightRef.current = Math.max(layoutViewportHeightRef.current, window.innerHeight)
-    const referenceViewportHeight = layoutViewportHeightRef.current || window.innerHeight
-    const keyboardInset = Math.max(
-      visualViewportKeyboardInset(visualViewport),
-      referenceViewportHeight - viewportHeight - viewportTop,
-    )
-    const keyboardLikelyVisible = keyboardInset > keyboardInsetThreshold
-
-    if (!composerFocused && !keyboardLikelyVisible) {
+    } else if (!activeElement?.matches?.(mobileInputSelector)) {
       focusedPanelInputRef.current = false
-      layoutViewportHeightRef.current = Math.max(viewportHeight + viewportTop, window.innerHeight)
     }
 
-    const keyboardVisible = (composerFocused || focusedPanelInputRef.current) && keyboardLikelyVisible
+    const keyboardVisible = focusedPanelInputRef.current
     let nextLayout
 
     if (keyboardVisible) {
       nextLayout = {
         height: Math.max(1, Math.floor(viewportHeight - focusedBottomGapFallback)),
         keyboard: true,
-        top: Math.round(viewportTop),
+        top: 0,
       }
     } else {
       const navHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0
-      const layoutViewportTop = window.scrollY + viewportTop
-      const viewportBottom = layoutViewportTop + viewportHeight
+      const viewportTop = window.scrollY + (visualViewport?.offsetTop ?? 0)
+      const viewportBottom = viewportTop + viewportHeight
       const panelTop = panel.getBoundingClientRect().top + window.scrollY
       const bottomReserve = composerFocused ? focusedBottomGap : navHeight + idleBottomGap
       const availableHeight = Math.floor(viewportBottom - panelTop - bottomReserve)
