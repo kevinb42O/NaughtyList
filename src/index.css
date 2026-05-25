@@ -254,6 +254,24 @@ button:disabled {
     -webkit-overflow-scrolling: touch;
   }
 
+  .chat-composer-form {
+    flex: 0 0 auto;
+  }
+
+  .chat-composer-input-shell {
+    min-height: 2.25rem;
+    overflow: hidden;
+  }
+
+  .chat-composer-textarea {
+    height: 2.25rem;
+    opacity: 1;
+    caret-color: #fca5a5;
+    overflow-anchor: none;
+    -webkit-appearance: none;
+    -webkit-text-fill-color: #f3f4f6;
+  }
+
   .chat-media-frame {
     position: relative;
     display: block;
@@ -276,11 +294,21 @@ button:disabled {
   @media (max-width: 640px) {
     .chat-stable-panel,
     .chat-scroll-surface,
+    .chat-composer-form,
+    .chat-composer-bar,
+    .chat-composer-input-shell,
+    .chat-composer-textarea,
     .chat-media-frame,
     .chat-media-frame > img {
       transform: none;
       backface-visibility: visible;
       will-change: auto;
+    }
+
+    .chat-composer-bar,
+    .chat-composer-input-shell,
+    .chat-composer-textarea {
+      transition: none;
     }
 
     .chat-media-frame {

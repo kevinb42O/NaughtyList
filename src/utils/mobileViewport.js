@@ -22,6 +22,8 @@ export function useMobileViewportPanelHeight(
 ) {
   const panelRef = useRef(null)
   const frameRef = useRef(0)
+  const focusedElementRef = useRef(null)
+  const focusedSessionAnchoredRef = useRef(false)
   const lastHeightRef = useRef(null)
   const timeoutIdsRef = useRef([])
   const [panelHeight, setPanelHeight] = useState(null)
@@ -43,6 +45,15 @@ export function useMobileViewportPanelHeight(
     const visualViewport = window.visualViewport
     const activeElement = document.activeElement
     const composerFocused = Boolean(panel.contains(activeElement) && activeElement?.matches?.(mobileInputSelector))
+
+    if (composerFocused && focusedElementRef.current !== activeElement) {
+      focusedElementRef.current = activeElement
+      focusedSessionAnchoredRef.current = false
+    } else if (!composerFocused) {
+      focusedElementRef.current = null
+      focusedSessionAnchoredRef.current = false
+    }
+
     const navHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0
     const viewportHeight = visualViewport?.height ?? window.innerHeight
     const viewportTop = window.scrollY + (visualViewport?.offsetTop ?? 0)
@@ -54,7 +65,8 @@ export function useMobileViewportPanelHeight(
       viewportHeight < window.innerHeight - keyboardInsetThreshold
     )
 
-    if (keyboardVisible && panelVisualTop > focusedTopGap + 1) {
+    if (keyboardVisible && !focusedSessionAnchoredRef.current && panelVisualTop > focusedTopGap + 1) {
+      focusedSessionAnchoredRef.current = true
       window.scrollBy({ top: panelVisualTop - focusedTopGap, left: 0, behavior: 'auto' })
     }
 

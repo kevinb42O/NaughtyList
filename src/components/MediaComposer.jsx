@@ -1,8 +1,11 @@
 import { LoaderCircle, Plus, Send, Sticker, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { imageAcceptValue, uploadChatImage } from '../utils/media.js'
 import GifPickerModal from './GifPickerModal.jsx'
+
+const composerMinHeight = 36
+const composerMaxHeight = 128
 
 function MediaPreview({ pendingMedia, onClear }) {
   if (!pendingMedia?.mediaUrl) return null
@@ -42,18 +45,34 @@ function MediaComposer({
 }) {
   const fileInputRef = useRef(null)
   const formRef = useRef(null)
+  const lastTextAreaHeightRef = useRef(composerMinHeight)
   const textAreaRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const canSend = !disabled && !sending && !uploading && Boolean(value.trim() || pendingMedia?.mediaUrl)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const textArea = textAreaRef.current
     if (!textArea) return
 
-    textArea.style.height = 'auto'
-    textArea.style.height = `${Math.min(textArea.scrollHeight, 128)}px`
+    if (!value) {
+      if (lastTextAreaHeightRef.current !== composerMinHeight) {
+        lastTextAreaHeightRef.current = composerMinHeight
+        textArea.style.height = `${composerMinHeight}px`
+      }
+      textArea.scrollTop = 0
+      return
+    }
+
+    const nextHeight = Math.min(Math.max(textArea.scrollHeight, composerMinHeight), composerMaxHeight)
+    const shouldGrow = nextHeight > lastTextAreaHeightRef.current + 1
+    const shouldInitialize = !textArea.style.height
+
+    if (shouldGrow || shouldInitialize) {
+      lastTextAreaHeightRef.current = nextHeight
+      textArea.style.height = `${nextHeight}px`
+    }
   }, [value])
 
   async function handleFileChange(event) {
@@ -79,7 +98,7 @@ function MediaComposer({
 
   return (
     <>
-      <form ref={formRef} onSubmit={onSubmit} className="border-t border-white/10 bg-black/40 p-2.5 sm:p-3">
+      <form ref={formRef} onSubmit={onSubmit} className="chat-composer-form border-t border-white/10 bg-black/40 p-2.5 sm:p-3">
         <MediaPreview pendingMedia={pendingMedia} onClear={() => onPendingMediaChange(null)} />
         {uploading ? (
           <div className="mb-2 overflow-hidden rounded-full bg-white/10">
@@ -87,7 +106,7 @@ function MediaComposer({
           </div>
         ) : null}
         {accessory}
-        <div className="flex min-h-12 items-center gap-1.5 rounded-full border border-white/10 bg-zinc-950/90 px-1.5 py-1.5 shadow-inner shadow-black/35">
+        <div className="chat-composer-bar flex min-h-12 items-center gap-1.5 rounded-full border border-white/10 bg-zinc-950/90 px-1.5 py-1.5 shadow-inner shadow-black/35">
           <input ref={fileInputRef} type="file" accept={imageAcceptValue} onChange={handleFileChange} className="hidden" />
           <button
             type="button"
@@ -109,7 +128,7 @@ function MediaComposer({
           >
             <Sticker className="h-4 w-4" aria-hidden="true" />
           </button>
-          <div className="flex min-w-0 flex-1 items-center rounded-full bg-white/[0.06] px-3">
+          <div className="chat-composer-input-shell flex min-w-0 flex-1 items-center rounded-full bg-white/[0.06] px-3">
             <textarea
               ref={textAreaRef}
               value={value}
@@ -129,7 +148,7 @@ function MediaComposer({
                   formRef.current?.requestSubmit()
                 }
               }}
-              className="max-h-32 min-h-9 min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent py-1.5 text-[0.95rem] leading-6 text-gray-100 outline-none placeholder:text-gray-500"
+              className="chat-composer-textarea max-h-32 min-h-9 min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent py-1.5 text-[0.95rem] leading-6 text-gray-100 outline-none placeholder:text-gray-500"
               placeholder={placeholder}
               maxLength={maxLength}
               disabled={disabled}
