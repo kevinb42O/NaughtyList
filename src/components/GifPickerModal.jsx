@@ -55,18 +55,25 @@ function GifPickerModal({ onClose, onSelect }) {
     onSelect({ mediaUrl: gif.mediaUrl, mediaType: 'gif' })
   }, [onSelect])
 
-  const handleGifPointerDown = useCallback((event, gif) => {
-    if (event.pointerType === 'mouse') return
+  // Track touch-start position so we can distinguish a tap from a scroll
+  const touchStartRef = useRef(null)
 
-    event.preventDefault()
-    selectGif(gif)
-  }, [selectGif])
+  const handleGifTouchStart = useCallback((event) => {
+    const touch = event.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }, [])
 
-  const handleGifTouchStart = useCallback((event, gif) => {
-    if (window.PointerEvent) return
-
-    event.preventDefault()
-    selectGif(gif)
+  const handleGifTouchEnd = useCallback((event, gif) => {
+    if (!touchStartRef.current) return
+    const touch = event.changedTouches[0]
+    const dx = touch.clientX - touchStartRef.current.x
+    const dy = touch.clientY - touchStartRef.current.y
+    touchStartRef.current = null
+    // Only treat as a tap if finger barely moved (not a scroll)
+    if (Math.sqrt(dx * dx + dy * dy) < 8) {
+      event.preventDefault()
+      selectGif(gif)
+    }
   }, [selectGif])
 
   const endpoint = useMemo(() => {
@@ -184,8 +191,8 @@ function GifPickerModal({ onClose, onSelect }) {
                 <button
                   key={gif.id}
                   type="button"
-                  onPointerDown={(event) => handleGifPointerDown(event, gif)}
-                  onTouchStart={(event) => handleGifTouchStart(event, gif)}
+                  onTouchStart={handleGifTouchStart}
+                  onTouchEnd={(event) => handleGifTouchEnd(event, gif)}
                   onClick={() => selectGif(gif)}
                   className="group aspect-square overflow-hidden rounded-2xl border border-white/10 bg-black/35 transition hover:border-red-400/45"
                   aria-label={`Select ${gif.title}`}

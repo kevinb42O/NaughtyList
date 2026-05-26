@@ -729,26 +729,23 @@ function Profile() {
             </div>
           </section>
 
-          <section className="panel rounded-[1.8rem] p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="intel-label mb-2">Save Profile</p>
-                <p className="text-sm leading-6 text-gray-400">
-                  Profile details and game accounts save together.
-                </p>
+          <div className="sticky bottom-0 z-40 -mx-4 border-t border-white/10 bg-zinc-950/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 sm:py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                {saveStatus ? <p className="truncate text-sm font-bold text-green-300">{saveStatus}</p> : null}
+                {saveError ? <p className="truncate text-sm font-bold text-red-300">{saveError}</p> : null}
+                {!saveStatus && !saveError ? <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-500">Profile &amp; game accounts</p> : null}
               </div>
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                className="inline-flex shrink-0 min-h-11 items-center justify-center gap-2 rounded-full bg-red-500 px-6 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-red-950/40 transition hover:bg-red-400 disabled:opacity-60 disabled:shadow-none"
               >
                 <Save className="h-4 w-4" aria-hidden="true" />
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
-            {saveStatus ? <p className="mt-3 text-sm font-bold text-green-200">{saveStatus}</p> : null}
-            {saveError ? <p className="mt-3 text-sm font-bold text-red-200">{saveError}</p> : null}
-          </section>
+          </div>
         </form>
 
         <div className="grid content-start gap-5">
