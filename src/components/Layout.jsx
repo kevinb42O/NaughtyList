@@ -5,6 +5,7 @@ import {
   HeartHandshake,
   House,
   LogIn,
+  MessageCircle,
   MessageSquare,
   Settings,
   Shield,
@@ -23,7 +24,7 @@ const navItems = [
   { to: '/profiles', label: 'Team', icon: UsersRound },
   { to: '/clans', label: 'Clans', icon: Shield },
   { to: '/chat', label: 'Chat', icon: MessageSquare },
-  { to: '/messages', label: 'DMs', icon: MessageSquare },
+  { to: '/messages', label: 'DMs', icon: MessageCircle },
   { to: '/profile', label: 'Profile', icon: Settings },
 ]
 
