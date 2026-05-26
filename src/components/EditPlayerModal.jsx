@@ -2,12 +2,14 @@ import { Save, ShieldX, X } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
 import { b21Tags, threatLevels } from '../data/mockPlayers.js'
+import { useMobileModalFocusScroll } from '../utils/mobileForm.js'
 import { getThreatStyle } from '../utils/threat.js'
 
 function EditPlayerModal({ open, onClose, player }) {
   const { updatePlayer, clans } = useIntel()
   const titleId = useId()
   const dialogRef = useRef(null)
+  const contentRef = useRef(null)
   const onCloseRef = useRef(onClose)
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -39,7 +41,11 @@ function EditPlayerModal({ open, onClose, player }) {
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    window.setTimeout(() => dialogRef.current?.focus(), 0)
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      dialogRef.current?.focus({ preventScroll: true })
+    }, 0)
 
     return () => {
       document.body.style.overflow = previousOverflow
@@ -65,6 +71,8 @@ function EditPlayerModal({ open, onClose, player }) {
     () => (form ? threatLevels.find((level) => level.id === form.threatLevel) : null),
     [form],
   )
+
+  useMobileModalFocusScroll({ open, dialogRef, scrollRef: contentRef })
 
   if (!open || !form) return null
 
@@ -118,24 +126,24 @@ function EditPlayerModal({ open, onClose, player }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/80 px-3 py-4 backdrop-blur-md sm:px-5 sm:py-8">
+    <div className="fixed inset-0 z-[80] h-[var(--visual-viewport-height)] overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-md sm:px-5 sm:py-8">
       <button
         type="button"
-        className="fixed inset-0 h-full w-full cursor-default"
+        className="absolute inset-0 h-full w-full cursor-default"
         onClick={resetAndClose}
         aria-label="Close edit operator modal"
       />
 
-      <div className="relative mx-auto flex min-h-full w-full max-w-4xl items-center">
+      <div className="relative mx-auto flex h-full w-full max-w-4xl items-stretch sm:items-center">
         <section
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
           tabIndex={-1}
-          className="panel relative my-auto max-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[1.5rem] border-red-500/20 shadow-2xl shadow-black sm:max-h-[calc(100vh-4rem)] sm:rounded-[2rem]"
+          className="panel relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.5rem] border-red-500/20 shadow-2xl shadow-black sm:h-auto sm:max-h-full sm:rounded-[2rem]"
         >
-          <div className="sticky top-0 z-10 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
+          <div className="z-10 shrink-0 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="intel-label mb-2 text-orange-100">Edit Intel Record</p>
@@ -158,7 +166,11 @@ function EditPlayerModal({ open, onClose, player }) {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="max-h-[calc(100vh-10rem)] overflow-y-auto p-4 sm:max-h-[calc(100vh-12rem)] sm:p-6">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div
+              ref={contentRef}
+              className="min-h-0 flex-1 overflow-y-auto p-4 overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y] sm:p-6"
+            >
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
               <div className="grid gap-5">
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -348,8 +360,9 @@ function EditPlayerModal({ open, onClose, player }) {
                 </div>
               </aside>
             </div>
+            </div>
 
-            <div className="sticky bottom-0 -mx-4 mt-6 border-t border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6">
+            <div className="shrink-0 border-t border-white/10 bg-neutral-950/95 px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:px-6 sm:pb-4">
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-h-5">
                   {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}

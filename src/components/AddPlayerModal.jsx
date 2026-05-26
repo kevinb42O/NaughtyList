@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useIntel } from '../context/useIntel.js'
 import { b21Tags, threatLevels } from '../data/mockPlayers.js'
+import { useMobileModalFocusScroll } from '../utils/mobileForm.js'
 import { getThreatStyle } from '../utils/threat.js'
 
 const defaultForm = {
@@ -19,6 +20,7 @@ function AddPlayerModal({ open, onClose }) {
   const { addPlayer, clans, isAuthenticated } = useIntel()
   const titleId = useId()
   const dialogRef = useRef(null)
+  const contentRef = useRef(null)
   const onCloseRef = useRef(onClose)
   const [form, setForm] = useState(defaultForm)
   const [saving, setSaving] = useState(false)
@@ -39,7 +41,8 @@ function AddPlayerModal({ open, onClose }) {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     window.setTimeout(() => {
-      dialogRef.current?.scrollTo({ top: 0 })
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
       dialogRef.current?.focus({ preventScroll: true })
     }, 0)
 
@@ -62,6 +65,8 @@ function AddPlayerModal({ open, onClose }) {
       window.removeEventListener('keydown', closeOnEscape)
     }
   }, [open, saving])
+
+  useMobileModalFocusScroll({ open, dialogRef, scrollRef: contentRef })
 
   if (!open) return null
 
@@ -122,16 +127,16 @@ function AddPlayerModal({ open, onClose }) {
         aria-label="Close add operator modal"
       />
 
-      <div className="relative z-10 mx-auto flex h-full w-full max-w-4xl items-center">
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-4xl items-stretch sm:items-center">
         <section
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
           tabIndex={-1}
-          className="panel relative my-auto max-h-full w-full overflow-y-auto overscroll-contain rounded-[1.5rem] border-red-500/20 shadow-2xl shadow-black outline-none [-webkit-overflow-scrolling:touch] [touch-action:pan-y] sm:rounded-[2rem]"
+          className="panel relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.5rem] border-red-500/20 shadow-2xl shadow-black outline-none sm:h-auto sm:max-h-full sm:rounded-[2rem]"
         >
-          <div className="sticky top-0 z-10 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
+          <div className="z-10 shrink-0 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="intel-label mb-2 text-red-100">New Intel Record</p>
@@ -155,7 +160,8 @@ function AddPlayerModal({ open, onClose }) {
           </div>
 
           {!isAuthenticated ? (
-            <div className="grid gap-5 p-4 sm:p-6">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 [-webkit-overflow-scrolling:touch] [touch-action:pan-y] sm:p-6">
+              <div className="grid gap-5">
               <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-5">
                 <div className="mb-3 flex items-center gap-3">
                   <AlertTriangle className="h-5 w-5 text-yellow-100" aria-hidden="true" />
@@ -173,9 +179,14 @@ function AddPlayerModal({ open, onClose }) {
                 <LogIn className="h-4 w-4" aria-hidden="true" />
                 Login to add intel
               </Link>
+              </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="p-4 sm:p-6">
+            <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div
+                ref={contentRef}
+                className="min-h-0 flex-1 overflow-y-auto p-4 overscroll-contain [-webkit-overflow-scrolling:touch] [touch-action:pan-y] sm:p-6"
+              >
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
                 <div className="grid gap-5">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -365,8 +376,9 @@ function AddPlayerModal({ open, onClose }) {
                   </div>
                 </aside>
               </div>
+              </div>
 
-              <div className="sticky bottom-0 -mx-4 mt-6 border-t border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6">
+              <div className="shrink-0 border-t border-white/10 bg-neutral-950/95 px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:px-6 sm:pb-4">
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-h-5">
                     {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
