@@ -1,5 +1,6 @@
 import { Search, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const tenorBaseUrl = 'https://tenor.googleapis.com/v2'
 const giphyBaseUrl = 'https://api.giphy.com/v1/gifs'
@@ -35,6 +36,7 @@ function normalizeGiphyGif(result) {
 
 function GifPickerModal({ onClose, onSelect }) {
   const selectingRef = useRef(false)
+  const searchInputRef = useRef(null)
   const giphyApiKey = import.meta.env.VITE_GIPHY_API_KEY
   const tenorApiKey = import.meta.env.VITE_TENOR_API_KEY
   const provider = giphyApiKey ? 'giphy' : 'tenor'
@@ -136,19 +138,25 @@ function GifPickerModal({ onClose, onSelect }) {
     }
   }, [endpoint, missingApiKey, provider, trimmedQuery])
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/78 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true">
+  // iOS Safari ignores autoFocus on dynamically-mounted inputs; focus imperatively
+  useEffect(() => {
+    const id = window.setTimeout(() => searchInputRef.current?.focus(), 60)
+    return () => window.clearTimeout(id)
+  }, [])
+
+  const modal = (
+    <div className="fixed inset-0 z-[9999] flex items-end bg-black/78 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true">
       <div className="max-h-[88vh] w-full overflow-hidden rounded-t-[1.35rem] border border-white/10 bg-zinc-950 pb-[env(safe-area-inset-bottom)] shadow-2xl shadow-black sm:max-w-3xl sm:rounded-[1.35rem] sm:pb-0">
         <div className="flex items-center gap-2 border-b border-white/10 bg-black/35 p-3">
           <div className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3">
             <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
             <input
+              ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="min-h-10 min-w-0 flex-1 border-0 bg-transparent text-sm text-gray-100 outline-none placeholder:text-gray-600"
               placeholder="Search GIFs"
               inputMode="search"
-              autoFocus
             />
           </div>
           <button
@@ -194,6 +202,8 @@ function GifPickerModal({ onClose, onSelect }) {
       </div>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }
 
 export default GifPickerModal
