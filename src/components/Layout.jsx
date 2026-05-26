@@ -207,8 +207,12 @@ function Layout() {
                   className="relative h-10 w-10 object-contain"
                 />
               </div>
-              <div className="min-w-0 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]">
-                <p className="truncate text-[0.9rem] font-black uppercase tracking-[0.34em] text-transparent bg-gradient-to-r from-red-200 via-white to-cyan-200 bg-clip-text drop-shadow-[0_0_14px_rgba(239,68,68,0.33)] sm:text-[1.05rem]">
+              <div className="relative min-w-0">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-x-2 -inset-y-1.5 bg-[radial-gradient(circle_at_18%_50%,rgba(239,68,68,0.22),transparent_58%),radial-gradient(circle_at_85%_50%,rgba(56,189,248,0.2),transparent_60%)] blur-md"
+                />
+                <p className="relative truncate text-[1rem] font-black uppercase tracking-[0.32em] text-transparent bg-gradient-to-r from-red-300 via-white to-cyan-200 bg-clip-text drop-shadow-[0_0_18px_rgba(239,68,68,0.35)] sm:text-[1.18rem]">
                   21RATS
                 </p>
               </div>
