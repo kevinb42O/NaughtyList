@@ -414,9 +414,11 @@ function Messages() {
 
   return (
     <div>
-      <PageHeader eyebrow="Direct Messages" title="Private Comms">
-        Clean one-on-one threads with fast reactions and quiet unread tracking.
-      </PageHeader>
+      <div className="hidden sm:block">
+        <PageHeader eyebrow="Direct Messages" title="Private Comms">
+          Clean one-on-one threads with fast reactions and quiet unread tracking.
+        </PageHeader>
+      </div>
 
       <section className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <aside className={`chat-stable-panel rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:block lg:max-h-[72vh] ${hasSelectedThread ? 'hidden' : 'block'}`}>
