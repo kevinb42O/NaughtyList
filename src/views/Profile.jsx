@@ -49,6 +49,7 @@ function Profile() {
     updateProfile,
     updateSupporterPreferences,
     enablePushNotifications,
+    signOut,
   } = useIntel()
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '')
@@ -892,6 +893,22 @@ function Profile() {
                 {passwordError ? <p className="mt-3 text-sm font-bold text-red-200">{passwordError}</p> : null}
               </div>
             </form>
+          </section>
+
+          <section className="panel rounded-[1.8rem] p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="intel-label mb-1">Session</p>
+                <p className="text-sm font-bold text-gray-400">Sign out of this device</p>
+              </div>
+              <button
+                type="button"
+                onClick={signOut}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-red-500/40 bg-red-500/10 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-200 transition hover:bg-red-500/20"
+              >
+                Logout
+              </button>
+            </div>
           </section>
         </div>
       </div>
