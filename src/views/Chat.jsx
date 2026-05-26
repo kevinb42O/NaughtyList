@@ -502,9 +502,11 @@ function Chat() {
 
   return (
     <div>
-      <PageHeader eyebrow="Chat Network" title="Squad Comms">
-        Fast public calls, private clan traffic, clean reactions.
-      </PageHeader>
+      <div className="hidden sm:block">
+        <PageHeader eyebrow="Chat Network" title="Squad Comms">
+          Fast public calls, private clan traffic, clean reactions.
+        </PageHeader>
+      </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
