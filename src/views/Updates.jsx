@@ -68,7 +68,7 @@ function StatTile({ icon: Icon, label, value, tone = 'text-red-100' }) {
 }
 
 function UpdateItem({ update }) {
-  const [hash, title, detail] = update
+  const [hash, title, detail, isHighlight = false] = update
   const isPending = hash === 'current'
   const category = categoryMeta(getUpdateCategory(update))
   const CategoryIcon = category.icon
@@ -86,6 +86,11 @@ function UpdateItem({ update }) {
                 <CategoryIcon className="h-3 w-3" aria-hidden="true" />
                 {category.label}
               </span>
+              {isHighlight ? (
+                <span className="rounded-full border border-amber-300/35 bg-amber-400/12 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.16em] text-amber-100">
+                  Key Update
+                </span>
+              ) : null}
               <span className={`rounded-full border px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.16em] ${isPending ? 'border-yellow-400/25 bg-yellow-400/10 text-yellow-100' : 'border-white/10 bg-white/[0.04] text-gray-500'}`}>
                 {hash}
               </span>
@@ -152,6 +157,11 @@ function Updates() {
     .filter((day) => day.updates.length)
 
   const shownUpdateCount = filteredDays.reduce((total, day) => total + day.updates.length, 0)
+  const highlightedUpdates = updateLogDays
+    .flatMap((day) => day.updates.map((update) => ({ day, update })))
+    .filter(({ update }) => Boolean(update[3]))
+    .slice(-8)
+    .reverse()
 
   return (
     <div>
@@ -207,6 +217,27 @@ function Updates() {
         <StatTile icon={History} label="Build Days" value={updateLogStats.dayCount} tone="text-cyan-100" />
         <StatTile icon={ListChecks} label="Logged Updates" value={updateLogStats.updateCount} tone="text-emerald-100" />
         <StatTile icon={Sparkles} label="Shown Now" value={shownUpdateCount} tone="text-yellow-100" />
+      </section>
+
+      <section className="panel mb-5 rounded-[1.6rem] p-4 sm:p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex min-h-8 items-center gap-2 rounded-full border border-amber-300/35 bg-amber-400/12 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-amber-100">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            Most Important Updates
+          </span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {highlightedUpdates.map(({ day, update }) => (
+            <article key={`${day.date}-${update[0]}-highlight`} className="rounded-[1.1rem] border border-amber-300/20 bg-amber-400/[0.06] p-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-amber-100">{day.title}</span>
+                <span className="font-mono text-[0.62rem] font-black uppercase tracking-[0.12em] text-amber-200">{update[0]}</span>
+              </div>
+              <p className="text-sm font-black uppercase tracking-[0.04em] text-white">{update[1]}</p>
+              <p className="mt-1 text-sm leading-6 text-gray-300">{update[2]}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="panel mb-5 rounded-[1.6rem] p-4">
