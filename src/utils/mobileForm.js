@@ -38,7 +38,14 @@ export function useMobileModalFocusScroll({ open, dialogRef, scrollRef }) {
         return
       }
 
-      activeElement.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' })
+      // Manually scroll only the scroll container – avoids the iOS Safari bug
+      // where scrollIntoView() scrolls the window instead of the element,
+      // pushing the focused field behind the keyboard.
+      const fieldRect = activeElement.getBoundingClientRect()
+      const containerRect = scrollElement.getBoundingClientRect()
+      const fieldRelativeTop = fieldRect.top - containerRect.top
+      const targetDelta = fieldRelativeTop - (containerRect.height / 2 - fieldRect.height / 2)
+      scrollElement.scrollTop = Math.max(0, scrollElement.scrollTop + targetDelta)
     }
 
     const queueReveal = () => {

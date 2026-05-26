@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
 import { b21Tags, threatLevels } from '../data/mockPlayers.js'
 import { useMobileModalFocusScroll } from '../utils/mobileForm.js'
+import { useModalViewportHeight } from '../utils/mobileViewport.js'
 import { getThreatStyle } from '../utils/threat.js'
 
 function EditPlayerModal({ open, onClose, player }) {
@@ -73,6 +74,7 @@ function EditPlayerModal({ open, onClose, player }) {
   )
 
   useMobileModalFocusScroll({ open, dialogRef, scrollRef: contentRef })
+  const vpHeight = useModalViewportHeight()
 
   if (!open || !form) return null
 
@@ -126,7 +128,10 @@ function EditPlayerModal({ open, onClose, player }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] h-[var(--visual-viewport-height)] overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-md sm:px-5 sm:py-8">
+    <div
+      className="fixed inset-x-0 top-0 z-[80] overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-md sm:inset-0 sm:px-5 sm:py-8"
+      style={vpHeight ? { height: `${vpHeight}px` } : undefined}
+    >
       <button
         type="button"
         className="absolute inset-0 h-full w-full cursor-default"
@@ -362,30 +367,16 @@ function EditPlayerModal({ open, onClose, player }) {
             </div>
             </div>
 
-            <div className="shrink-0 border-t border-white/10 bg-neutral-950/95 px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:px-6 sm:pb-4">
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-h-5">
-                  {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={resetAndClose}
-                    disabled={saving}
-                    className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/20 hover:text-white disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving || !form.name.trim()}
-                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-orange-500/60 bg-orange-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-orange-100 shadow-[0_0_28px_rgba(234,179,8,0.18)] transition hover:bg-orange-500/22 disabled:opacity-50"
-                  >
-                    <Save className="h-5 w-5" aria-hidden="true" />
-                    {saving ? 'Updating' : 'Save Changes'}
-                  </button>
-                </div>
-              </div>
+            <div className="shrink-0 border-t border-white/10 bg-neutral-950/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:px-6 sm:pb-4">
+              {error ? <p className="mb-3 text-sm font-bold text-red-200">{error}</p> : null}
+              <button
+                type="submit"
+                disabled={saving || !form.name.trim()}
+                className="inline-flex w-full min-h-12 items-center justify-center gap-2 rounded-full border border-orange-500/60 bg-orange-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-orange-100 shadow-[0_0_28px_rgba(234,179,8,0.18)] transition hover:bg-orange-500/22 disabled:opacity-50"
+              >
+                <Save className="h-5 w-5" aria-hidden="true" />
+                {saving ? 'Updating…' : 'Save Changes'}
+              </button>
             </div>
           </form>
         </section>

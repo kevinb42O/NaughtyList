@@ -158,3 +158,66 @@ export function useMobileViewportPanelHeight(
 
   return [panelRef, panelLayout.height, panelLayout.keyboard, panelLayout.top]
 }
+
+/**
+ * Returns the visual-viewport height as a JS number on mobile (≤640 px wide),
+ * or null on desktop. Updates whenever the keyboard opens/closes so a modal
+ * can apply it as an inline `style={{ height: vpHeight + 'px' }}`, keeping the
+ * modal's content entirely above the on-screen keyboard with no CSS-variable
+ * timing mismatch.
+ */
+export function useModalViewportHeight() {
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+
+  const [height, setHeight] = useState(() => {
+    if (!isMobile) return null
+    return Math.round(window.visualViewport?.height ?? window.innerHeight)
+  })
+
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 640px)').matches) return undefined
+
+    let frameId = 0
+    const timeoutIds = []
+
+    function measure() {
+      setHeight(Math.round(window.visualViewport?.height ?? window.innerHeight))
+    }
+
+    function settle() {
+      if (frameId) window.cancelAnimationFrame(frameId)
+      timeoutIds.forEach((id) => window.clearTimeout(id))
+      timeoutIds.length = 0
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = window.requestAnimationFrame(() => {
+          frameId = 0
+          measure()
+        })
+      })
+
+      ;[60, 160, 320].forEach((delay) => {
+        timeoutIds.push(window.setTimeout(measure, delay))
+      })
+    }
+
+    settle()
+    window.addEventListener('resize', settle)
+    window.addEventListener('focusin', settle)
+    window.addEventListener('focusout', settle)
+    window.visualViewport?.addEventListener('resize', settle)
+    window.visualViewport?.addEventListener('scroll', settle)
+
+    return () => {
+      if (frameId) window.cancelAnimationFrame(frameId)
+      timeoutIds.forEach((id) => window.clearTimeout(id))
+      window.removeEventListener('resize', settle)
+      window.removeEventListener('focusin', settle)
+      window.removeEventListener('focusout', settle)
+      window.visualViewport?.removeEventListener('resize', settle)
+      window.visualViewport?.removeEventListener('scroll', settle)
+    }
+  }, [])
+
+  return height // null on desktop, measured px on mobile
+}
