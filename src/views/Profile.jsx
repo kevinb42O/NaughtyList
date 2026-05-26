@@ -372,7 +372,7 @@ function Profile() {
   }
 
   return (
-    <div>
+    <div className="pb-20">
       <PageHeader eyebrow="Settings" title="My Profile">
         Update your display name, bio, review your clan status, track game accounts, and manage your password.
       </PageHeader>
@@ -489,7 +489,7 @@ function Profile() {
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <form onSubmit={handleSaveProfile} className="grid gap-5">
+        <form id="profile-form" onSubmit={handleSaveProfile} className="grid gap-5">
           <section className="panel rounded-[1.8rem] p-5">
             <ProfileSectionHeader
               step="1"
@@ -729,23 +729,6 @@ function Profile() {
             </div>
           </section>
 
-          <div className="sticky bottom-0 z-40 -mx-4 border-t border-white/10 bg-zinc-950/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 sm:py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                {saveStatus ? <p className="truncate text-sm font-bold text-green-300">{saveStatus}</p> : null}
-                {saveError ? <p className="truncate text-sm font-bold text-red-300">{saveError}</p> : null}
-                {!saveStatus && !saveError ? <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-500">Profile &amp; game accounts</p> : null}
-              </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex shrink-0 min-h-11 items-center justify-center gap-2 rounded-full bg-red-500 px-6 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-red-950/40 transition hover:bg-red-400 disabled:opacity-60 disabled:shadow-none"
-              >
-                <Save className="h-4 w-4" aria-hidden="true" />
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
         </form>
 
         <div className="grid content-start gap-5">
@@ -929,6 +912,29 @@ function Profile() {
               </button>
             </div>
           </section>
+        </div>
+      </div>
+
+      {/* Fixed save bar — sits above the mobile bottom nav, always visible */}
+      <div
+        className="fixed inset-x-0 z-40 border-t border-white/10 bg-zinc-950/95 px-4 py-3 backdrop-blur-md sm:px-6"
+        style={{ bottom: 'var(--mobile-bottom-nav-height, 0px)' }}
+      >
+        <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-4">
+          <div className="min-w-0">
+            {saveStatus ? <p className="truncate text-sm font-bold text-green-300">{saveStatus}</p> : null}
+            {saveError ? <p className="truncate text-sm font-bold text-red-300">{saveError}</p> : null}
+            {!saveStatus && !saveError ? <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-500">Profile &amp; accounts</p> : null}
+          </div>
+          <button
+            type="submit"
+            form="profile-form"
+            disabled={saving}
+            className="inline-flex shrink-0 min-h-11 items-center justify-center gap-2 rounded-full bg-red-500 px-6 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-red-950/40 transition hover:bg-red-400 disabled:opacity-60 disabled:shadow-none"
+          >
+            <Save className="h-4 w-4" aria-hidden="true" />
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
         </div>
       </div>
     </div>
