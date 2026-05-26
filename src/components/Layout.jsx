@@ -199,20 +199,17 @@ function Layout() {
       <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-24 pt-4 sm:px-6 lg:px-8">
         <div className={isHome ? 'pointer-events-none absolute inset-x-0 top-0 z-20 px-4 sm:px-6 lg:px-8' : ''}>
           <header className={`${isHome ? 'pointer-events-auto mb-0 bg-black/38 shadow-2xl shadow-black/35' : 'mb-5 bg-black/30 shadow-lg shadow-black/20'} flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2 backdrop-blur-xl sm:px-4`}>
-            <Link to="/" className="flex min-w-0 items-center gap-3">
-              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5">
+            <Link to="/" className="group flex min-w-0 items-center gap-3">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5 shadow-[0_0_22px_rgba(239,68,68,0.18)] transition group-hover:border-red-300/40 group-hover:shadow-[0_0_28px_rgba(239,68,68,0.28)]">
                 <img
                   src="/ratslogo.png?v=20260511-ratslogo"
                   alt="21rats logo"
                   className="relative h-10 w-10 object-contain"
                 />
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.24em] text-red-100 sm:text-xs">
-                  21rats
-                </p>
-                <p className="truncate text-[0.62rem] font-bold uppercase tracking-[0.14em] text-gray-500 sm:text-[0.68rem]">
-                  Building 21 Intel Network
+              <div className="min-w-0 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]">
+                <p className="truncate text-[0.9rem] font-black uppercase tracking-[0.34em] text-transparent bg-gradient-to-r from-red-200 via-white to-cyan-200 bg-clip-text drop-shadow-[0_0_14px_rgba(239,68,68,0.33)] sm:text-[1.05rem]">
+                  21RATS
                 </p>
               </div>
             </Link>
