@@ -3,6 +3,7 @@ import { Camera, HeartHandshake, KeyRound, Lock, Plus, Save, Trash2, X } from 'l
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
+import CollapsiblePanel from '../components/CollapsiblePanel.jsx'
 import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'
 import GifPickerModal from '../components/GifPickerModal.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
@@ -19,21 +20,6 @@ import { gameAccountStatusMeta, profileGameAccounts, shadowbanStatusOptions } fr
 import { imageAcceptValue, uploadProfileImage, validateImageFile } from '../utils/media.js'
 import { avatarStreakRequirement, formatDaysUntilReward, nextStreakReward, profileLoginStreak } from '../utils/streaks.js'
 import { formatDonationAmount } from '../utils/supporters.js'
-
-function ProfileSectionHeader({ step, eyebrow, title, description }) {
-  return (
-    <div className="mb-5 flex items-start gap-4 border-b border-white/10 pb-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-sm font-black text-white">
-        {step}
-      </span>
-      <div>
-        <p className="intel-label mb-2">{eyebrow}</p>
-        <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">{title}</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">{description}</p>
-      </div>
-    </div>
-  )
-}
 
 function Profile() {
   const {
@@ -490,13 +476,13 @@ function Profile() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <form id="profile-form" onSubmit={handleSaveProfile} className="grid gap-5">
-          <section className="panel rounded-[1.8rem] p-5">
-            <ProfileSectionHeader
-              step="1"
-              eyebrow="Identity"
-              title="Profile Details"
-              description="Set the display name and bio your squad sees across the board, chat, and direct messages. Clan membership now lives in Clan HQ."
-            />
+          <CollapsiblePanel
+            defaultOpen={false}
+            eyebrow="Identity"
+            title="Profile Details"
+            description="Set the display name and bio your squad sees across the board, chat, and direct messages. Clan membership now lives in Clan HQ."
+            meta="Step 1"
+          >
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -627,15 +613,15 @@ function Profile() {
                 maxLength="280"
               />
             </div>
-          </section>
+          </CollapsiblePanel>
 
-          <section className="panel rounded-[1.8rem] p-5">
-            <ProfileSectionHeader
-              step="2"
-              eyebrow="Accounts"
-              title="Game Accounts"
-              description="Track every Activision ID you use and keep the shadowban status current for each account."
-            />
+          <CollapsiblePanel
+            defaultOpen={false}
+            eyebrow="Accounts"
+            title="Game Accounts"
+            description="Track every Activision ID you use and keep the shadowban status current for each account."
+            meta="Step 2"
+          >
 
             <div className="space-y-3">
               {gameAccounts.length ? (
@@ -727,28 +713,28 @@ function Profile() {
                 <Plus className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
-          </section>
+          </CollapsiblePanel>
 
         </form>
 
         <div className="grid content-start gap-5">
-          <section className="panel rounded-[1.8rem] p-5">
-            <ProfileSectionHeader
-              step="3"
-              eyebrow="Daily Streak"
-              title="Daily Ops"
-              description="Claim your daily signal, keep the streak alive, level up, and push toward the next badge unlock."
-            />
+          <CollapsiblePanel
+            defaultOpen={false}
+            eyebrow="Daily Streak"
+            title="Daily Ops"
+            description="Claim your daily signal, keep the streak alive, level up, and push toward the next badge unlock."
+            meta="Step 3"
+          >
             <DailyCheckInPanel embedded />
-          </section>
+          </CollapsiblePanel>
 
-          <section className="panel rounded-[1.8rem] p-5">
-            <ProfileSectionHeader
-              step="4"
-              eyebrow="Support"
-              title="Supporter Rewards"
-              description="Control whether cosmetic supporter rewards show publicly. Donation rewards never affect intel rank, votes, moderation, or clan access."
-            />
+          <CollapsiblePanel
+            defaultOpen={false}
+            eyebrow="Support"
+            title="Supporter Rewards"
+            description="Control whether cosmetic supporter rewards show publicly. Donation rewards never affect intel rank, votes, moderation, or clan access."
+            meta="Step 4"
+          >
 
             <form onSubmit={handleSaveSupporterPreferences} className="space-y-4">
               <div className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
@@ -822,15 +808,14 @@ function Profile() {
               {supporterStatus ? <p className="text-sm font-bold text-green-200">{supporterStatus}</p> : null}
               {supporterError ? <p className="text-sm font-bold text-red-200">{supporterError}</p> : null}
             </form>
-          </section>
+          </CollapsiblePanel>
 
           <section className="panel rounded-[1.8rem] p-5">
-            <ProfileSectionHeader
-              step="5"
-              eyebrow="Alerts"
-              title="Phone Notifications"
-              description="Enable push alerts on this device so you catch squad updates without reopening the app."
-            />
+            <p className="intel-label mb-2">Alerts</p>
+            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Phone Notifications</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+              Enable push alerts on this device so you catch squad updates without reopening the app.
+            </p>
 
             <button
               type="button"
@@ -844,13 +829,13 @@ function Profile() {
             {notificationError ? <p className="mt-3 text-sm font-bold text-red-200">{notificationError}</p> : null}
           </section>
 
-          <section className="panel rounded-[1.8rem] p-5">
-            <ProfileSectionHeader
-              step="6"
-              eyebrow="Security"
-              title="Change Password"
-              description="Update your password here without touching the rest of your profile settings."
-            />
+          <CollapsiblePanel
+            defaultOpen={false}
+            eyebrow="Security"
+            title="Change Password"
+            description="Update your password here without touching the rest of your profile settings."
+            meta="Step 6"
+          >
 
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
@@ -895,9 +880,14 @@ function Profile() {
                 {passwordError ? <p className="mt-3 text-sm font-bold text-red-200">{passwordError}</p> : null}
               </div>
             </form>
-          </section>
+          </CollapsiblePanel>
 
-          <section className="panel rounded-[1.8rem] p-5">
+          <CollapsiblePanel
+            defaultOpen={false}
+            eyebrow="Session"
+            title="Sign Out"
+            description="Sign out of this device."
+          >
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="intel-label mb-1">Session</p>
@@ -911,7 +901,7 @@ function Profile() {
                 Logout
               </button>
             </div>
-          </section>
+          </CollapsiblePanel>
         </div>
       </div>
 
@@ -922,9 +912,9 @@ function Profile() {
       >
         <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-4">
           <div className="min-w-0">
+            <p className="text-[0.72rem] font-black uppercase tracking-[0.16em] text-gray-400">don't forget to save -&gt;</p>
             {saveStatus ? <p className="truncate text-sm font-bold text-green-300">{saveStatus}</p> : null}
             {saveError ? <p className="truncate text-sm font-bold text-red-300">{saveError}</p> : null}
-            {!saveStatus && !saveError ? <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-500">Profile &amp; accounts</p> : null}
           </div>
           <button
             type="submit"
