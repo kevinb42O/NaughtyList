@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
 import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'
+import GifPickerModal from '../components/GifPickerModal.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
@@ -84,6 +85,7 @@ function Profile() {
   const [savingSupporterPrefs, setSavingSupporterPrefs] = useState(false)
   const [supporterStatus, setSupporterStatus] = useState('')
   const [supporterError, setSupporterError] = useState('')
+  const [showBannerGifPicker, setShowBannerGifPicker] = useState(false)
   const avatarFileInputRef = useRef(null)
   const bannerFileInputRef = useRef(null)
 
@@ -249,6 +251,16 @@ function Profile() {
     setSaveError('')
   }
 
+  function handleBannerGifSelect({ mediaUrl }) {
+    setBannerImageFile(null)
+    setBannerImagePreviewUrl('')
+    setBannerUploadProgress(0)
+    setBannerImageUrl(mediaUrl)
+    setSaveStatus('')
+    setSaveError('')
+    setShowBannerGifPicker(false)
+  }
+
   async function handleSaveProfile(event) {
     event.preventDefault()
     setSaving(true)
@@ -380,6 +392,13 @@ function Profile() {
               <Camera className="h-4 w-4" aria-hidden="true" />
               Edit Cover
             </button>
+            <button
+              type="button"
+              onClick={() => setShowBannerGifPicker(true)}
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/90 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 shadow-lg shadow-black/40 transition hover:border-purple-400/45 hover:bg-zinc-900 sm:min-h-11"
+            >
+              GIF
+            </button>
             {displayedBannerImageUrl ? (
               <button
                 type="button"
@@ -390,6 +409,9 @@ function Profile() {
                 Remove Cover
               </button>
             ) : null}
+          {showBannerGifPicker ? (
+            <GifPickerModal onClose={() => setShowBannerGifPicker(false)} onSelect={handleBannerGifSelect} />
+          ) : null}
           </div>
         </div>
 
