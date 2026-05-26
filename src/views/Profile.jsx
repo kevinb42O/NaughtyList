@@ -237,6 +237,20 @@ function Profile() {
     setSaveError('')
   }
 
+  function handleEditBioFromPreview() {
+    const identityPanel = document.querySelector('details.profile-identity-panel')
+    if (identityPanel && !identityPanel.hasAttribute('open')) {
+      identityPanel.setAttribute('open', '')
+    }
+
+    window.requestAnimationFrame(() => {
+      const bioField = document.getElementById('pf-bio')
+      if (!bioField) return
+      bioField.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      bioField.focus()
+    })
+  }
+
   function handleBannerGifSelect({ mediaUrl }) {
     setBannerImageFile(null)
     setBannerImagePreviewUrl('')
@@ -465,18 +479,46 @@ function Profile() {
             </div>
           ) : null}
 
-          <div className="mt-4 rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
-            <p className="intel-label mb-2">Bio</p>
+          <button
+            type="button"
+            onClick={handleEditBioFromPreview}
+            className="mt-4 block w-full rounded-[1.4rem] border border-white/10 bg-black/25 p-4 text-left transition hover:border-red-400/35 hover:bg-black/40"
+            aria-label="Edit bio"
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="intel-label">Bio</p>
+              <span className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-gray-500">Tap to edit</span>
+            </div>
             <p className="max-w-3xl whitespace-pre-wrap text-sm leading-6 text-gray-300">
               {bio.trim() || 'No bio set yet.'}
             </p>
-          </div>
+          </button>
         </div>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <form id="profile-form" onSubmit={handleSaveProfile} className="grid gap-5">
+          <section className="panel rounded-[1.8rem] p-5">
+            <p className="intel-label mb-2">Alerts</p>
+            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Phone Notifications</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+              Enable push alerts on this device so you catch squad updates without reopening the app.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleEnableNotifications}
+              disabled={enablingNotifications}
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-yellow-400/40 bg-yellow-400/10 px-5 text-sm font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-400/20 disabled:opacity-60"
+            >
+              {enablingNotifications ? 'Enabling...' : 'Enable On This Device'}
+            </button>
+            {notificationStatus ? <p className="mt-3 text-sm font-bold text-green-200">{notificationStatus}</p> : null}
+            {notificationError ? <p className="mt-3 text-sm font-bold text-red-200">{notificationError}</p> : null}
+          </section>
+
           <CollapsiblePanel
+            className="profile-identity-panel"
             defaultOpen={false}
             eyebrow="Identity"
             title="Profile Details"
@@ -809,25 +851,6 @@ function Profile() {
               {supporterError ? <p className="text-sm font-bold text-red-200">{supporterError}</p> : null}
             </form>
           </CollapsiblePanel>
-
-          <section className="panel rounded-[1.8rem] p-5">
-            <p className="intel-label mb-2">Alerts</p>
-            <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Phone Notifications</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
-              Enable push alerts on this device so you catch squad updates without reopening the app.
-            </p>
-
-            <button
-              type="button"
-              onClick={handleEnableNotifications}
-              disabled={enablingNotifications}
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-yellow-400/40 bg-yellow-400/10 px-5 text-sm font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-400/20 disabled:opacity-60"
-            >
-              {enablingNotifications ? 'Enabling...' : 'Enable On This Device'}
-            </button>
-            {notificationStatus ? <p className="mt-3 text-sm font-bold text-green-200">{notificationStatus}</p> : null}
-            {notificationError ? <p className="mt-3 text-sm font-bold text-red-200">{notificationError}</p> : null}
-          </section>
 
           <CollapsiblePanel
             defaultOpen={false}
