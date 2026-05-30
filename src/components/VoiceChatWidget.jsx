@@ -78,6 +78,7 @@ export default function VoiceChatWidget() {
   const [isDeafened, setIsDeafened] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState('Chat about anything')
   const [loading, setLoading] = useState(false)
+  const [roomOccupancy, setRoomOccupancy] = useState({})
 
   const [participants, setParticipants] = useState([])
   const [dominantSpeakerId, setDominantSpeakerId] = useState(null)
@@ -90,8 +91,47 @@ export default function VoiceChatWidget() {
   const animationFrameRef = useRef(null)
   const profileActionRef = useRef(null)
   const muteActionRef = useRef(null)
+  const presenceChannelRef = useRef(null)
 
   const voiceRooms = ['Chat about anything', 'B21', 'PREMADE']
+  const roomMap = { 'Chat about anything': 'chat-anything', 'B21': 'b21', 'PREMADE': 'premade' }
+
+  // 1. Maintain global presence for voice rooms
+  useEffect(() => {
+    if (!isAuthenticated || !profile?.id) return
+
+    const channel = supabase.channel('voice-rooms', {
+      config: { presence: { key: profile.id } }
+    })
+    
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState()
+      const counts = {}
+      for (const key in state) {
+        state[key].forEach(p => {
+          if (p.room) counts[p.room] = (counts[p.room] || 0) + 1
+        })
+      }
+      setRoomOccupancy(counts)
+    }).subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ room: isConnected ? selectedRoom : null })
+      }
+    })
+
+    presenceChannelRef.current = channel
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [isAuthenticated, profile?.id])
+
+  // Update presence when connection status changes
+  useEffect(() => {
+    if (presenceChannelRef.current && presenceChannelRef.current.state === 'joined') {
+      presenceChannelRef.current.track({ room: isConnected ? selectedRoom : null }).catch(() => {})
+    }
+  }, [isConnected, selectedRoom])
 
   const startEngine = async (roomName) => {
     if (loading) return
@@ -119,7 +159,6 @@ export default function VoiceChatWidget() {
       }
 
       // 3. Join the Trystero mesh room via Supabase signaling
-      const roomMap = { 'Chat about anything': 'chat-anything', 'B21': 'b21', 'PREMADE': 'premade' }
       const roomSlug = roomMap[roomName] || roomName.toLowerCase().replace(/[^a-z0-9]/g, '')
       const fullRoomId = `21rats-voice-${roomSlug}`
 
@@ -285,23 +324,37 @@ export default function VoiceChatWidget() {
       setLoading(false)
       console.log('[VoiceChat] Connected and streaming')
 
+      // Anti-Spam Rate Limiting for Notifications
+      const now = Date.now()
+      const lastToast = Number(localStorage.getItem('last_voice_toast') || 0)
+      const lastPush = Number(localStorage.getItem('last_voice_push') || 0)
+      
+      const toastCooldown = 2 * 60 * 1000 // 2 minutes
+      const pushCooldown = 15 * 60 * 1000 // 15 minutes
+
       // Broadcast globally that we joined voice chat for in-app toasts
-      supabase.channel('online-users').send({
-        type: 'broadcast',
-        event: 'voice_chat_joined',
-        payload: {
-          room: selectedRoom,
-          profile: profile
-        }
-      }).catch(err => console.warn('[VoiceChat] Failed to broadcast join event', err))
+      if (now - lastToast > toastCooldown) {
+        localStorage.setItem('last_voice_toast', now.toString())
+        supabase.channel('online-users').send({
+          type: 'broadcast',
+          event: 'voice_chat_joined',
+          payload: {
+            room: selectedRoom,
+            profile: profile
+          }
+        }).catch(err => console.warn('[VoiceChat] Failed to broadcast join event', err))
+      }
 
       // Trigger actual Web Push Notification via Edge Function
-      supabase.functions.invoke('send-push', {
-        body: {
-          type: 'voice-chat',
-          message: selectedRoom
-        }
-      }).catch(err => console.warn('[VoiceChat] Failed to trigger push notification', err))
+      if (now - lastPush > pushCooldown) {
+        localStorage.setItem('last_voice_push', now.toString())
+        supabase.functions.invoke('send-push', {
+          body: {
+            type: 'voice-chat',
+            message: selectedRoom
+          }
+        }).catch(err => console.warn('[VoiceChat] Failed to trigger push notification', err))
+      }
 
     } catch (err) {
       console.error('Voice engine error:', err)
@@ -406,7 +459,9 @@ export default function VoiceChatWidget() {
         <div className={`flex items-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition duration-200 ${
           isConnected
             ? 'border-emerald-500/50 bg-emerald-500/12 backdrop-blur-xl shadow-[0_0_20px_rgba(16,185,129,0.35)]'
-            : 'border-white/10 bg-zinc-900/90 backdrop-blur-xl hover:border-red-400/40 hover:bg-zinc-800'
+            : Object.values(roomOccupancy).some(c => c > 0)
+              ? 'border-emerald-500/30 bg-zinc-900/90 backdrop-blur-xl hover:border-emerald-400/50 hover:bg-zinc-800 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+              : 'border-white/10 bg-zinc-900/90 backdrop-blur-xl hover:border-red-400/40 hover:bg-zinc-800'
         }`}>
           <button
             onClick={() => setIsOpen(true)}
@@ -418,11 +473,16 @@ export default function VoiceChatWidget() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
+            ) : Object.values(roomOccupancy).some(c => c > 0) ? (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
             ) : (
               <Radio className="h-4.5 w-4.5 animate-pulse text-red-400" />
             )}
-            <span className={`text-[0.68rem] font-black uppercase tracking-[0.14em] ${isConnected ? 'text-emerald-300' : 'text-gray-300'}`}>
-              {isConnected ? 'Squad Online' : 'Voice Hub'}
+            <span className={`text-[0.68rem] font-black uppercase tracking-[0.14em] ${isConnected ? 'text-emerald-300' : Object.values(roomOccupancy).some(c => c > 0) ? 'text-emerald-100' : 'text-gray-300'}`}>
+              {isConnected ? 'Squad Online' : Object.values(roomOccupancy).some(c => c > 0) ? 'Squad Active' : 'Voice Hub'}
             </span>
 
             {isConnected && participants.length > 0 && (
@@ -509,20 +569,30 @@ export default function VoiceChatWidget() {
             {!isConnected && !loading && (
               <div className="mb-3">
                 <div className="flex flex-col gap-1.5 mt-2">
-                  {voiceRooms.map((room) => (
-                    <button
-                      key={room}
-                      onClick={() => setSelectedRoom(room)}
-                      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[0.68rem] font-bold transition ${
-                        selectedRoom === room
-                          ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.15)]'
-                          : 'border-white/5 bg-zinc-900/50 text-gray-400 hover:border-white/10 hover:bg-zinc-800'
-                      }`}
-                    >
-                      {room}
-                      {selectedRoom === room && <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
-                    </button>
-                  ))}
+                  {voiceRooms.map((room) => {
+                    const count = roomOccupancy[room] || 0
+                    return (
+                      <button
+                        key={room}
+                        onClick={() => setSelectedRoom(room)}
+                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[0.68rem] font-bold transition ${
+                          selectedRoom === room
+                            ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.15)]'
+                            : 'border-white/5 bg-zinc-900/50 text-gray-400 hover:border-white/10 hover:bg-zinc-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{room}</span>
+                          {count > 0 && (
+                            <span className="flex items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[0.55rem] font-black text-emerald-400">
+                              {count}
+                            </span>
+                          )}
+                        </div>
+                        {selectedRoom === room && <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
