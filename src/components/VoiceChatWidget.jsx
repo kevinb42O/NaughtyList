@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { joinRoom } from '@trystero-p2p/torrent'
+import { joinRoom } from '@trystero-p2p/mqtt'
 import {
   Mic,
   MicOff,
@@ -244,7 +244,7 @@ export default function VoiceChatWidget() {
     } catch (err) {
       console.error('Failed to start native WebRTC engine', err)
       setLoading(false)
-      alert('Microphone access denied or WebRTC unavailable. Please allow microphone access to use Voice Comms.')
+      alert(`Microphone access denied or WebRTC unavailable. Please allow microphone access to use Voice Comms. Error: ${err.message}`)
     }
   }
 
