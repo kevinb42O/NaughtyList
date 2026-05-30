@@ -12,6 +12,7 @@ import {
   Sparkles,
   Loader2
 } from 'lucide-react'
+import { supabase } from '../lib/supabase.js'
 import { useIntel } from '../context/useIntel.js'
 import ProfileAvatar from './ProfileAvatar.jsx'
 
@@ -283,6 +284,16 @@ export default function VoiceChatWidget() {
       setIsConnected(true)
       setLoading(false)
       console.log('[VoiceChat] Connected and streaming')
+
+      // Broadcast globally that we joined voice chat
+      supabase.channel('online-users').send({
+        type: 'broadcast',
+        event: 'voice_chat_joined',
+        payload: {
+          room: selectedRoom,
+          profile: profile
+        }
+      }).catch(err => console.warn('[VoiceChat] Failed to broadcast join event', err))
 
     } catch (err) {
       console.error('Voice engine error:', err)

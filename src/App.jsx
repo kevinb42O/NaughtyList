@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import Layout from './components/Layout.jsx'
 import Seo from './components/Seo.jsx'
 import IntelProvider from './context/IntelProvider.jsx'
@@ -22,6 +23,7 @@ function App() {
     <IntelProvider>
       <BrowserRouter>
         <Seo />
+        <Toaster theme="dark" position="top-center" toastOptions={{ className: 'font-mono text-xs uppercase font-bold tracking-wider' }} />
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />

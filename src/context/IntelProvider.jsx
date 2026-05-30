@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
 import { supabase } from '../lib/supabase.js'
 import { buildClanIntel } from '../utils/clans.js'
@@ -1269,6 +1270,15 @@ function IntelProvider({ children }) {
       .on('presence', { event: 'sync' }, () => {
         const presenceState = presenceChannel.presenceState()
         setOnlineUserIds(Object.keys(presenceState))
+      })
+      .on('broadcast', { event: 'voice_chat_joined' }, ({ payload }) => {
+        // Don't toast if we are the one who joined
+        if (payload?.profile?.id !== user.id) {
+          toast.success(`${payload?.profile?.display_name || 'A user'} jumped into ${payload?.room}!`, {
+            description: 'Click the squad comms widget to join.',
+            icon: '🔊',
+          })
+        }
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
