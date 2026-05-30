@@ -94,6 +94,38 @@ export default function VoiceChatWidget() {
   const presenceChannelRef = useRef(null)
 
   const voiceRooms = ['Chat about anything', 'B21', 'PREMADE']
+
+  // Draggable logic for the chat head
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [hasMoved, setHasMoved] = useState(false)
+  const startPosRef = useRef({ x: 0, y: 0 })
+  const startMouseRef = useRef({ x: 0, y: 0 })
+
+  const handlePointerDown = (e) => {
+    e.target.setPointerCapture(e.pointerId)
+    setIsDragging(true)
+    setHasMoved(false)
+    startMouseRef.current = { x: e.clientX, y: e.clientY }
+    startPosRef.current = { ...dragPos }
+  }
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return
+    const dx = e.clientX - startMouseRef.current.x
+    const dy = e.clientY - startMouseRef.current.y
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) setHasMoved(true)
+    setDragPos({
+      x: startPosRef.current.x + dx,
+      y: startPosRef.current.y + dy
+    })
+  }
+
+  const handlePointerUp = (e) => {
+    e.target.releasePointerCapture(e.pointerId)
+    setIsDragging(false)
+  }
+
   const roomMap = { 'Chat about anything': 'chat-anything', 'B21': 'b21', 'PREMADE': 'premade' }
 
   // 1. Maintain global presence for voice rooms
@@ -321,6 +353,7 @@ export default function VoiceChatWidget() {
 
       playSynthSound('join')
       setIsConnected(true)
+      setRoomOccupancy(prev => ({ ...prev, [selectedRoom]: (prev[selectedRoom] || 0) + 1 }))
       setLoading(false)
       console.log('[VoiceChat] Connected and streaming')
 
@@ -369,6 +402,8 @@ export default function VoiceChatWidget() {
 
   const disconnectVoice = useCallback(() => {
     playSynthSound('leave')
+    setIsConnected(false)
+    setRoomOccupancy(prev => ({ ...prev, [selectedRoom]: Math.max(0, (prev[selectedRoom] || 0) - 1) }))
 
     if (roomRef.current) {
       roomRef.current.leave()
@@ -451,81 +486,47 @@ export default function VoiceChatWidget() {
 
   return (
     <div
-      className="fixed right-4 z-40 sm:bottom-6 sm:right-6 font-sans select-none"
-      style={{ bottom: 'calc(var(--mobile-bottom-nav-height, 0px) + 1.2rem)' }}
+      className={`fixed right-4 z-40 sm:bottom-6 sm:right-6 font-sans select-none ${isDragging ? 'cursor-grabbing' : ''}`}
+      style={{ 
+        bottom: 'calc(var(--mobile-bottom-nav-height, 0px) + 1.2rem)',
+        transform: !isOpen ? `translate3d(${dragPos.x}px, ${dragPos.y}px, 0)` : 'none',
+        transition: isDragging || isOpen ? 'none' : 'transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28)'
+      }}
     >
-      {/* Floating button when closed */}
+      {/* Floating bubble when closed (Draggable Chat Head) */}
       {!isOpen && (
-        <div className={`flex items-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition duration-200 ${
-          isConnected
-            ? 'border-emerald-500/50 bg-emerald-500/12 backdrop-blur-xl shadow-[0_0_20px_rgba(16,185,129,0.35)]'
-            : Object.values(roomOccupancy).some(c => c > 0)
-              ? 'border-emerald-500/30 bg-zinc-900/90 backdrop-blur-xl hover:border-emerald-400/50 hover:bg-zinc-800 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-              : 'border-white/10 bg-zinc-900/90 backdrop-blur-xl hover:border-red-400/40 hover:bg-zinc-800'
-        }`}>
-          <button
-            onClick={() => setIsOpen(true)}
-            className={`flex h-12 items-center gap-2 pl-4 ${isConnected ? 'pr-2' : 'pr-4'} hover:scale-105 active:scale-95 transition`}
-            title="Open Voice Hub"
-          >
-            {isConnected ? (
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            ) : Object.values(roomOccupancy).some(c => c > 0) ? (
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-              </span>
-            ) : (
-              <Radio className="h-4.5 w-4.5 animate-pulse text-red-400" />
-            )}
-            <span className={`text-[0.68rem] font-black uppercase tracking-[0.14em] ${isConnected ? 'text-emerald-300' : Object.values(roomOccupancy).some(c => c > 0) ? 'text-emerald-100' : 'text-gray-300'}`}>
-              {isConnected ? 'Squad Online' : Object.values(roomOccupancy).some(c => c > 0) ? 'Squad Active' : 'Voice Hub'}
-            </span>
-
-            {isConnected && participants.length > 0 && (
-              <div className="flex -space-x-1.5 ml-1">
-                {participants.slice(0, 3).map((u) => (
-                  <div
-                    key={u.id}
-                    className={`h-5 w-5 overflow-hidden rounded-full border border-emerald-900 bg-zinc-800 transition-all ${
-                      dominantSpeakerId === u.id ? 'ring-2 ring-emerald-400 ring-offset-1 ring-offset-emerald-900 scale-105 z-10' : ''
-                    }`}
-                  >
-                    <ProfileAvatar profile={u} size="custom" className="h-full w-full object-cover" />
-                  </div>
-                ))}
-                {participants.length > 3 && (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-900 bg-zinc-800 text-[0.5rem] font-bold text-gray-400">
-                    +{participants.length - 3}
-                  </div>
-                )}
-              </div>
-            )}
-          </button>
-
-          {isConnected && (
-            <div className="flex items-center pr-2">
-              <div className="w-px h-6 bg-emerald-500/30 mx-1"></div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggleMute()
-                }}
-                className={`flex h-9 w-9 ml-1 items-center justify-center rounded-full transition hover:scale-105 active:scale-95 ${
-                  isMuted 
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                    : 'bg-white/10 text-emerald-100 hover:bg-white/20'
-                }`}
-                title={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </button>
+        <button
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onClick={() => {
+            if (!hasMoved) setIsOpen(true)
+          }}
+          className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-colors duration-200 ${
+            isConnected
+              ? 'border-emerald-500/50 bg-emerald-500/12 backdrop-blur-xl shadow-[0_0_20px_rgba(16,185,129,0.35)]'
+              : Object.values(roomOccupancy).some(c => c > 0)
+                ? 'border-emerald-500/30 bg-zinc-900/90 backdrop-blur-xl hover:border-emerald-400/50 hover:bg-zinc-800 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                : 'border-white/10 bg-zinc-900/90 backdrop-blur-xl hover:border-red-400/40 hover:bg-zinc-800'
+          }`}
+          style={{ touchAction: 'none' }}
+          title="Open Voice Hub"
+        >
+          {isConnected ? (
+            <div className="relative flex h-full w-full items-center justify-center">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 animate-ping"></span>
+              <Phone className="h-6 w-6 text-emerald-400" />
             </div>
+          ) : Object.values(roomOccupancy).some(c => c > 0) ? (
+            <div className="relative flex h-full w-full items-center justify-center">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 animate-ping"></span>
+              <Radio className="h-6 w-6 text-emerald-400" />
+            </div>
+          ) : (
+            <Radio className="h-6 w-6 text-gray-300" />
           )}
-        </div>
+        </button>
       )}
 
       {/* Main panel */}
