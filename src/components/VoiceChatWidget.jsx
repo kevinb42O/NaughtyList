@@ -278,7 +278,8 @@ export default function VoiceChatWidget() {
   return (
     <div
       ref={containerRef}
-      className="fixed bottom-[calc(var(--mobile-bottom-nav-height)+1.2rem)] right-4 z-40 sm:bottom-6 sm:right-6 font-sans select-none"
+      className="fixed right-4 z-40 sm:bottom-6 sm:right-6 font-sans select-none"
+      style={{ bottom: 'calc(var(--mobile-bottom-nav-height, 0px) + 1.2rem)' }}
     >
       {/* Background hidden Jitsi room */}
       {/* We use scale-0 and opacity-0 to hide it without display:none to ensure WebRTC runs smoothly */}
