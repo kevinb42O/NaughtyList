@@ -760,6 +760,7 @@ export default function VoiceChatWidget() {
           </div>
         </div>
       )}
+      </div>
 
       <style>{`
         @keyframes bar1 {
