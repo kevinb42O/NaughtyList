@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { joinRoom } from 'trystero/torrent'
 import {
   Mic,
   MicOff,
@@ -72,163 +73,204 @@ export default function VoiceChatWidget() {
   const { profile, isAuthenticated } = useIntel()
   const [isOpen, setIsOpen] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
-  const [isMuted, setIsMuted] = useState(true)
+  const [isMuted, setIsMuted] = useState(false) // Start unmuted locally since we natively request mic
   const [isDeafened, setIsDeafened] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState('Lounge 🛋️')
-  const [jitsiLoading, setJitsiLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
   
-  // Real Jitsi participants state
+  // WebRTC mesh state
   const [participants, setParticipants] = useState([])
   const [dominantSpeakerId, setDominantSpeakerId] = useState(null)
   
-  const jitsiApiRef = useRef(null)
-  const containerRef = useRef(null)
-  
+  const roomRef = useRef(null)
+  const localStreamRef = useRef(null)
+  const audioContextRef = useRef(null)
+  const analysersRef = useRef(new Map())
+  const audioElementsRef = useRef(new Map())
+  const animationFrameRef = useRef(null)
+
   const voiceRooms = ['Lounge 🛋️', 'Clan Comms 🔊', 'Tactical HQ 🎮']
 
-  // Update participants list from Jitsi API
-  const updateParticipants = useCallback(() => {
-    if (!jitsiApiRef.current) return
-    
-    const jitsiParticipants = jitsiApiRef.current.getParticipantsInfo()
-    
-    const mapped = jitsiParticipants.map(p => {
-      let displayName;
-      let profileData = { n: 'Unknown', a: 'ghost', r: 'member', id: p.participantId }
-      
-      try {
-        if (p.displayName && p.displayName.startsWith('{')) {
-          profileData = JSON.parse(p.displayName)
-          displayName = profileData.n
-        } else {
-          displayName = p.displayName || 'Operator'
-        }
-      } catch {
-        displayName = p.displayName || 'Operator'
-      }
+  // Continuously analyze audio streams to detect dominant speaker
+  const monitorAudioLevels = useCallback(() => {
+    let maxLevel = 0
+    let currentDominant = null
 
-      return {
-        id: p.participantId,
-        profileId: profileData.id,
-        display_name: displayName,
-        avatar_icon: profileData.a,
-        role: profileData.r,
-        isMe: false
+    analysersRef.current.forEach((analyser, peerId) => {
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      analyser.getByteFrequencyData(dataArray)
+      
+      const sum = dataArray.reduce((a, b) => a + b, 0)
+      const avg = sum / dataArray.length
+      
+      // Threshold for speaking
+      if (avg > 15 && avg > maxLevel) {
+        maxLevel = avg
+        currentDominant = peerId
       }
     })
 
-    // Add local user
-    if (profile) {
-      mapped.unshift({
-        id: 'local',
-        profileId: profile.id,
-        display_name: profile.display_name,
-        avatar_icon: profile.avatar_icon,
-        role: profile.role,
-        isMe: true
+    setDominantSpeakerId(currentDominant)
+    animationFrameRef.current = requestAnimationFrame(monitorAudioLevels)
+  }, [])
+
+  // Start native WebRTC connection
+  const startEngine = async (roomName) => {
+    if (loading) return
+    setLoading(true)
+
+    try {
+      // 1. Request microphone native access first
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       })
-    }
+      
+      localStreamRef.current = stream
+      playSynthSound('join')
 
-    setParticipants(mapped)
-  }, [profile])
+      // Set initial mute state
+      stream.getAudioTracks()[0].enabled = !isMuted
 
-  // Initialize and destroy Jitsi Meet iframe in the background
-  const startJitsi = (roomName) => {
-    if (jitsiLoading) return
-    setJitsiLoading(true)
-    playSynthSound('join')
-    
-    const initAPI = () => {
-      try {
-        const roomSlug = `21rats-live-voice-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
-        
-        // Encode our rich profile data into the displayName so peers can render our avatar!
-        const encodedProfile = JSON.stringify({
-          n: profile?.display_name || 'Operator',
-          a: profile?.avatar_icon || 'ghost',
-          r: profile?.role || 'member',
-          id: profile?.id || 'anon'
-        })
+      // 2. Connect to Trystero serverless signaling mesh
+      const roomSlug = `21rats-hq-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+      const room = joinRoom({ appId: '21rats-native-mesh' }, roomSlug)
+      roomRef.current = room
 
-        const options = {
-          roomName: roomSlug,
-          width: '100%',
-          height: '100%',
-          parentNode: document.getElementById('jitsi-meet-voice-container'),
-          configOverwrite: {
-            startWithVideoMuted: true,
-            startWithAudioMuted: true,
-            prejoinConfig: { enabled: false },
-            disableDeepLinking: true,
-          },
-          interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUEST: false,
-          },
-          userInfo: {
-            displayName: encodedProfile,
-          }
-        }
-        
-        if (jitsiApiRef.current) {
-          jitsiApiRef.current.dispose()
-        }
-        
-        jitsiApiRef.current = new window.JitsiMeetExternalAPI('meet.jit.si', options)
-        
-        // Event Listeners for Real-Time Sync
-        jitsiApiRef.current.addEventListener('videoConferenceJoined', () => {
-          setIsConnected(true)
-          setJitsiLoading(false)
-          updateParticipants()
-        })
-        
-        jitsiApiRef.current.addEventListener('participantJoined', updateParticipants)
-        jitsiApiRef.current.addEventListener('participantLeft', updateParticipants)
-        jitsiApiRef.current.addEventListener('displayNameChange', updateParticipants)
-        
-        jitsiApiRef.current.addEventListener('dominantSpeakerChanged', (e) => {
-          setDominantSpeakerId(e.id)
-        })
-        
-        jitsiApiRef.current.addEventListener('audioMuteStatusChanged', (e) => {
-          setIsMuted(e.muted)
-        })
-        
-        jitsiApiRef.current.addEventListener('readyToClose', () => {
-          disconnectVoice()
-        })
-        
-      } catch (err) {
-        console.error('Failed to start Jitsi audio interface', err)
-        setJitsiLoading(false)
+      // Action channels
+      const [sendProfile, getProfile] = room.makeAction('profile')
+      const [sendMuteStatus, getMuteStatus] = room.makeAction('mute')
+
+      // Local participant base
+      const localParticipant = {
+        id: 'local',
+        profileId: profile?.id,
+        display_name: profile?.display_name || 'Operator',
+        avatar_icon: profile?.avatar_icon || 'ghost',
+        role: profile?.role || 'member',
+        isMe: true,
+        muted: isMuted
       }
-    }
 
-    if (!window.JitsiMeetExternalAPI) {
-      const script = document.createElement('script')
-      script.src = 'https://meet.jit.si/external_api.js'
-      script.async = true
-      script.onload = initAPI
-      script.onerror = () => {
-        console.error('Failed to load Jitsi external API. Adblocker?')
-        setJitsiLoading(false)
-        alert('Voice connection blocked by browser or adblocker. Please allow meet.jit.si')
+      setParticipants([localParticipant])
+
+      // 3. Audio Context setup for active speaker detection
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
       }
-      document.body.appendChild(script)
-    } else {
-      initAPI()
+
+      // Add local stream to analyser
+      const localSource = audioContextRef.current.createMediaStreamSource(stream)
+      const localAnalyser = audioContextRef.current.createAnalyser()
+      localAnalyser.fftSize = 256
+      localSource.connect(localAnalyser)
+      analysersRef.current.set('local', localAnalyser)
+
+      // Start animation loop
+      monitorAudioLevels()
+
+      // 4. Handle incoming peer streams
+      room.onPeerStream((peerStream, peerId) => {
+        // Create an audio element to play the stream
+        const audio = new Audio()
+        audio.srcObject = peerStream
+        audio.autoplay = true
+        audioElementsRef.current.set(peerId, audio)
+        
+        if (!isDeafened) {
+          audio.play().catch(e => console.warn('Audio play blocked:', e))
+        } else {
+          audio.volume = 0
+        }
+
+        // Attach analyser for glowing ring
+        const peerSource = audioContextRef.current.createMediaStreamSource(peerStream)
+        const peerAnalyser = audioContextRef.current.createAnalyser()
+        peerAnalyser.fftSize = 256
+        peerSource.connect(peerAnalyser)
+        analysersRef.current.set(peerId, peerAnalyser)
+      })
+
+      // 5. Handle Peer Join / Leave sync
+      room.onPeerJoin(peerId => {
+        // Broadcast our profile to the new peer
+        sendProfile({
+          id: profile?.id,
+          display_name: profile?.display_name || 'Operator',
+          avatar_icon: profile?.avatar_icon || 'ghost',
+          role: profile?.role || 'member'
+        }, peerId)
+      })
+
+      room.onPeerLeave(peerId => {
+        setParticipants(prev => prev.filter(p => p.id !== peerId))
+        
+        // Cleanup resources
+        if (audioElementsRef.current.has(peerId)) {
+          const audio = audioElementsRef.current.get(peerId)
+          audio.srcObject = null
+          audioElementsRef.current.delete(peerId)
+        }
+        if (analysersRef.current.has(peerId)) {
+          analysersRef.current.delete(peerId)
+        }
+      })
+
+      // Receive profiles from peers
+      getProfile((peerData, peerId) => {
+        setParticipants(prev => {
+          const exists = prev.find(p => p.id === peerId)
+          if (exists) return prev
+          return [...prev, { ...peerData, id: peerId, isMe: false, muted: false }]
+        })
+      })
+
+      // Receive mute status
+      getMuteStatus((isPeerMuted, peerId) => {
+        setParticipants(prev => prev.map(p => p.id === peerId ? { ...p, muted: isPeerMuted } : p))
+      })
+
+      // 6. Finalize connection
+      room.addStream(stream)
+      setIsConnected(true)
+      setLoading(false)
+
+      // Broadcast our initial mute state to everyone
+      sendMuteStatus(isMuted)
+
+    } catch (err) {
+      console.error('Failed to start native WebRTC engine', err)
+      setLoading(false)
+      alert('Microphone access denied or WebRTC unavailable. Please allow microphone access to use Voice Comms.')
     }
   }
 
   const disconnectVoice = () => {
-    if (isConnected) {
-      playSynthSound('leave')
+    if (isConnected) playSynthSound('leave')
+    
+    if (roomRef.current) {
+      roomRef.current.leave()
+      roomRef.current = null
     }
-    if (jitsiApiRef.current) {
-      jitsiApiRef.current.dispose()
-      jitsiApiRef.current = null
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop())
+      localStreamRef.current = null
     }
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+    }
+
+    audioElementsRef.current.forEach(audio => {
+      audio.srcObject = null
+    })
+    audioElementsRef.current.clear()
+    analysersRef.current.clear()
+
     setIsConnected(false)
     setIsMuted(false)
     setIsDeafened(false)
@@ -237,9 +279,20 @@ export default function VoiceChatWidget() {
   }
 
   const toggleMute = () => {
-    if (!jitsiApiRef.current) return
     const nextMuted = !isMuted
-    jitsiApiRef.current.executeCommand('toggleAudio')
+    setIsMuted(nextMuted)
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks()[0].enabled = !nextMuted
+    }
+    
+    if (roomRef.current) {
+      const [sendMuteStatus] = roomRef.current.makeAction('mute')
+      sendMuteStatus(nextMuted)
+    }
+
+    // Update local participant state instantly
+    setParticipants(prev => prev.map(p => p.isMe ? { ...p, muted: nextMuted } : p))
     playSynthSound(nextMuted ? 'mute' : 'unmute')
   }
 
@@ -248,51 +301,29 @@ export default function VoiceChatWidget() {
     setIsDeafened(nextDeafened)
     playSynthSound(nextDeafened ? 'mute' : 'unmute')
     
-    // Deafen logic: If we are deafened, mute local mic as well for privacy
-    if (nextDeafened && !isMuted) {
-      if (jitsiApiRef.current) jitsiApiRef.current.executeCommand('toggleAudio')
-    } else if (!nextDeafened && isMuted) {
-      // Unmute when undeafening
-      if (jitsiApiRef.current) jitsiApiRef.current.executeCommand('toggleAudio')
-    }
-    
-    // Mute all incoming audio
-    const audioElements = document.querySelectorAll('#jitsi-meet-voice-container iframe')
-    audioElements.forEach(() => {
-      // Jitsi doesn't have a direct 'deafen' API command, but we can try setting volume
-      if (jitsiApiRef.current) {
-        // A hack for deafen in Jitsi is to set participant volumes to 0, but since it's an iframe, we rely on Jitsi's internal controls if possible, or we just trust the visual state. 
-        // We will just visually indicate deafen and they won't hear things if we could mute the iframe.
-        // For security, iframes can't be muted easily from parent unless allowed.
-        // We will rely on muting local mic as the primary action for now.
-      }
+    // Deafen: Mute all incoming audio elements
+    audioElementsRef.current.forEach(audio => {
+      audio.volume = nextDeafened ? 0 : 1
     })
+
+    // Also auto-mute mic if we are deafening for privacy
+    if (nextDeafened && !isMuted) {
+      toggleMute()
+    }
   }
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (jitsiApiRef.current) {
-        jitsiApiRef.current.dispose()
-      }
-    }
+    return () => disconnectVoice()
   }, [])
 
   if (!isAuthenticated) return null
 
   return (
     <div
-      ref={containerRef}
       className="fixed right-4 z-40 sm:bottom-6 sm:right-6 font-sans select-none"
       style={{ bottom: 'calc(var(--mobile-bottom-nav-height, 0px) + 1.2rem)' }}
     >
-      {/* Background hidden Jitsi room */}
-      {/* We use a large off-screen fixed box to hide it without display:none so WebRTC doesn't get throttled */}
-      <div 
-        id="jitsi-meet-voice-container" 
-        className="fixed top-[-9999px] left-[-9999px] w-[800px] h-[600px] pointer-events-none opacity-0" 
-      />
-
       {/* Persistent floating indicator / expander */}
       {!isOpen && (
         <button
@@ -355,7 +386,7 @@ export default function VoiceChatWidget() {
                   Squad Comms
                 </h3>
                 <p className="text-[0.56rem] font-bold text-gray-500 uppercase tracking-[0.1em]">
-                  Native Voice Engine
+                  Native WebTorrent Engine
                 </p>
               </div>
             </div>
@@ -377,7 +408,7 @@ export default function VoiceChatWidget() {
             </div>
 
             {/* Room Selector if disconnected */}
-            {!isConnected && !jitsiLoading && (
+            {!isConnected && !loading && (
               <div className="mb-3">
                 <div className="flex flex-col gap-1.5 mt-2">
                   {voiceRooms.map((room) => (
@@ -401,16 +432,16 @@ export default function VoiceChatWidget() {
             {/* Connection Switch */}
             {!isConnected ? (
               <button
-                disabled={jitsiLoading}
-                onClick={() => startJitsi(selectedRoom)}
+                disabled={loading}
+                onClick={() => startEngine(selectedRoom)}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/12 py-3 text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-200 transition hover:bg-cyan-500/20 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.2)] active:scale-97 disabled:opacity-50"
               >
-                {jitsiLoading ? (
+                {loading ? (
                   <Loader2 className="h-4 w-4 text-cyan-400 animate-spin" />
                 ) : (
                   <Phone className="h-4 w-4 text-cyan-400 animate-bounce" />
                 )}
-                {jitsiLoading ? 'Establishing Comms...' : `Connect ${selectedRoom.split(' ')[0]}`}
+                {loading ? 'Requesting Mic & Connecting...' : `Connect ${selectedRoom.split(' ')[0]}`}
               </button>
             ) : (
               <div className="space-y-3">
@@ -433,7 +464,7 @@ export default function VoiceChatWidget() {
                 {/* Speaker List Grid */}
                 <div className="max-h-[9rem] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {participants.map((user) => {
-                    const isSpeaking = dominantSpeakerId === user.id || (user.isMe && dominantSpeakerId === 'local');
+                    const isSpeaking = dominantSpeakerId === user.id && !user.muted;
                     
                     return (
                       <div
@@ -473,7 +504,7 @@ export default function VoiceChatWidget() {
                               <span className="w-0.5 bg-emerald-400 animate-[bar3_0.5s_ease-in-out_infinite]" style={{ height: '40%' }}></span>
                             </div>
                           )}
-                          {user.isMe && isMuted ? (
+                          {user.muted ? (
                             <MicOff className="h-3.5 w-3.5 text-red-500" />
                           ) : (
                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 opacity-60"></div>
@@ -532,7 +563,7 @@ export default function VoiceChatWidget() {
           {/* Footer branding details */}
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[0.52rem] font-bold text-gray-600 uppercase tracking-[0.08em]">
             <Sparkles className="h-3 w-3 text-red-500/50" />
-            <span>21RATS Native Audio Node • WebRTC</span>
+            <span>21RATS Pure WebRTC Mesh Node</span>
           </div>
 
         </div>
