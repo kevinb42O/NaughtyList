@@ -93,7 +93,7 @@ export default function VoiceChatWidget() {
     const jitsiParticipants = jitsiApiRef.current.getParticipantsInfo()
     
     const mapped = jitsiParticipants.map(p => {
-      let displayName = p.displayName
+      let displayName;
       let profileData = { n: 'Unknown', a: 'ghost', r: 'member', id: p.participantId }
       
       try {
@@ -103,7 +103,7 @@ export default function VoiceChatWidget() {
         } else {
           displayName = p.displayName || 'Operator'
         }
-      } catch (e) {
+      } catch {
         displayName = p.displayName || 'Operator'
       }
 
@@ -253,7 +253,7 @@ export default function VoiceChatWidget() {
     
     // Mute all incoming audio
     const audioElements = document.querySelectorAll('#jitsi-meet-voice-container iframe')
-    audioElements.forEach(iframe => {
+    audioElements.forEach(() => {
       // Jitsi doesn't have a direct 'deafen' API command, but we can try setting volume
       if (jitsiApiRef.current) {
         // A hack for deafen in Jitsi is to set participant volumes to 0, but since it's an iframe, we rely on Jitsi's internal controls if possible, or we just trust the visual state. 
