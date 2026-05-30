@@ -137,11 +137,7 @@ export default function VoiceChatWidget() {
       }, fullRoomId)
       roomRef.current = room
 
-      // 4. CRITICAL: Add stream immediately before initial peer negotiation
-      // This ensures the first WebRTC SDP offer contains the media tracks
-      room.addStream(stream)
-
-      // 5. Create data action channels
+      // 4. Create data action channels FIRST
       const profileAction = room.makeAction('profile')
       const muteAction = room.makeAction('mute')
       profileActionRef.current = profileAction
@@ -159,7 +155,7 @@ export default function VoiceChatWidget() {
       }
       setParticipants([localParticipant])
 
-      // 6. Set up audio analyser for local mic
+      // 5. Set up audio analyser for local mic
       const localSource = audioContextRef.current.createMediaStreamSource(stream)
       const localAnalyser = audioContextRef.current.createAnalyser()
       localAnalyser.fftSize = 256
@@ -184,28 +180,27 @@ export default function VoiceChatWidget() {
       }
       tick()
 
-      // 7. Handle incoming peer audio streams
+      // 6. Handle incoming peer audio streams
       room.onPeerStream = (peerStream, peerId) => {
         console.log('[VoiceChat] Received audio stream from peer:', peerId)
         
-        // CRITICAL: Append audio element to DOM so mobile Safari doesn't GC it
         let audio = audioElementsRef.current.get(peerId)
         if (!audio) {
           audio = new Audio()
           audio.id = `peer-audio-${peerId}`
           audio.style.display = 'none'
+          audio.setAttribute('playsinline', 'true') // CRITICAL for iOS Safari
           document.body.appendChild(audio)
           audioElementsRef.current.set(peerId, audio)
         }
 
         audio.srcObject = peerStream
-        audio.autoplay = true
         audio.volume = isDeafened ? 0 : 1
 
-        // Mobile browsers need play() called from user gesture context
         const playPromise = audio.play()
-        if (playPromise) {
-          playPromise.catch(() => {
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('[VoiceChat] Autoplay prevented for', peerId, err)
             const retry = () => {
               audio.play().catch(() => {})
               document.removeEventListener('touchstart', retry)
@@ -224,16 +219,24 @@ export default function VoiceChatWidget() {
             peerAnalyser.fftSize = 256
             peerSource.connect(peerAnalyser)
             analysersRef.current.set(peerId, peerAnalyser)
-          } catch {
-            // AudioContext may not be ready
+          } catch (e) {
+            console.warn('[VoiceChat] Could not connect peer stream to analyser', e)
           }
         }
       }
 
-      // Handle peer join — send our profile to the new peer
+      // Handle peer join — send our profile and our audio stream directly to them!
       room.onPeerJoin = (peerId) => {
         console.log('[VoiceChat] Peer joined:', peerId)
         playSynthSound('join')
+        
+        // CRITICAL: Trystero requires us to explicitly send our stream to the new peer
+        try {
+          room.addStream(stream, { target: peerId })
+        } catch (err) {
+          console.warn('[VoiceChat] Error adding stream to peer:', err)
+        }
+
         profileAction.send({
           id: profile?.id,
           display_name: profile?.display_name || 'Operator',
@@ -250,8 +253,10 @@ export default function VoiceChatWidget() {
         
         if (audioElementsRef.current.has(peerId)) {
           const audio = audioElementsRef.current.get(peerId)
-          audio.srcObject = null
-          audio.remove() // Remove from DOM
+          if (audio) {
+            audio.srcObject = null
+            audio.remove()
+          }
           audioElementsRef.current.delete(peerId)
         }
         analysersRef.current.delete(peerId)
@@ -309,6 +314,7 @@ export default function VoiceChatWidget() {
 
     audioElementsRef.current.forEach(audio => {
       audio.srcObject = null
+      audio.remove() // CRITICAL: prevent DOM leak
     })
     audioElementsRef.current.clear()
     analysersRef.current.clear()
@@ -320,7 +326,7 @@ export default function VoiceChatWidget() {
     setIsDeafened(false)
     setParticipants([])
     setDominantSpeakerId(null)
-  }, [])
+  }, [playSynthSound])
 
   const toggleMute = () => {
     const nextMuted = !isMuted
