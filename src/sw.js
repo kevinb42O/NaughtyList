@@ -20,7 +20,17 @@ self.addEventListener('push', (event) => {
     vibrate: [100, 50, 100],
     data: { url: data.url ?? '/' },
   }
-  event.waitUntil(self.registration.showNotification(title, options))
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const isFocused = clientList.some((client) => client.focused)
+      // Only show the system push notification if the app is NOT actively being used.
+      // If it is focused, they will see the in-app toast instead!
+      if (!isFocused) {
+        return self.registration.showNotification(title, options)
+      }
+    })
+  )
 })
 
 // Tap notification → open / focus the app
