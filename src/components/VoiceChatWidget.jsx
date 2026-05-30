@@ -403,47 +403,69 @@ export default function VoiceChatWidget() {
     >
       {/* Floating button when closed */}
       {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className={`flex h-12 items-center gap-2 rounded-full border px-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition duration-200 hover:scale-105 active:scale-95 ${
-            isConnected
-              ? 'border-emerald-500/50 bg-emerald-500/12 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.35)]'
-              : 'border-white/10 bg-zinc-900/90 text-gray-300 backdrop-blur-xl hover:border-red-400/40 hover:bg-zinc-800'
-          }`}
-          title="Open Voice Hub"
-        >
-          {isConnected ? (
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        <div className={`flex items-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition duration-200 ${
+          isConnected
+            ? 'border-emerald-500/50 bg-emerald-500/12 backdrop-blur-xl shadow-[0_0_20px_rgba(16,185,129,0.35)]'
+            : 'border-white/10 bg-zinc-900/90 backdrop-blur-xl hover:border-red-400/40 hover:bg-zinc-800'
+        }`}>
+          <button
+            onClick={() => setIsOpen(true)}
+            className={`flex h-12 items-center gap-2 pl-4 ${isConnected ? 'pr-2' : 'pr-4'} hover:scale-105 active:scale-95 transition`}
+            title="Open Voice Hub"
+          >
+            {isConnected ? (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            ) : (
+              <Radio className="h-4.5 w-4.5 animate-pulse text-red-400" />
+            )}
+            <span className={`text-[0.68rem] font-black uppercase tracking-[0.14em] ${isConnected ? 'text-emerald-300' : 'text-gray-300'}`}>
+              {isConnected ? 'Squad Online' : 'Voice Hub'}
             </span>
-          ) : (
-            <Radio className="h-4.5 w-4.5 animate-pulse text-red-400" />
-          )}
-          <span className="text-[0.68rem] font-black uppercase tracking-[0.14em]">
-            {isConnected ? 'Squad Online' : 'Voice Hub'}
-          </span>
 
-          {isConnected && participants.length > 0 && (
-            <div className="flex -space-x-1.5 ml-1">
-              {participants.slice(0, 3).map((u) => (
-                <div
-                  key={u.id}
-                  className={`h-5 w-5 overflow-hidden rounded-full border border-zinc-950 bg-zinc-800 transition-all ${
-                    dominantSpeakerId === u.id ? 'ring-2 ring-emerald-400 ring-offset-1 ring-offset-zinc-950 scale-105 z-10' : ''
-                  }`}
-                >
-                  <ProfileAvatar profile={u} size="custom" className="h-full w-full object-cover" />
-                </div>
-              ))}
-              {participants.length > 3 && (
-                <div className="flex h-5 w-5 items-center justify-center rounded-full border border-zinc-950 bg-zinc-800 text-[0.5rem] font-bold text-gray-400">
-                  +{participants.length - 3}
-                </div>
-              )}
+            {isConnected && participants.length > 0 && (
+              <div className="flex -space-x-1.5 ml-1">
+                {participants.slice(0, 3).map((u) => (
+                  <div
+                    key={u.id}
+                    className={`h-5 w-5 overflow-hidden rounded-full border border-emerald-900 bg-zinc-800 transition-all ${
+                      dominantSpeakerId === u.id ? 'ring-2 ring-emerald-400 ring-offset-1 ring-offset-emerald-900 scale-105 z-10' : ''
+                    }`}
+                  >
+                    <ProfileAvatar profile={u} size="custom" className="h-full w-full object-cover" />
+                  </div>
+                ))}
+                {participants.length > 3 && (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-900 bg-zinc-800 text-[0.5rem] font-bold text-gray-400">
+                    +{participants.length - 3}
+                  </div>
+                )}
+              </div>
+            )}
+          </button>
+
+          {isConnected && (
+            <div className="flex items-center pr-2">
+              <div className="w-px h-6 bg-emerald-500/30 mx-1"></div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleMute()
+                }}
+                className={`flex h-9 w-9 ml-1 items-center justify-center rounded-full transition hover:scale-105 active:scale-95 ${
+                  isMuted 
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                    : 'bg-white/10 text-emerald-100 hover:bg-white/20'
+                }`}
+                title={isMuted ? 'Unmute' : 'Mute'}
+              >
+                {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
             </div>
           )}
-        </button>
+        </div>
       )}
 
       {/* Main panel */}

@@ -93,11 +93,7 @@ body::before {
 }
 
 .mobile-bottom-nav {
-  transform: translate3d(0, calc(var(--visual-viewport-bottom) * -1), 0);
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease;
-  will-change: transform;
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
 @media (max-width: 640px) {
