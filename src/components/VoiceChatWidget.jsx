@@ -140,8 +140,12 @@ export default function VoiceChatWidget() {
       const state = channel.presenceState()
       const counts = {}
       for (const key in state) {
+        const userRooms = new Set()
         state[key].forEach(p => {
-          if (p.room) counts[p.room] = (counts[p.room] || 0) + 1
+          if (p.room) userRooms.add(p.room)
+        })
+        userRooms.forEach(room => {
+          counts[room] = (counts[room] || 0) + 1
         })
       }
       setRoomOccupancy(counts)
@@ -164,7 +168,7 @@ export default function VoiceChatWidget() {
       if (isConnected) {
         presenceChannelRef.current.track({ room: selectedRoom }).catch(console.error)
       } else {
-        presenceChannelRef.current.untrack().catch(console.error)
+        presenceChannelRef.current.track({ room: null }).catch(console.error)
       }
     }
   }, [isConnected, selectedRoom])
