@@ -97,7 +97,7 @@ export default function VoiceChatWidget() {
     setLoading(true)
 
     try {
-      // 1. Request microphone
+      // 1. Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -107,20 +107,42 @@ export default function VoiceChatWidget() {
       })
 
       localStreamRef.current = stream
-      playSynthSound('join')
+      console.log('[VoiceChat] Mic acquired, tracks:', stream.getAudioTracks().length)
 
-      // 2. Join the Trystero mesh room via MQTT signaling
-      const roomSlug = `21rats-hq-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
-      const room = joinRoom({ appId: '21rats-native-mesh' }, roomSlug)
+      // 2. Resume AudioContext (required on mobile after user gesture)
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      }
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume()
+      }
+
+      // 3. Join the Trystero mesh room via MQTT signaling
+      // Use clean alphanumeric room IDs to avoid emoji encoding differences across devices
+      const roomMap = { 'Lounge 🛋️': 'lounge', 'Clan Comms 🔊': 'clancomms', 'Tactical HQ 🎮': 'tactical' }
+      const roomSlug = roomMap[roomName] || roomName.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const fullRoomId = `21rats-voice-${roomSlug}`
+
+      console.log('[VoiceChat] Joining room:', fullRoomId)
+
+      const room = joinRoom({
+        appId: '21rats-voice-app',
+        // Free public TURN servers for NAT traversal (critical for mobile/cellular)
+        turnConfig: [
+          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+        ]
+      }, fullRoomId)
       roomRef.current = room
 
-      // 3. Create data action channels (new API: returns {send, onMessage})
+      // 4. Create data action channels FIRST
       const profileAction = room.makeAction('profile')
       const muteAction = room.makeAction('mute')
       profileActionRef.current = profileAction
       muteActionRef.current = muteAction
 
-      // Local participant
+      // Local participant (shown immediately)
       const localParticipant = {
         id: 'local',
         profileId: profile?.id,
@@ -132,18 +154,14 @@ export default function VoiceChatWidget() {
       }
       setParticipants([localParticipant])
 
-      // 4. Audio context for speaker detection
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
-      }
-
+      // 5. Set up audio analyser for local mic
       const localSource = audioContextRef.current.createMediaStreamSource(stream)
       const localAnalyser = audioContextRef.current.createAnalyser()
       localAnalyser.fftSize = 256
       localSource.connect(localAnalyser)
       analysersRef.current.set('local', localAnalyser)
 
-      // Start audio level monitoring loop
+      // Start audio level monitoring loop for speaker detection
       const tick = () => {
         let maxLevel = 0
         let currentDominant = null
@@ -161,34 +179,60 @@ export default function VoiceChatWidget() {
       }
       tick()
 
-      // 5. Handle incoming peer audio streams (setter-based API)
+      // 6. Set up ALL event handlers BEFORE adding our stream
       room.onPeerStream = (peerStream, peerId) => {
+        console.log('[VoiceChat] Received audio stream from peer:', peerId)
         const audio = new Audio()
         audio.srcObject = peerStream
         audio.autoplay = true
+        audio.volume = isDeafened ? 0 : 1
         audioElementsRef.current.set(peerId, audio)
-        audio.play().catch(() => {})
 
+        // Mobile browsers need play() called from user gesture context
+        const playPromise = audio.play()
+        if (playPromise) {
+          playPromise.catch(() => {
+            const retry = () => {
+              audio.play().catch(() => {})
+              document.removeEventListener('touchstart', retry)
+              document.removeEventListener('click', retry)
+            }
+            document.addEventListener('touchstart', retry, { once: true })
+            document.addEventListener('click', retry, { once: true })
+          })
+        }
+
+        // Add analyser for peer speaker detection glow
         if (audioContextRef.current) {
-          const peerSource = audioContextRef.current.createMediaStreamSource(peerStream)
-          const peerAnalyser = audioContextRef.current.createAnalyser()
-          peerAnalyser.fftSize = 256
-          peerSource.connect(peerAnalyser)
-          analysersRef.current.set(peerId, peerAnalyser)
+          try {
+            const peerSource = audioContextRef.current.createMediaStreamSource(peerStream)
+            const peerAnalyser = audioContextRef.current.createAnalyser()
+            peerAnalyser.fftSize = 256
+            peerSource.connect(peerAnalyser)
+            analysersRef.current.set(peerId, peerAnalyser)
+          } catch {
+            // AudioContext may not be ready
+          }
         }
       }
 
-      // 6. Handle peer join/leave (setter-based API)
+      // Handle peer join — send our profile to the new peer
       room.onPeerJoin = (peerId) => {
+        console.log('[VoiceChat] Peer joined:', peerId)
+        playSynthSound('join')
+        // Correct API: send(data, { target: peerId })
         profileAction.send({
           id: profile?.id,
           display_name: profile?.display_name || 'Operator',
           avatar_icon: profile?.avatar_icon || 'ghost',
           role: profile?.role || 'member'
-        }, peerId)
+        }, { target: peerId })
       }
 
+      // Handle peer leave
       room.onPeerLeave = (peerId) => {
+        console.log('[VoiceChat] Peer left:', peerId)
+        playSynthSound('leave')
         setParticipants(prev => prev.filter(p => p.id !== peerId))
         if (audioElementsRef.current.has(peerId)) {
           const audio = audioElementsRef.current.get(peerId)
@@ -198,23 +242,30 @@ export default function VoiceChatWidget() {
         analysersRef.current.delete(peerId)
       }
 
-      // 7. Receive profile and mute data from peers (setter-based API)
+      // Receive profile data from peers
       profileAction.onMessage = (peerData, { peerId }) => {
+        console.log('[VoiceChat] Received profile from peer:', peerId, peerData)
         setParticipants(prev => {
           const exists = prev.find(p => p.id === peerId)
-          if (exists) return prev
+          if (exists) {
+            return prev.map(p => p.id === peerId ? { ...p, ...peerData, id: peerId, isMe: false } : p)
+          }
           return [...prev, { ...peerData, id: peerId, isMe: false, muted: false }]
         })
       }
 
+      // Receive mute status from peers
       muteAction.onMessage = (isPeerMuted, { peerId }) => {
         setParticipants(prev => prev.map(p => p.id === peerId ? { ...p, muted: isPeerMuted } : p))
       }
 
-      // 8. Send our audio stream into the mesh
+      // 7. NOW add our audio stream (after all handlers are registered)
       room.addStream(stream)
+
+      playSynthSound('join')
       setIsConnected(true)
       setLoading(false)
+      console.log('[VoiceChat] Connected and streaming')
 
     } catch (err) {
       console.error('Voice engine error:', err)
