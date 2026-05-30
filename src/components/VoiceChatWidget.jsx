@@ -161,7 +161,11 @@ export default function VoiceChatWidget() {
   // Update presence when connection status changes
   useEffect(() => {
     if (presenceChannelRef.current && presenceChannelRef.current.state === 'joined') {
-      presenceChannelRef.current.track({ room: isConnected ? selectedRoom : null }).catch(() => {})
+      if (isConnected) {
+        presenceChannelRef.current.track({ room: selectedRoom }).catch(console.error)
+      } else {
+        presenceChannelRef.current.untrack().catch(console.error)
+      }
     }
   }, [isConnected, selectedRoom])
 
@@ -433,7 +437,7 @@ export default function VoiceChatWidget() {
     setIsDeafened(false)
     setParticipants([])
     setDominantSpeakerId(null)
-  }, [playSynthSound])
+  }, [playSynthSound, selectedRoom])
 
   const toggleMute = () => {
     const nextMuted = !isMuted
