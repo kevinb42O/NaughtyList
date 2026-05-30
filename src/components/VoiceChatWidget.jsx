@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { joinRoom } from '@trystero-p2p/nostr'
+import { joinRoom } from '@trystero-p2p/supabase'
 import {
   Mic,
   MicOff,
@@ -117,16 +117,20 @@ export default function VoiceChatWidget() {
         await audioContextRef.current.resume()
       }
 
-      // 3. Join the Trystero mesh room via MQTT signaling
+      // 3. Join the Trystero mesh room via Supabase signaling
       // Use clean alphanumeric room IDs to avoid emoji encoding differences across devices
       const roomMap = { 'Lounge 🛋️': 'lounge', 'Clan Comms 🔊': 'clancomms', 'Tactical HQ 🎮': 'tactical' }
       const roomSlug = roomMap[roomName] || roomName.toLowerCase().replace(/[^a-z0-9]/g, '')
       const fullRoomId = `21rats-voice-${roomSlug}`
 
-      console.log('[VoiceChat] Joining room:', fullRoomId)
+      console.log('[VoiceChat] Joining room via Supabase:', fullRoomId)
 
       const room = joinRoom({
-        appId: '21rats-voice-app',
+        // For Supabase strategy, appId is the Supabase URL
+        appId: import.meta.env.VITE_SUPABASE_URL,
+        relayConfig: {
+          supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY
+        },
         // Free public TURN servers for NAT traversal (critical for mobile/cellular)
         turnConfig: [
           { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
