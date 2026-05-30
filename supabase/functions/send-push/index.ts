@@ -247,6 +247,9 @@ Deno.serve(async (req) => {
         query.in('user_id', publicMentionRecipientIds)
       }
     }
+    if (type === 'voice-chat') {
+      query.neq('user_id', requestUser.id)
+    }
 
     const { data: rows, error: dbError } = await query
 
@@ -279,6 +282,13 @@ Deno.serve(async (req) => {
               body: `${name}: ${trimMessage(resolvedPublicMention.messageBody || message)}`,
               url: '/chat',
               tag: isPublicMentionAll ? `public-mention-all-${requestUser.id}` : `public-mention-${requestUser.id}`,
+            }
+        : type === 'voice-chat'
+          ? {
+              title: 'SQUAD COMMS ACTIVE',
+              body: `${name} jumped into ${trimMessage(message || 'Comms')}! Tap to join.`,
+              url: '/',
+              tag: `voice-chat-${requestUser.id}-${Date.now()}`,
             }
         : isCustom
           ? {

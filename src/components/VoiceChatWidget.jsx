@@ -285,7 +285,7 @@ export default function VoiceChatWidget() {
       setLoading(false)
       console.log('[VoiceChat] Connected and streaming')
 
-      // Broadcast globally that we joined voice chat
+      // Broadcast globally that we joined voice chat for in-app toasts
       supabase.channel('online-users').send({
         type: 'broadcast',
         event: 'voice_chat_joined',
@@ -294,6 +294,14 @@ export default function VoiceChatWidget() {
           profile: profile
         }
       }).catch(err => console.warn('[VoiceChat] Failed to broadcast join event', err))
+
+      // Trigger actual Web Push Notification via Edge Function
+      supabase.functions.invoke('send-push', {
+        body: {
+          type: 'voice-chat',
+          message: selectedRoom
+        }
+      }).catch(err => console.warn('[VoiceChat] Failed to trigger push notification', err))
 
     } catch (err) {
       console.error('Voice engine error:', err)
