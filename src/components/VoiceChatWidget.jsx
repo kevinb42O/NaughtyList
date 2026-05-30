@@ -72,7 +72,7 @@ export default function VoiceChatWidget() {
   const { profile, isAuthenticated } = useIntel()
   const [isOpen, setIsOpen] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
+  const [isMuted, setIsMuted] = useState(true)
   const [isDeafened, setIsDeafened] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState('Lounge 🛋️')
   const [jitsiLoading, setJitsiLoading] = useState(false)
@@ -157,7 +157,7 @@ export default function VoiceChatWidget() {
           parentNode: document.getElementById('jitsi-meet-voice-container'),
           configOverwrite: {
             startWithVideoMuted: true,
-            startWithAudioMuted: false, // Start unmuted by default
+            startWithAudioMuted: true, // Start muted to bypass aggressive browser autoplay blocks
             prejoinPageEnabled: false,
             disableDeepLinking: true,
           },
@@ -210,6 +210,11 @@ export default function VoiceChatWidget() {
       script.src = 'https://meet.jit.si/external_api.js'
       script.async = true
       script.onload = initAPI
+      script.onerror = () => {
+        console.error('Failed to load Jitsi external API. Adblocker?')
+        setJitsiLoading(false)
+        alert('Voice connection blocked by browser or adblocker. Please allow meet.jit.si')
+      }
       document.body.appendChild(script)
     } else {
       initAPI()
@@ -282,10 +287,10 @@ export default function VoiceChatWidget() {
       style={{ bottom: 'calc(var(--mobile-bottom-nav-height, 0px) + 1.2rem)' }}
     >
       {/* Background hidden Jitsi room */}
-      {/* We use scale-0 and opacity-0 to hide it without display:none to ensure WebRTC runs smoothly */}
+      {/* We use a large off-screen fixed box to hide it without display:none so WebRTC doesn't get throttled */}
       <div 
         id="jitsi-meet-voice-container" 
-        className="absolute top-0 left-0 w-10 h-10 overflow-hidden opacity-0 pointer-events-none scale-0 transform-gpu" 
+        className="fixed top-[-9999px] left-[-9999px] w-[800px] h-[600px] pointer-events-none opacity-0" 
       />
 
       {/* Persistent floating indicator / expander */}
@@ -368,9 +373,6 @@ export default function VoiceChatWidget() {
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[0.56rem] font-black uppercase tracking-[0.2em] text-cyan-400">
                 In-App Secure Channels
-              </span>
-              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[0.5rem] font-bold text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                100% FREE
               </span>
             </div>
 
