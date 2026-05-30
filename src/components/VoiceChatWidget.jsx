@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { joinRoom } from 'trystero/torrent'
+import { joinRoom } from '@trystero-p2p/torrent'
 import {
   Mic,
   MicOff,
