@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useIntel } from '../context/useIntel.js'
 import OnboardingPrompt from './OnboardingPrompt.jsx'
 import ProfileAvatar from './ProfileAvatar.jsx'
+import VoiceChatWidget from './VoiceChatWidget.jsx'
 import { clanPrefix, displayProfileName } from '../utils/profiles.js'
 
 const navItems = [
@@ -297,6 +298,7 @@ function Layout() {
       </main>
 
       <OnboardingPrompt />
+      <VoiceChatWidget />
 
       <nav ref={bottomNavRef} className={`mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl ${keyboardActive ? 'mobile-bottom-nav--keyboard' : ''}`} aria-label="Primary navigation">
         <div className="mx-auto grid max-w-6xl gap-1 rounded-2xl border border-white/8 bg-black/35 p-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${bottomNavItems.length}, minmax(0, 1fr))` }}>
