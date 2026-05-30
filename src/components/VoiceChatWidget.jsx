@@ -503,28 +503,40 @@ export default function VoiceChatWidget() {
           onClick={() => {
             if (!hasMoved) setIsOpen(true)
           }}
-          className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-colors duration-200 ${
+          className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-colors duration-300 ${
             isConnected
-              ? 'border-emerald-500/50 bg-emerald-500/12 backdrop-blur-xl shadow-[0_0_20px_rgba(16,185,129,0.35)]'
+              ? 'border-emerald-500/50 bg-emerald-500/15 backdrop-blur-xl shadow-[0_0_25px_rgba(16,185,129,0.4)]'
               : Object.values(roomOccupancy).some(c => c > 0)
-                ? 'border-emerald-500/30 bg-zinc-900/90 backdrop-blur-xl hover:border-emerald-400/50 hover:bg-zinc-800 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                ? 'border-cyan-500/40 bg-cyan-900/40 backdrop-blur-xl hover:border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]'
                 : 'border-white/10 bg-zinc-900/90 backdrop-blur-xl hover:border-red-400/40 hover:bg-zinc-800'
           }`}
           style={{ touchAction: 'none' }}
           title="Open Voice Hub"
         >
           {isConnected ? (
-            <div className="relative flex h-full w-full items-center justify-center">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 animate-ping"></span>
-              <Phone className="h-6 w-6 text-emerald-400" />
+            <div className="relative flex h-full w-full items-center justify-center flex-col">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-30 animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]"></span>
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 animate-[pulse_1s_cubic-bezier(0.4,0,0.6,1)_infinite]"></span>
+              <div className="z-10 flex flex-col items-center">
+                <Phone className="h-4 w-4 text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                <span className="text-[0.45rem] font-black text-emerald-200 mt-0.5 tracking-widest">{roomOccupancy[selectedRoom] || 1} IN</span>
+              </div>
             </div>
           ) : Object.values(roomOccupancy).some(c => c > 0) ? (
-            <div className="relative flex h-full w-full items-center justify-center">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 animate-ping"></span>
-              <Radio className="h-6 w-6 text-emerald-400" />
+            <div className="relative flex h-full w-full items-center justify-center flex-col">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-25 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></span>
+              <div className="z-10 flex flex-col items-center">
+                <span className="text-[0.8rem] font-black text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] leading-none">
+                  {Object.values(roomOccupancy).reduce((a, b) => a + b, 0)}
+                </span>
+                <span className="text-[0.4rem] font-black text-cyan-400 uppercase tracking-[0.2em] mt-0.5">Active</span>
+              </div>
             </div>
           ) : (
-            <Radio className="h-6 w-6 text-gray-300" />
+            <div className="relative flex h-full w-full items-center justify-center">
+              <span className="absolute inline-flex h-full w-full rounded-full shadow-[0_0_15px_rgba(255,255,255,0.05)] animate-[pulse_3s_ease-in-out_infinite]"></span>
+              <Radio className="h-5 w-5 text-gray-400" />
+            </div>
           )}
         </button>
       )}
