@@ -76,7 +76,7 @@ export default function VoiceChatWidget() {
   const [isConnected, setIsConnected] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isDeafened, setIsDeafened] = useState(false)
-  const [selectedRoom, setSelectedRoom] = useState('Lounge 🛋️')
+  const [selectedRoom, setSelectedRoom] = useState('Chat about anything')
   const [loading, setLoading] = useState(false)
 
   const [participants, setParticipants] = useState([])
@@ -91,7 +91,7 @@ export default function VoiceChatWidget() {
   const profileActionRef = useRef(null)
   const muteActionRef = useRef(null)
 
-  const voiceRooms = ['Lounge 🛋️', 'Clan Comms 🔊', 'Tactical HQ 🎮']
+  const voiceRooms = ['Chat about anything', 'B21', 'PREMADE']
 
   const startEngine = async (roomName) => {
     if (loading) return
@@ -119,7 +119,7 @@ export default function VoiceChatWidget() {
       }
 
       // 3. Join the Trystero mesh room via Supabase signaling
-      const roomMap = { 'Lounge 🛋️': 'lounge', 'Clan Comms 🔊': 'clancomms', 'Tactical HQ 🎮': 'tactical' }
+      const roomMap = { 'Chat about anything': 'chat-anything', 'B21': 'b21', 'PREMADE': 'premade' }
       const roomSlug = roomMap[roomName] || roomName.toLowerCase().replace(/[^a-z0-9]/g, '')
       const fullRoomId = `21rats-voice-${roomSlug}`
 
