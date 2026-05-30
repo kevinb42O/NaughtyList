@@ -157,8 +157,8 @@ export default function VoiceChatWidget() {
           parentNode: document.getElementById('jitsi-meet-voice-container'),
           configOverwrite: {
             startWithVideoMuted: true,
-            startWithAudioMuted: true, // Start muted to bypass aggressive browser autoplay blocks
-            prejoinPageEnabled: false,
+            startWithAudioMuted: true,
+            prejoinConfig: { enabled: false },
             disableDeepLinking: true,
           },
           interfaceConfigOverwrite: {
