@@ -21,16 +21,16 @@ const playSynthSound = (type) => {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
     const osc = audioCtx.createOscillator()
     const gain = audioCtx.createGain()
-    
+
     osc.connect(gain)
     gain.connect(audioCtx.destination)
-    
+
     const now = audioCtx.currentTime
-    
+
     if (type === 'join') {
       osc.type = 'sine'
-      osc.frequency.setValueAtTime(523.25, now) // C5
-      osc.frequency.setValueAtTime(659.25, now + 0.08) // E5
+      osc.frequency.setValueAtTime(523.25, now)
+      osc.frequency.setValueAtTime(659.25, now + 0.08)
       gain.gain.setValueAtTime(0, now)
       gain.gain.linearRampToValueAtTime(0.12, now + 0.02)
       gain.gain.linearRampToValueAtTime(0.12, now + 0.16)
@@ -39,8 +39,8 @@ const playSynthSound = (type) => {
       osc.stop(now + 0.36)
     } else if (type === 'leave') {
       osc.type = 'sine'
-      osc.frequency.setValueAtTime(659.25, now) // E5
-      osc.frequency.setValueAtTime(329.63, now + 0.08) // E4
+      osc.frequency.setValueAtTime(659.25, now)
+      osc.frequency.setValueAtTime(329.63, now + 0.08)
       gain.gain.setValueAtTime(0, now)
       gain.gain.linearRampToValueAtTime(0.12, now + 0.02)
       gain.gain.linearRampToValueAtTime(0.12, now + 0.16)
@@ -49,7 +49,7 @@ const playSynthSound = (type) => {
       osc.stop(now + 0.36)
     } else if (type === 'mute') {
       osc.type = 'triangle'
-      osc.frequency.setValueAtTime(440, now) // A4
+      osc.frequency.setValueAtTime(440, now)
       gain.gain.setValueAtTime(0, now)
       gain.gain.linearRampToValueAtTime(0.1, now + 0.01)
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
@@ -57,15 +57,15 @@ const playSynthSound = (type) => {
       osc.stop(now + 0.13)
     } else if (type === 'unmute') {
       osc.type = 'triangle'
-      osc.frequency.setValueAtTime(880, now) // A5
+      osc.frequency.setValueAtTime(880, now)
       gain.gain.setValueAtTime(0, now)
       gain.gain.linearRampToValueAtTime(0.1, now + 0.01)
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
       osc.start(now)
       osc.stop(now + 0.13)
     }
-  } catch (err) {
-    console.warn('Synth sound blocked or unsupported by browser context', err)
+  } catch {
+    // Audio context blocked or unsupported
   }
 }
 
@@ -73,54 +73,31 @@ export default function VoiceChatWidget() {
   const { profile, isAuthenticated } = useIntel()
   const [isOpen, setIsOpen] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
-  const [isMuted, setIsMuted] = useState(false) // Start unmuted locally since we natively request mic
+  const [isMuted, setIsMuted] = useState(false)
   const [isDeafened, setIsDeafened] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState('Lounge 🛋️')
   const [loading, setLoading] = useState(false)
-  
-  // WebRTC mesh state
+
   const [participants, setParticipants] = useState([])
   const [dominantSpeakerId, setDominantSpeakerId] = useState(null)
-  
+
   const roomRef = useRef(null)
   const localStreamRef = useRef(null)
   const audioContextRef = useRef(null)
   const analysersRef = useRef(new Map())
   const audioElementsRef = useRef(new Map())
   const animationFrameRef = useRef(null)
+  const profileActionRef = useRef(null)
+  const muteActionRef = useRef(null)
 
   const voiceRooms = ['Lounge 🛋️', 'Clan Comms 🔊', 'Tactical HQ 🎮']
 
-  // Continuously analyze audio streams to detect dominant speaker
-  const monitorAudioLevels = useCallback(() => {
-    let maxLevel = 0
-    let currentDominant = null
-
-    analysersRef.current.forEach((analyser, peerId) => {
-      const dataArray = new Uint8Array(analyser.frequencyBinCount)
-      analyser.getByteFrequencyData(dataArray)
-      
-      const sum = dataArray.reduce((a, b) => a + b, 0)
-      const avg = sum / dataArray.length
-      
-      // Threshold for speaking
-      if (avg > 15 && avg > maxLevel) {
-        maxLevel = avg
-        currentDominant = peerId
-      }
-    })
-
-    setDominantSpeakerId(currentDominant)
-    animationFrameRef.current = requestAnimationFrame(monitorAudioLevels)
-  }, [])
-
-  // Start native WebRTC connection
   const startEngine = async (roomName) => {
     if (loading) return
     setLoading(true)
 
     try {
-      // 1. Request microphone native access first
+      // 1. Request microphone
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -128,23 +105,22 @@ export default function VoiceChatWidget() {
           autoGainControl: true
         }
       })
-      
+
       localStreamRef.current = stream
       playSynthSound('join')
 
-      // Set initial mute state
-      stream.getAudioTracks()[0].enabled = !isMuted
-
-      // 2. Connect to Trystero serverless signaling mesh
+      // 2. Join the Trystero mesh room via MQTT signaling
       const roomSlug = `21rats-hq-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
       const room = joinRoom({ appId: '21rats-native-mesh' }, roomSlug)
       roomRef.current = room
 
-      // Action channels
-      const [sendProfile, getProfile] = room.makeAction('profile')
-      const [sendMuteStatus, getMuteStatus] = room.makeAction('mute')
+      // 3. Create data action channels (new API: returns {send, onMessage})
+      const profileAction = room.makeAction('profile')
+      const muteAction = room.makeAction('mute')
+      profileActionRef.current = profileAction
+      muteActionRef.current = muteAction
 
-      // Local participant base
+      // Local participant
       const localParticipant = {
         id: 'local',
         profileId: profile?.id,
@@ -152,105 +128,108 @@ export default function VoiceChatWidget() {
         avatar_icon: profile?.avatar_icon || 'ghost',
         role: profile?.role || 'member',
         isMe: true,
-        muted: isMuted
+        muted: false
       }
-
       setParticipants([localParticipant])
 
-      // 3. Audio Context setup for active speaker detection
+      // 4. Audio context for speaker detection
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
       }
 
-      // Add local stream to analyser
       const localSource = audioContextRef.current.createMediaStreamSource(stream)
       const localAnalyser = audioContextRef.current.createAnalyser()
       localAnalyser.fftSize = 256
       localSource.connect(localAnalyser)
       analysersRef.current.set('local', localAnalyser)
 
-      // Start animation loop
-      monitorAudioLevels()
+      // Start audio level monitoring loop
+      const tick = () => {
+        let maxLevel = 0
+        let currentDominant = null
+        analysersRef.current.forEach((an, peerId) => {
+          const dataArray = new Uint8Array(an.frequencyBinCount)
+          an.getByteFrequencyData(dataArray)
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length
+          if (avg > 15 && avg > maxLevel) {
+            maxLevel = avg
+            currentDominant = peerId
+          }
+        })
+        setDominantSpeakerId(currentDominant)
+        animationFrameRef.current = requestAnimationFrame(tick)
+      }
+      tick()
 
-      // 4. Handle incoming peer streams
-      room.onPeerStream((peerStream, peerId) => {
-        // Create an audio element to play the stream
+      // 5. Handle incoming peer audio streams (setter-based API)
+      room.onPeerStream = (peerStream, peerId) => {
         const audio = new Audio()
         audio.srcObject = peerStream
         audio.autoplay = true
         audioElementsRef.current.set(peerId, audio)
-        
-        if (!isDeafened) {
-          audio.play().catch(e => console.warn('Audio play blocked:', e))
-        } else {
-          audio.volume = 0
+        audio.play().catch(() => {})
+
+        if (audioContextRef.current) {
+          const peerSource = audioContextRef.current.createMediaStreamSource(peerStream)
+          const peerAnalyser = audioContextRef.current.createAnalyser()
+          peerAnalyser.fftSize = 256
+          peerSource.connect(peerAnalyser)
+          analysersRef.current.set(peerId, peerAnalyser)
         }
+      }
 
-        // Attach analyser for glowing ring
-        const peerSource = audioContextRef.current.createMediaStreamSource(peerStream)
-        const peerAnalyser = audioContextRef.current.createAnalyser()
-        peerAnalyser.fftSize = 256
-        peerSource.connect(peerAnalyser)
-        analysersRef.current.set(peerId, peerAnalyser)
-      })
-
-      // 5. Handle Peer Join / Leave sync
-      room.onPeerJoin(peerId => {
-        // Broadcast our profile to the new peer
-        sendProfile({
+      // 6. Handle peer join/leave (setter-based API)
+      room.onPeerJoin = (peerId) => {
+        profileAction.send({
           id: profile?.id,
           display_name: profile?.display_name || 'Operator',
           avatar_icon: profile?.avatar_icon || 'ghost',
           role: profile?.role || 'member'
         }, peerId)
-      })
+      }
 
-      room.onPeerLeave(peerId => {
+      room.onPeerLeave = (peerId) => {
         setParticipants(prev => prev.filter(p => p.id !== peerId))
-        
-        // Cleanup resources
         if (audioElementsRef.current.has(peerId)) {
           const audio = audioElementsRef.current.get(peerId)
           audio.srcObject = null
           audioElementsRef.current.delete(peerId)
         }
-        if (analysersRef.current.has(peerId)) {
-          analysersRef.current.delete(peerId)
-        }
-      })
+        analysersRef.current.delete(peerId)
+      }
 
-      // Receive profiles from peers
-      getProfile((peerData, peerId) => {
+      // 7. Receive profile and mute data from peers (setter-based API)
+      profileAction.onMessage = (peerData, { peerId }) => {
         setParticipants(prev => {
           const exists = prev.find(p => p.id === peerId)
           if (exists) return prev
           return [...prev, { ...peerData, id: peerId, isMe: false, muted: false }]
         })
-      })
+      }
 
-      // Receive mute status
-      getMuteStatus((isPeerMuted, peerId) => {
+      muteAction.onMessage = (isPeerMuted, { peerId }) => {
         setParticipants(prev => prev.map(p => p.id === peerId ? { ...p, muted: isPeerMuted } : p))
-      })
+      }
 
-      // 6. Finalize connection
+      // 8. Send our audio stream into the mesh
       room.addStream(stream)
       setIsConnected(true)
       setLoading(false)
 
-      // Broadcast our initial mute state to everyone
-      sendMuteStatus(isMuted)
-
     } catch (err) {
-      console.error('Failed to start native WebRTC engine', err)
+      console.error('Voice engine error:', err)
       setLoading(false)
-      alert(`Microphone access denied or WebRTC unavailable. Please allow microphone access to use Voice Comms. Error: ${err.message}`)
+      if (err.name === 'NotAllowedError' || err.name === 'NotFoundError') {
+        alert('Microphone access was denied or no mic found. Please allow mic access in your browser settings.')
+      } else {
+        alert(`Voice connection failed: ${err.message}`)
+      }
     }
   }
 
-  const disconnectVoice = () => {
-    if (isConnected) playSynthSound('leave')
-    
+  const disconnectVoice = useCallback(() => {
+    playSynthSound('leave')
+
     if (roomRef.current) {
       roomRef.current.leave()
       roomRef.current = null
@@ -270,28 +249,28 @@ export default function VoiceChatWidget() {
     })
     audioElementsRef.current.clear()
     analysersRef.current.clear()
+    profileActionRef.current = null
+    muteActionRef.current = null
 
     setIsConnected(false)
     setIsMuted(false)
     setIsDeafened(false)
     setParticipants([])
     setDominantSpeakerId(null)
-  }
+  }, [])
 
   const toggleMute = () => {
     const nextMuted = !isMuted
     setIsMuted(nextMuted)
-    
+
     if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks()[0].enabled = !nextMuted
-    }
-    
-    if (roomRef.current) {
-      const [sendMuteStatus] = roomRef.current.makeAction('mute')
-      sendMuteStatus(nextMuted)
+      localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = !nextMuted })
     }
 
-    // Update local participant state instantly
+    if (muteActionRef.current) {
+      muteActionRef.current.send(nextMuted)
+    }
+
     setParticipants(prev => prev.map(p => p.isMe ? { ...p, muted: nextMuted } : p))
     playSynthSound(nextMuted ? 'mute' : 'unmute')
   }
@@ -300,21 +279,31 @@ export default function VoiceChatWidget() {
     const nextDeafened = !isDeafened
     setIsDeafened(nextDeafened)
     playSynthSound(nextDeafened ? 'mute' : 'unmute')
-    
-    // Deafen: Mute all incoming audio elements
+
     audioElementsRef.current.forEach(audio => {
       audio.volume = nextDeafened ? 0 : 1
     })
 
-    // Also auto-mute mic if we are deafening for privacy
     if (nextDeafened && !isMuted) {
       toggleMute()
     }
   }
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => disconnectVoice()
+    const audioEls = audioElementsRef.current
+    return () => {
+      if (roomRef.current) {
+        roomRef.current.leave()
+        roomRef.current = null
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop())
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+      audioEls.forEach(audio => { audio.srcObject = null })
+    }
   }, [])
 
   if (!isAuthenticated) return null
@@ -324,7 +313,7 @@ export default function VoiceChatWidget() {
       className="fixed right-4 z-40 sm:bottom-6 sm:right-6 font-sans select-none"
       style={{ bottom: 'calc(var(--mobile-bottom-nav-height, 0px) + 1.2rem)' }}
     >
-      {/* Persistent floating indicator / expander */}
+      {/* Floating button when closed */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -346,8 +335,7 @@ export default function VoiceChatWidget() {
           <span className="text-[0.68rem] font-black uppercase tracking-[0.14em]">
             {isConnected ? 'Squad Online' : 'Voice Hub'}
           </span>
-          
-          {/* Active Participants Bubble Preview */}
+
           {isConnected && participants.length > 0 && (
             <div className="flex -space-x-1.5 ml-1">
               {participants.slice(0, 3).map((u) => (
@@ -370,10 +358,10 @@ export default function VoiceChatWidget() {
         </button>
       )}
 
-      {/* Main Glassmorphic Panel */}
+      {/* Main panel */}
       {isOpen && (
         <div className="w-[19.5rem] rounded-[1.6rem] border border-white/10 bg-zinc-950/92 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.65)] backdrop-blur-2xl transition duration-200 animate-in fade-in slide-in-from-bottom-6">
-          
+
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/8 pb-3">
             <div className="flex items-center gap-2">
@@ -386,11 +374,11 @@ export default function VoiceChatWidget() {
                   Squad Comms
                 </h3>
                 <p className="text-[0.56rem] font-bold text-gray-500 uppercase tracking-[0.1em]">
-                  Native WebTorrent Engine
+                  Native Voice Engine
                 </p>
               </div>
             </div>
-            
+
             <button
               onClick={() => setIsOpen(false)}
               className="flex h-7 w-7 items-center justify-center rounded-full border border-white/5 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition"
@@ -399,15 +387,15 @@ export default function VoiceChatWidget() {
             </button>
           </div>
 
-          {/* Custom Web Voice Lounge */}
+          {/* Voice channels */}
           <div className="mt-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2">
               <span className="text-[0.56rem] font-black uppercase tracking-[0.2em] text-cyan-400">
                 In-App Secure Channels
               </span>
             </div>
 
-            {/* Room Selector if disconnected */}
+            {/* Room selector */}
             {!isConnected && !loading && (
               <div className="mb-3">
                 <div className="flex flex-col gap-1.5 mt-2">
@@ -429,7 +417,7 @@ export default function VoiceChatWidget() {
               </div>
             )}
 
-            {/* Connection Switch */}
+            {/* Connect / Active controls */}
             {!isConnected ? (
               <button
                 disabled={loading}
@@ -441,11 +429,11 @@ export default function VoiceChatWidget() {
                 ) : (
                   <Phone className="h-4 w-4 text-cyan-400 animate-bounce" />
                 )}
-                {loading ? 'Requesting Mic & Connecting...' : `Connect ${selectedRoom.split(' ')[0]}`}
+                {loading ? 'Connecting...' : `Connect ${selectedRoom.split(' ')[0]}`}
               </button>
             ) : (
               <div className="space-y-3">
-                {/* Active Channel Stats */}
+                {/* Channel info */}
                 <div className="flex items-center justify-between rounded-xl bg-black/40 px-2.5 py-1.5 border border-white/5">
                   <div className="flex items-center gap-1.5">
                     <span className="relative flex h-2 w-2">
@@ -457,15 +445,15 @@ export default function VoiceChatWidget() {
                     </span>
                   </div>
                   <span className="text-[0.52rem] font-bold text-gray-500">
-                    Live Stream
+                    Live
                   </span>
                 </div>
 
-                {/* Speaker List Grid */}
+                {/* Participants */}
                 <div className="max-h-[9rem] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {participants.map((user) => {
-                    const isSpeaking = dominantSpeakerId === user.id && !user.muted;
-                    
+                    const isSpeaking = dominantSpeakerId === user.id && !user.muted
+
                     return (
                       <div
                         key={user.id}
@@ -494,9 +482,8 @@ export default function VoiceChatWidget() {
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-1.5 px-1">
-                          {/* Mic Waveform Visualizer for active speaker */}
                           {isSpeaking && (
                             <div className="flex items-end gap-0.5 h-3 px-1 mr-1">
                               <span className="w-0.5 bg-emerald-400 animate-[bar1_0.6s_ease-in-out_infinite]" style={{ height: '30%' }}></span>
@@ -515,7 +502,7 @@ export default function VoiceChatWidget() {
                   })}
                 </div>
 
-                {/* Audio Engine Live Control Strip */}
+                {/* Control strip */}
                 <div className="flex gap-2 border-t border-white/5 pt-3 mt-2">
                   <button
                     onClick={toggleMute}
@@ -560,16 +547,14 @@ export default function VoiceChatWidget() {
             )}
           </div>
 
-          {/* Footer branding details */}
+          {/* Footer */}
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[0.52rem] font-bold text-gray-600 uppercase tracking-[0.08em]">
             <Sparkles className="h-3 w-3 text-red-500/50" />
-            <span>21RATS Pure WebRTC Mesh Node</span>
+            <span>21RATS Native WebRTC Node</span>
           </div>
-
         </div>
       )}
 
-      {/* Embedded CSS for speaker animations in Tailwind 4.0 context */}
       <style>{`
         @keyframes bar1 {
           0%, 100% { height: 30%; }
