@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { joinRoom } from '@trystero-p2p/mqtt'
+import { joinRoom } from '@trystero-p2p/nostr'
 import {
   Mic,
   MicOff,
