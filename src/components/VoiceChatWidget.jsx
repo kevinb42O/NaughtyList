@@ -1,73 +1,146 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { joinRoom } from '@trystero-p2p/supabase'
 import {
+  AlertTriangle,
+  ChevronDown,
+  Loader2,
   Mic,
   MicOff,
   Phone,
   PhoneOff,
+  Radio,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Users,
   Volume2,
   VolumeX,
-  Radio,
-  ChevronDown,
-  Sparkles,
-  Loader2
+  Wifi,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { useIntel } from '../context/useIntel.js'
 import ProfileAvatar from './ProfileAvatar.jsx'
 
-// Helper to generate retro-synth audio feedback
-const playSynthSound = (type) => {
+const voiceRooms = [
+  { name: 'Chat about anything', shortName: 'Open Comms', slug: 'chat-anything', description: 'Casual squad talk' },
+  { name: 'B21', shortName: 'B21 Run', slug: 'b21', description: 'Building 21 callouts' },
+  { name: 'PREMADE', shortName: 'Premade', slug: 'premade', description: 'Ready squad staging' },
+]
+
+const voiceRoomByName = new Map(voiceRooms.map((room) => [room.name, room]))
+
+function playSynthSound(type) {
   try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextClass) return
+
+    const audioCtx = new AudioContextClass()
     const osc = audioCtx.createOscillator()
     const gain = audioCtx.createGain()
+    const now = audioCtx.currentTime
 
     osc.connect(gain)
     gain.connect(audioCtx.destination)
 
-    const now = audioCtx.currentTime
-
-    if (type === 'join') {
+    if (type === 'join' || type === 'leave') {
       osc.type = 'sine'
-      osc.frequency.setValueAtTime(523.25, now)
-      osc.frequency.setValueAtTime(659.25, now + 0.08)
+      osc.frequency.setValueAtTime(type === 'join' ? 523.25 : 659.25, now)
+      osc.frequency.setValueAtTime(type === 'join' ? 659.25 : 329.63, now + 0.08)
       gain.gain.setValueAtTime(0, now)
       gain.gain.linearRampToValueAtTime(0.12, now + 0.02)
       gain.gain.linearRampToValueAtTime(0.12, now + 0.16)
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
       osc.start(now)
       osc.stop(now + 0.36)
-    } else if (type === 'leave') {
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(659.25, now)
-      osc.frequency.setValueAtTime(329.63, now + 0.08)
-      gain.gain.setValueAtTime(0, now)
-      gain.gain.linearRampToValueAtTime(0.12, now + 0.02)
-      gain.gain.linearRampToValueAtTime(0.12, now + 0.16)
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
-      osc.start(now)
-      osc.stop(now + 0.36)
-    } else if (type === 'mute') {
-      osc.type = 'triangle'
-      osc.frequency.setValueAtTime(440, now)
-      gain.gain.setValueAtTime(0, now)
-      gain.gain.linearRampToValueAtTime(0.1, now + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
-      osc.start(now)
-      osc.stop(now + 0.13)
-    } else if (type === 'unmute') {
-      osc.type = 'triangle'
-      osc.frequency.setValueAtTime(880, now)
-      gain.gain.setValueAtTime(0, now)
-      gain.gain.linearRampToValueAtTime(0.1, now + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
-      osc.start(now)
-      osc.stop(now + 0.13)
+      return
     }
+
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(type === 'unmute' ? 880 : 440, now)
+    gain.gain.setValueAtTime(0, now)
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.01)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
+    osc.start(now)
+    osc.stop(now + 0.13)
   } catch {
-    // Audio context blocked or unsupported
+    // Browser audio feedback is optional.
   }
+}
+
+function roomSlug(roomName) {
+  return voiceRoomByName.get(roomName)?.slug || roomName.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function connectionCopy(status) {
+  switch (status) {
+    case 'requesting-mic':
+      return 'Requesting microphone'
+    case 'joining-room':
+      return 'Joining room'
+    case 'connecting-peers':
+      return 'Connecting peers'
+    case 'connected':
+      return 'Live channel'
+    case 'error':
+      return 'Needs attention'
+    default:
+      return 'Ready'
+  }
+}
+
+function voiceErrorMessage(error) {
+  if (!error) return ''
+  if (error.name === 'NotAllowedError') return 'Microphone permission is blocked. Allow mic access in your browser, then try again.'
+  if (error.name === 'NotFoundError') return 'No microphone was found. Connect a mic or headset, then try again.'
+  if (error.name === 'NotReadableError') return 'Your microphone is already in use by another app or tab.'
+  if (window.isSecureContext === false) return 'Voice needs a secure browser context. Use HTTPS or localhost.'
+  return error.message ? `Voice connection failed: ${error.message}` : 'Voice connection failed. Try again.'
+}
+
+function clampDragPosition(position) {
+  if (typeof window === 'undefined') return position
+
+  const bubbleSize = 56
+  const rightAnchor = 16
+  const bottomNavHeight = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-bottom-nav-height')) || 0
+  const bottomAnchor = bottomNavHeight + 19
+  const margin = 12
+
+  return {
+    x: Math.min(window.innerWidth - rightAnchor - bubbleSize - margin, Math.max(margin - (window.innerWidth - rightAnchor - bubbleSize), position.x)),
+    y: Math.min(window.innerHeight - bottomAnchor - bubbleSize - margin, Math.max(margin - (window.innerHeight - bottomAnchor - bubbleSize), position.y)),
+  }
+}
+
+async function sendVoiceJoinBroadcast(payload) {
+  await new Promise((resolve) => {
+    let settled = false
+    const channel = supabase.channel('online-users')
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeoutId)
+      supabase.removeChannel(channel)
+      resolve()
+    }
+    const timeoutId = window.setTimeout(finish, 2500)
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        try {
+          await channel.send({ type: 'broadcast', event: 'voice_chat_joined', payload })
+        } catch (error) {
+          console.warn('[VoiceChat] Failed to broadcast join event', error)
+        } finally {
+          finish()
+        }
+      }
+
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        finish()
+      }
+    })
+  })
 }
 
 export default function VoiceChatWidget() {
@@ -76,342 +149,35 @@ export default function VoiceChatWidget() {
   const [isConnected, setIsConnected] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isDeafened, setIsDeafened] = useState(false)
-  const [selectedRoom, setSelectedRoom] = useState('Chat about anything')
-  const [loading, setLoading] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState(voiceRooms[0].name)
+  const [connectionStatus, setConnectionStatus] = useState('idle')
+  const [connectionError, setConnectionError] = useState('')
   const [roomOccupancy, setRoomOccupancy] = useState({})
-
   const [participants, setParticipants] = useState([])
   const [dominantSpeakerId, setDominantSpeakerId] = useState(null)
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [hasMoved, setHasMoved] = useState(false)
 
   const roomRef = useRef(null)
   const localStreamRef = useRef(null)
   const audioContextRef = useRef(null)
   const analysersRef = useRef(new Map())
   const audioElementsRef = useRef(new Map())
+  const audioRetryCleanupRef = useRef(new Map())
   const animationFrameRef = useRef(null)
   const profileActionRef = useRef(null)
   const muteActionRef = useRef(null)
   const presenceChannelRef = useRef(null)
-
-  const voiceRooms = ['Chat about anything', 'B21', 'PREMADE']
-
-  // Draggable logic for the chat head
-  const [dragPos, setDragPos] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const [hasMoved, setHasMoved] = useState(false)
   const startPosRef = useRef({ x: 0, y: 0 })
-  const startMouseRef = useRef({ x: 0, y: 0 })
+  const startPointerRef = useRef({ x: 0, y: 0 })
 
-  const handlePointerDown = (e) => {
-    e.target.setPointerCapture(e.pointerId)
-    setIsDragging(true)
-    setHasMoved(false)
-    startMouseRef.current = { x: e.clientX, y: e.clientY }
-    startPosRef.current = { ...dragPos }
-  }
+  const selectedRoomMeta = voiceRoomByName.get(selectedRoom) ?? voiceRooms[0]
+  const totalOccupancy = useMemo(() => Object.values(roomOccupancy).reduce((sum, count) => sum + count, 0), [roomOccupancy])
+  const loading = connectionStatus === 'requesting-mic' || connectionStatus === 'joining-room' || connectionStatus === 'connecting-peers'
 
-  const handlePointerMove = (e) => {
-    if (!isDragging) return
-    const dx = e.clientX - startMouseRef.current.x
-    const dy = e.clientY - startMouseRef.current.y
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) setHasMoved(true)
-    setDragPos({
-      x: startPosRef.current.x + dx,
-      y: startPosRef.current.y + dy
-    })
-  }
-
-  const handlePointerUp = (e) => {
-    e.target.releasePointerCapture(e.pointerId)
-    setIsDragging(false)
-  }
-
-  const roomMap = { 'Chat about anything': 'chat-anything', 'B21': 'b21', 'PREMADE': 'premade' }
-
-  // 1. Maintain global presence for voice rooms
-  useEffect(() => {
-    if (!isAuthenticated || !profile?.id) return
-
-    const channel = supabase.channel('voice-rooms', {
-      config: { presence: { key: profile.id } }
-    })
-    
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState()
-      const counts = {}
-      for (const key in state) {
-        const userRooms = new Set()
-        state[key].forEach(p => {
-          if (p.room) userRooms.add(p.room)
-        })
-        userRooms.forEach(room => {
-          counts[room] = (counts[room] || 0) + 1
-        })
-      }
-      setRoomOccupancy(counts)
-    }).subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.track({ room: isConnected ? selectedRoom : null })
-      }
-    })
-
-    presenceChannelRef.current = channel
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [isAuthenticated, profile?.id])
-
-  // Update presence when connection status changes
-  useEffect(() => {
-    if (presenceChannelRef.current && presenceChannelRef.current.state === 'joined') {
-      if (isConnected) {
-        presenceChannelRef.current.track({ room: selectedRoom }).catch(console.error)
-      } else {
-        presenceChannelRef.current.track({ room: null }).catch(console.error)
-      }
-    }
-  }, [isConnected, selectedRoom])
-
-  const startEngine = async (roomName) => {
-    if (loading) return
-    setLoading(true)
-
-    try {
-      // 1. Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      })
-
-      localStreamRef.current = stream
-      console.log('[VoiceChat] Mic acquired, tracks:', stream.getAudioTracks().length)
-
-      // 2. Resume AudioContext (required on mobile after user gesture)
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
-      }
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume()
-      }
-
-      // 3. Join the Trystero mesh room via Supabase signaling
-      const roomSlug = roomMap[roomName] || roomName.toLowerCase().replace(/[^a-z0-9]/g, '')
-      const fullRoomId = `21rats-voice-${roomSlug}`
-
-      console.log('[VoiceChat] Joining room via Supabase:', fullRoomId)
-
-      const room = joinRoom({
-        appId: import.meta.env.VITE_SUPABASE_URL,
-        relayConfig: {
-          supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY
-        },
-        turnConfig: [
-          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-          { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-        ]
-      }, fullRoomId)
-      roomRef.current = room
-
-      // 4. Create data action channels FIRST
-      const profileAction = room.makeAction('profile')
-      const muteAction = room.makeAction('mute')
-      profileActionRef.current = profileAction
-      muteActionRef.current = muteAction
-
-      // Local participant (shown immediately)
-      const localParticipant = {
-        id: 'local',
-        profileId: profile?.id,
-        display_name: profile?.display_name || 'Operator',
-        avatar_icon: profile?.avatar_icon || 'ghost',
-        role: profile?.role || 'member',
-        isMe: true,
-        muted: false
-      }
-      setParticipants([localParticipant])
-
-      // 5. Set up audio analyser for local mic
-      const localSource = audioContextRef.current.createMediaStreamSource(stream)
-      const localAnalyser = audioContextRef.current.createAnalyser()
-      localAnalyser.fftSize = 256
-      localSource.connect(localAnalyser)
-      analysersRef.current.set('local', localAnalyser)
-
-      // Start audio level monitoring loop for speaker detection
-      const tick = () => {
-        let maxLevel = 0
-        let currentDominant = null
-        analysersRef.current.forEach((an, peerId) => {
-          const dataArray = new Uint8Array(an.frequencyBinCount)
-          an.getByteFrequencyData(dataArray)
-          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length
-          if (avg > 15 && avg > maxLevel) {
-            maxLevel = avg
-            currentDominant = peerId
-          }
-        })
-        setDominantSpeakerId(currentDominant)
-        animationFrameRef.current = requestAnimationFrame(tick)
-      }
-      tick()
-
-      // 6. Handle incoming peer audio streams
-      room.onPeerStream = (peerStream, peerId) => {
-        console.log('[VoiceChat] Received audio stream from peer:', peerId)
-        
-        let audio = audioElementsRef.current.get(peerId)
-        if (!audio) {
-          audio = new Audio()
-          audio.id = `peer-audio-${peerId}`
-          audio.style.display = 'none'
-          audio.setAttribute('playsinline', 'true') // CRITICAL for iOS Safari
-          document.body.appendChild(audio)
-          audioElementsRef.current.set(peerId, audio)
-        }
-
-        audio.srcObject = peerStream
-        audio.volume = isDeafened ? 0 : 1
-
-        const playPromise = audio.play()
-        if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            console.warn('[VoiceChat] Autoplay prevented for', peerId, err)
-            const retry = () => {
-              audio.play().catch(() => {})
-              document.removeEventListener('touchstart', retry)
-              document.removeEventListener('click', retry)
-            }
-            document.addEventListener('touchstart', retry, { once: true })
-            document.addEventListener('click', retry, { once: true })
-          })
-        }
-
-        // Add analyser for peer speaker detection glow
-        if (audioContextRef.current) {
-          try {
-            const peerSource = audioContextRef.current.createMediaStreamSource(peerStream)
-            const peerAnalyser = audioContextRef.current.createAnalyser()
-            peerAnalyser.fftSize = 256
-            peerSource.connect(peerAnalyser)
-            analysersRef.current.set(peerId, peerAnalyser)
-          } catch (e) {
-            console.warn('[VoiceChat] Could not connect peer stream to analyser', e)
-          }
-        }
-      }
-
-      // Handle peer join — send our profile and our audio stream directly to them!
-      room.onPeerJoin = (peerId) => {
-        console.log('[VoiceChat] Peer joined:', peerId)
-        playSynthSound('join')
-        
-        // CRITICAL: Trystero requires us to explicitly send our stream to the new peer
-        try {
-          room.addStream(stream, { target: peerId })
-        } catch (err) {
-          console.warn('[VoiceChat] Error adding stream to peer:', err)
-        }
-
-        profileAction.send({
-          id: profile?.id,
-          display_name: profile?.display_name || 'Operator',
-          avatar_icon: profile?.avatar_icon || 'ghost',
-          role: profile?.role || 'member'
-        }, { target: peerId })
-      }
-
-      // Handle peer leave
-      room.onPeerLeave = (peerId) => {
-        console.log('[VoiceChat] Peer left:', peerId)
-        playSynthSound('leave')
-        setParticipants(prev => prev.filter(p => p.id !== peerId))
-        
-        if (audioElementsRef.current.has(peerId)) {
-          const audio = audioElementsRef.current.get(peerId)
-          if (audio) {
-            audio.srcObject = null
-            audio.remove()
-          }
-          audioElementsRef.current.delete(peerId)
-        }
-        analysersRef.current.delete(peerId)
-      }
-
-      // Receive profile data from peers
-      profileAction.onMessage = (peerData, { peerId }) => {
-        console.log('[VoiceChat] Received profile from peer:', peerId, peerData)
-        setParticipants(prev => {
-          const exists = prev.find(p => p.id === peerId)
-          if (exists) {
-            return prev.map(p => p.id === peerId ? { ...p, ...peerData, id: peerId, isMe: false } : p)
-          }
-          return [...prev, { ...peerData, id: peerId, isMe: false, muted: false }]
-        })
-      }
-
-      // Receive mute status from peers
-      muteAction.onMessage = (isPeerMuted, { peerId }) => {
-        setParticipants(prev => prev.map(p => p.id === peerId ? { ...p, muted: isPeerMuted } : p))
-      }
-
-      playSynthSound('join')
-      setIsConnected(true)
-      setRoomOccupancy(prev => ({ ...prev, [selectedRoom]: (prev[selectedRoom] || 0) + 1 }))
-      setLoading(false)
-      console.log('[VoiceChat] Connected and streaming')
-
-      // Anti-Spam Rate Limiting for Notifications
-      const now = Date.now()
-      const lastToast = Number(localStorage.getItem('last_voice_toast') || 0)
-      const lastPush = Number(localStorage.getItem('last_voice_push') || 0)
-      
-      const toastCooldown = 2 * 60 * 1000 // 2 minutes
-      const pushCooldown = 15 * 60 * 1000 // 15 minutes
-
-      // Broadcast globally that we joined voice chat for in-app toasts
-      if (now - lastToast > toastCooldown) {
-        localStorage.setItem('last_voice_toast', now.toString())
-        supabase.channel('online-users').send({
-          type: 'broadcast',
-          event: 'voice_chat_joined',
-          payload: {
-            room: selectedRoom,
-            profile: profile
-          }
-        }).catch(err => console.warn('[VoiceChat] Failed to broadcast join event', err))
-      }
-
-      // Trigger actual Web Push Notification via Edge Function
-      if (now - lastPush > pushCooldown) {
-        localStorage.setItem('last_voice_push', now.toString())
-        supabase.functions.invoke('send-push', {
-          body: {
-            type: 'voice-chat',
-            message: selectedRoom
-          }
-        }).catch(err => console.warn('[VoiceChat] Failed to trigger push notification', err))
-      }
-
-    } catch (err) {
-      console.error('Voice engine error:', err)
-      setLoading(false)
-      if (err.name === 'NotAllowedError' || err.name === 'NotFoundError') {
-        alert('Microphone access was denied or no mic found. Please allow mic access in your browser settings.')
-      } else {
-        alert(`Voice connection failed: ${err.message}`)
-      }
-    }
-  }
-
-  const disconnectVoice = useCallback(() => {
-    playSynthSound('leave')
-    setIsConnected(false)
-    setRoomOccupancy(prev => ({ ...prev, [selectedRoom]: Math.max(0, (prev[selectedRoom] || 0) - 1) }))
+  const cleanupVoiceSession = useCallback((options = {}) => {
+    const { resetControls = true } = options
 
     if (roomRef.current) {
       roomRef.current.leave()
@@ -419,17 +185,21 @@ export default function VoiceChatWidget() {
     }
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop())
+      localStreamRef.current.getTracks().forEach((track) => track.stop())
       localStreamRef.current = null
     }
 
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
     }
 
-    audioElementsRef.current.forEach(audio => {
+    audioRetryCleanupRef.current.forEach((removeRetry) => removeRetry())
+    audioRetryCleanupRef.current.clear()
+    audioElementsRef.current.forEach((audio) => {
+      audio.pause()
       audio.srcObject = null
-      audio.remove() // CRITICAL: prevent DOM leak
+      audio.remove()
     })
     audioElementsRef.current.clear()
     analysersRef.current.clear()
@@ -437,82 +207,363 @@ export default function VoiceChatWidget() {
     muteActionRef.current = null
 
     setIsConnected(false)
-    setIsMuted(false)
-    setIsDeafened(false)
     setParticipants([])
     setDominantSpeakerId(null)
-  }, [playSynthSound, selectedRoom])
 
-  const toggleMute = () => {
+    if (resetControls) {
+      setIsMuted(false)
+      setIsDeafened(false)
+      setConnectionStatus('idle')
+      setConnectionError('')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated || !profile?.id) {
+      return undefined
+    }
+
+    const channel = supabase.channel('voice-rooms', {
+      config: { presence: { key: profile.id } },
+    })
+    presenceChannelRef.current = channel
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const counts = {}
+        Object.values(channel.presenceState()).forEach((presenceRows) => {
+          const userRooms = new Set()
+          presenceRows.forEach((presence) => {
+            if (presence.room) userRooms.add(presence.room)
+          })
+          userRooms.forEach((room) => {
+            counts[room] = (counts[room] || 0) + 1
+          })
+        })
+        setRoomOccupancy(counts)
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') await channel.track({ room: null })
+      })
+
+    return () => {
+      if (presenceChannelRef.current === channel) presenceChannelRef.current = null
+      supabase.removeChannel(channel)
+    }
+  }, [isAuthenticated, profile?.id])
+
+  useEffect(() => {
+    const channel = presenceChannelRef.current
+    if (!channel || channel.state !== 'joined') return
+
+    channel.track({ room: isConnected ? selectedRoom : null }).catch((error) => {
+      console.warn('[VoiceChat] Failed to update room presence', error)
+    })
+  }, [isConnected, selectedRoom])
+
+  useEffect(() => {
+    if (isOpen) return undefined
+
+    const handleResize = () => setDragPos((position) => clampDragPosition(position))
+    window.addEventListener('resize', handleResize)
+    window.screen.orientation?.addEventListener?.('change', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.screen.orientation?.removeEventListener?.('change', handleResize)
+    }
+  }, [isOpen])
+
+  useEffect(() => () => cleanupVoiceSession({ resetControls: false }), [cleanupVoiceSession])
+
+  const handlePointerDown = useCallback((event) => {
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setIsDragging(true)
+    setHasMoved(false)
+    startPointerRef.current = { x: event.clientX, y: event.clientY }
+    startPosRef.current = { ...dragPos }
+  }, [dragPos])
+
+  const handlePointerMove = useCallback((event) => {
+    if (!isDragging) return
+
+    const dx = event.clientX - startPointerRef.current.x
+    const dy = event.clientY - startPointerRef.current.y
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) setHasMoved(true)
+
+    setDragPos(clampDragPosition({
+      x: startPosRef.current.x + dx,
+      y: startPosRef.current.y + dy,
+    }))
+  }, [isDragging])
+
+  const handlePointerUp = useCallback((event) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    setIsDragging(false)
+  }, [])
+
+  const retryPeerAudio = useCallback((audio, peerId) => {
+    const retry = () => {
+      audio.play().catch(() => {})
+      audioRetryCleanupRef.current.get(peerId)?.()
+    }
+    const removeRetry = () => {
+      document.removeEventListener('touchstart', retry)
+      document.removeEventListener('click', retry)
+      audioRetryCleanupRef.current.delete(peerId)
+    }
+
+    audioRetryCleanupRef.current.get(peerId)?.()
+    audioRetryCleanupRef.current.set(peerId, removeRetry)
+    document.addEventListener('touchstart', retry, { once: true })
+    document.addEventListener('click', retry, { once: true })
+  }, [])
+
+  const monitorAudioLevels = useCallback(function monitorAudioLevelsTick() {
+    let maxLevel = 0
+    let currentDominant = null
+
+    analysersRef.current.forEach((analyser, peerId) => {
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      analyser.getByteFrequencyData(dataArray)
+      const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length
+      if (average > 15 && average > maxLevel) {
+        maxLevel = average
+        currentDominant = peerId
+      }
+    })
+
+    setDominantSpeakerId(currentDominant)
+    animationFrameRef.current = requestAnimationFrame(monitorAudioLevelsTick)
+  }, [])
+
+  const notifyVoiceJoin = useCallback((roomName) => {
+    const now = Date.now()
+    const roomKey = roomSlug(roomName)
+    const toastStorageKey = `last_voice_toast_${roomKey}`
+    const pushStorageKey = `last_voice_push_${roomKey}`
+
+    if (now - Number(localStorage.getItem(toastStorageKey) || 0) > 2 * 60 * 1000) {
+      localStorage.setItem(toastStorageKey, now.toString())
+      sendVoiceJoinBroadcast({ room: roomName, profile }).catch((error) => {
+        console.warn('[VoiceChat] Failed to broadcast join event', error)
+      })
+    }
+
+    if (now - Number(localStorage.getItem(pushStorageKey) || 0) > 15 * 60 * 1000) {
+      localStorage.setItem(pushStorageKey, now.toString())
+      supabase.functions.invoke('send-push', {
+        body: { type: 'voice-chat', message: roomName },
+      }).catch((error) => console.warn('[VoiceChat] Failed to trigger push notification', error))
+    }
+  }, [profile])
+
+  const startEngine = useCallback(async (roomName) => {
+    if (loading || isConnected) return
+
+    setConnectionStatus('requesting-mic')
+    setConnectionError('')
+    cleanupVoiceSession({ resetControls: false })
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Your browser does not support microphone access.')
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      })
+      localStreamRef.current = stream
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext
+      if (!AudioContextClass) throw new Error('Your browser does not support the Web Audio API.')
+      if (!audioContextRef.current) audioContextRef.current = new AudioContextClass()
+      if (audioContextRef.current.state === 'suspended') await audioContextRef.current.resume()
+
+      setConnectionStatus('joining-room')
+      const room = joinRoom({
+        appId: import.meta.env.VITE_SUPABASE_URL,
+        relayConfig: { supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        turnConfig: [
+          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+        ],
+      }, `21rats-voice-${roomSlug(roomName)}`)
+      roomRef.current = room
+
+      const profileAction = room.makeAction('profile')
+      const muteAction = room.makeAction('mute')
+      profileActionRef.current = profileAction
+      muteActionRef.current = muteAction
+
+      const profilePayload = {
+        id: profile?.id,
+        display_name: profile?.display_name || 'Operator',
+        avatar_icon: profile?.avatar_icon || 'radio',
+        avatar_image_url: profile?.avatar_image_url || '',
+        role: profile?.role || 'member',
+        supporter_tier: profile?.supporter_tier,
+        supporter_frame: profile?.supporter_frame,
+      }
+      setParticipants([{ ...profilePayload, id: 'local', profileId: profile?.id, isMe: true, muted: false }])
+
+      const localSource = audioContextRef.current.createMediaStreamSource(stream)
+      const localAnalyser = audioContextRef.current.createAnalyser()
+      localAnalyser.fftSize = 256
+      localSource.connect(localAnalyser)
+      analysersRef.current.set('local', localAnalyser)
+      monitorAudioLevels()
+
+      room.onPeerStream = (peerStream, peerId) => {
+        let audio = audioElementsRef.current.get(peerId)
+        if (!audio) {
+          audio = new Audio()
+          audio.id = `peer-audio-${peerId}`
+          audio.style.display = 'none'
+          audio.setAttribute('playsinline', 'true')
+          document.body.appendChild(audio)
+          audioElementsRef.current.set(peerId, audio)
+        }
+
+        audio.srcObject = peerStream
+        audio.volume = isDeafened ? 0 : 1
+        audio.play().catch((error) => {
+          console.warn('[VoiceChat] Autoplay prevented for peer audio', error)
+          retryPeerAudio(audio, peerId)
+        })
+
+        try {
+          const peerSource = audioContextRef.current.createMediaStreamSource(peerStream)
+          const peerAnalyser = audioContextRef.current.createAnalyser()
+          peerAnalyser.fftSize = 256
+          peerSource.connect(peerAnalyser)
+          analysersRef.current.set(peerId, peerAnalyser)
+        } catch (error) {
+          console.warn('[VoiceChat] Could not connect peer stream to analyser', error)
+        }
+      }
+
+      room.onPeerJoin = (peerId) => {
+        playSynthSound('join')
+        try {
+          room.addStream(stream, { target: peerId })
+        } catch (error) {
+          console.warn('[VoiceChat] Error adding stream to peer', error)
+        }
+        profileAction.send(profilePayload, { target: peerId })
+        muteAction.send(isMuted, { target: peerId })
+      }
+
+      room.onPeerLeave = (peerId) => {
+        playSynthSound('leave')
+        setParticipants((currentParticipants) => currentParticipants.filter((participant) => participant.id !== peerId))
+        const audio = audioElementsRef.current.get(peerId)
+        if (audio) {
+          audio.pause()
+          audio.srcObject = null
+          audio.remove()
+        }
+        audioElementsRef.current.delete(peerId)
+        audioRetryCleanupRef.current.get(peerId)?.()
+        analysersRef.current.delete(peerId)
+      }
+
+      profileAction.onMessage = (peerData, { peerId }) => {
+        setParticipants((currentParticipants) => {
+          const existing = currentParticipants.find((participant) => participant.id === peerId)
+          const nextPeer = { ...existing, ...peerData, id: peerId, isMe: false, muted: existing?.muted ?? false }
+          return existing
+            ? currentParticipants.map((participant) => (participant.id === peerId ? nextPeer : participant))
+            : [...currentParticipants, nextPeer]
+        })
+      }
+
+      muteAction.onMessage = (isPeerMuted, { peerId }) => {
+        setParticipants((currentParticipants) => currentParticipants.map((participant) => (
+          participant.id === peerId ? { ...participant, muted: isPeerMuted } : participant
+        )))
+      }
+
+      setConnectionStatus('connecting-peers')
+      try {
+        room.addStream(stream)
+      } catch (error) {
+        console.warn('[VoiceChat] Error adding local stream to room', error)
+      }
+
+      playSynthSound('join')
+      setIsConnected(true)
+      setIsMuted(false)
+      setIsDeafened(false)
+      setConnectionStatus('connected')
+      notifyVoiceJoin(roomName)
+    } catch (error) {
+      console.error('[VoiceChat] Voice engine error', error)
+      cleanupVoiceSession({ resetControls: false })
+      setConnectionStatus('error')
+      setConnectionError(voiceErrorMessage(error))
+    }
+  }, [cleanupVoiceSession, isConnected, isDeafened, isMuted, loading, monitorAudioLevels, notifyVoiceJoin, profile, retryPeerAudio])
+
+  const disconnectVoice = useCallback(() => {
+    if (!isConnected && connectionStatus !== 'error') return
+    playSynthSound('leave')
+    cleanupVoiceSession()
+  }, [cleanupVoiceSession, connectionStatus, isConnected])
+
+  const toggleMute = useCallback(() => {
     const nextMuted = !isMuted
     setIsMuted(nextMuted)
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = !nextMuted })
-    }
-
-    if (muteActionRef.current) {
-      muteActionRef.current.send(nextMuted)
-    }
-
-    setParticipants(prev => prev.map(p => p.isMe ? { ...p, muted: nextMuted } : p))
+    localStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = !nextMuted
+    })
+    muteActionRef.current?.send(nextMuted)
+    setParticipants((currentParticipants) => currentParticipants.map((participant) => (
+      participant.isMe ? { ...participant, muted: nextMuted } : participant
+    )))
     playSynthSound(nextMuted ? 'mute' : 'unmute')
-  }
+  }, [isMuted])
 
-  const toggleDeafen = () => {
+  const toggleDeafen = useCallback(() => {
     const nextDeafened = !isDeafened
     setIsDeafened(nextDeafened)
     playSynthSound(nextDeafened ? 'mute' : 'unmute')
 
-    audioElementsRef.current.forEach(audio => {
+    audioElementsRef.current.forEach((audio) => {
       audio.volume = nextDeafened ? 0 : 1
     })
 
     if (nextDeafened && !isMuted) {
-      toggleMute()
+      setIsMuted(true)
+      localStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = false
+      })
+      muteActionRef.current?.send(true)
+      setParticipants((currentParticipants) => currentParticipants.map((participant) => (
+        participant.isMe ? { ...participant, muted: true } : participant
+      )))
     }
-  }
-
-  useEffect(() => {
-    const audioEls = audioElementsRef.current
-    return () => {
-      if (roomRef.current) {
-        roomRef.current.leave()
-        roomRef.current = null
-      }
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop())
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current)
-      }
-      audioEls.forEach(audio => { audio.srcObject = null })
-    }
-  }, [])
+  }, [isDeafened, isMuted])
 
   if (!isAuthenticated) return null
 
   return (
     <>
-      {/* Mobile Backdrop Blur when open */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md transition-opacity duration-300 animate-in fade-in sm:hidden" 
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-      
+      {isOpen ? (
+        <button type="button" aria-label="Close squad comms" className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm sm:hidden" onClick={() => setIsOpen(false)} />
+      ) : null}
+
       <div
-        className={`fixed right-4 z-50 sm:bottom-6 sm:right-6 font-sans select-none ${isDragging ? 'cursor-grabbing' : ''}`}
-        style={{ 
+        className={`fixed right-4 z-50 font-sans select-none sm:bottom-6 sm:right-6 ${isDragging ? 'cursor-grabbing' : ''}`}
+        style={{
           bottom: 'calc(var(--mobile-bottom-nav-height, 0px) + 1.2rem)',
           transform: !isOpen ? `translate3d(${dragPos.x}px, ${dragPos.y}px, 0)` : 'none',
-          transition: isDragging || isOpen ? 'none' : 'transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28)'
+          transition: isDragging || isOpen ? 'none' : 'transform 0.18s ease-out',
         }}
       >
-        {/* Floating bubble when closed (Draggable Chat Head) */}
-        {!isOpen && (
+        {!isOpen ? (
           <button
+            type="button"
+            aria-label={isConnected ? `Open squad comms, connected to ${selectedRoom}` : 'Open squad comms'}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -520,262 +571,185 @@ export default function VoiceChatWidget() {
             onClick={() => {
               if (!hasMoved) setIsOpen(true)
             }}
-            className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-colors duration-300 ${
+            className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 motion-reduce:transition-none ${
               isConnected
-                ? 'border-emerald-500/50 bg-emerald-500/15 backdrop-blur-xl shadow-[0_0_25px_rgba(16,185,129,0.4)]'
-                : Object.values(roomOccupancy).some(c => c > 0)
-                  ? 'border-cyan-500/40 bg-cyan-900/40 backdrop-blur-xl hover:border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]'
-                  : 'border-amber-400/40 bg-zinc-900/90 backdrop-blur-xl hover:border-amber-400/60 hover:bg-amber-900/20 shadow-[0_0_15px_rgba(251,191,36,0.15)]'
+                ? 'border-emerald-500/50 bg-emerald-500/15 shadow-[0_0_25px_rgba(16,185,129,0.4)]'
+                : totalOccupancy > 0
+                  ? 'border-cyan-500/40 bg-cyan-900/40 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:border-cyan-400/60'
+                  : 'border-amber-400/40 bg-zinc-900/90 shadow-[0_0_15px_rgba(251,191,36,0.15)] hover:border-amber-400/60'
             }`}
             style={{ touchAction: 'none' }}
-            title="Open Voice Hub"
           >
             {isConnected ? (
-              <div className="relative flex h-full w-full items-center justify-center flex-col">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-30 animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]"></span>
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 animate-[pulse_1s_cubic-bezier(0.4,0,0.6,1)_infinite]"></span>
-                <div className="z-10 flex flex-col items-center">
-                  <Phone className="h-4 w-4 text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                  <span className="text-[0.45rem] font-black text-emerald-200 mt-0.5 tracking-widest">{roomOccupancy[selectedRoom] || 1} IN</span>
-                </div>
-              </div>
-            ) : Object.values(roomOccupancy).some(c => c > 0) ? (
-              <div className="relative flex h-full w-full items-center justify-center flex-col">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-25 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></span>
-                <div className="z-10 flex flex-col items-center">
-                  <span className="text-[0.8rem] font-black text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] leading-none">
-                    {Object.values(roomOccupancy).reduce((a, b) => a + b, 0)}
-                  </span>
-                  <span className="text-[0.4rem] font-black text-cyan-400 uppercase tracking-[0.2em] mt-0.5">Active</span>
-                </div>
-              </div>
+              <span className="relative flex h-full w-full flex-col items-center justify-center">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-25 motion-safe:animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                <Phone className="z-10 h-4 w-4 text-emerald-300" aria-hidden="true" />
+                <span className="z-10 mt-0.5 text-[0.45rem] font-black uppercase tracking-widest text-emerald-200">{roomOccupancy[selectedRoom] || participants.length || 1} in</span>
+              </span>
+            ) : totalOccupancy > 0 ? (
+              <span className="relative flex h-full w-full flex-col items-center justify-center">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-20 motion-safe:animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                <span className="z-10 text-[0.8rem] font-black leading-none text-cyan-300">{totalOccupancy}</span>
+                <span className="z-10 mt-0.5 text-[0.4rem] font-black uppercase tracking-[0.18em] text-cyan-400">Active</span>
+              </span>
             ) : (
-              <div className="relative flex h-full w-full items-center justify-center">
-                <span className="absolute inline-flex h-full w-full rounded-full shadow-[0_0_15px_rgba(251,191,36,0.1)] animate-[pulse_3s_ease-in-out_infinite]"></span>
-                <Radio className="h-5 w-5 text-amber-400" />
-              </div>
+              <Radio className="h-5 w-5 text-amber-400 motion-safe:animate-pulse" aria-hidden="true" />
             )}
           </button>
-        )}
+        ) : null}
 
-      {/* Main panel */}
-      {isOpen && (
-        <div className="w-[19.5rem] rounded-[1.6rem] border border-white/10 bg-zinc-950/92 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.65)] backdrop-blur-2xl transition duration-200 animate-in fade-in slide-in-from-bottom-6">
+        {isOpen ? (
+          <section aria-label="Squad comms" className="w-[min(calc(100vw-2rem),22rem)] rounded-2xl border border-white/10 bg-zinc-950/95 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.65)] backdrop-blur-2xl">
+            <div className="flex items-center justify-between border-b border-white/8 pb-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${isConnected ? 'border-emerald-500/30 bg-emerald-500/12' : connectionStatus === 'error' ? 'border-red-500/35 bg-red-500/12' : 'border-red-500/25 bg-red-500/12'}`}>
+                  {connectionStatus === 'error' ? <AlertTriangle className="h-4 w-4 text-red-300" aria-hidden="true" /> : <Sparkles className="h-4 w-4 text-red-400" aria-hidden="true" />}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-[0.78rem] font-black uppercase tracking-[0.14em] text-white">Squad Comms</h3>
+                  <p className="truncate text-[0.56rem] font-bold uppercase tracking-[0.1em] text-gray-500">{connectionCopy(connectionStatus)}</p>
+                </div>
+              </div>
 
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/8 pb-3">
-            <div className="flex items-center gap-2">
-              <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/12 border border-red-500/25">
-                <Sparkles className="h-4 w-4 text-red-400" />
-                <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
-              </div>
-              <div>
-                <h3 className="text-[0.78rem] font-black uppercase tracking-[0.14em] text-white">
-                  Squad Comms
-                </h3>
-                <p className="text-[0.56rem] font-bold text-gray-500 uppercase tracking-[0.1em]">
-                  Native Voice Engine
-                </p>
-              </div>
+              <button type="button" aria-label="Collapse squad comms" onClick={() => setIsOpen(false)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/8 bg-white/5 text-gray-400 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80">
+                <ChevronDown className="h-4.5 w-4.5" aria-hidden="true" />
+              </button>
             </div>
 
-            <button
-              onClick={() => setIsOpen(false)}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/5 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition"
-            >
-              <ChevronDown className="h-4.5 w-4.5" />
-            </button>
-          </div>
+            <div className="mt-3 rounded-2xl border border-white/5 bg-white/[0.025] p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[0.56rem] font-black uppercase tracking-[0.2em] text-cyan-400">Secure Channels</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/8 bg-black/30 px-2 py-1 text-[0.5rem] font-black uppercase tracking-[0.12em] text-gray-500">
+                  <Users className="h-3 w-3" aria-hidden="true" />
+                  {totalOccupancy} live
+                </span>
+              </div>
 
-          {/* Voice channels */}
-          <div className="mt-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
-            <div className="mb-2">
-              <span className="text-[0.56rem] font-black uppercase tracking-[0.2em] text-cyan-400">
-                In-App Secure Channels
-              </span>
-            </div>
-
-            {/* Room selector */}
-            {!isConnected && !loading && (
-              <div className="mb-3">
-                <div className="flex flex-col gap-1.5 mt-2">
+              {!isConnected ? (
+                <div className="mt-3 space-y-2">
                   {voiceRooms.map((room) => {
-                    const count = roomOccupancy[room] || 0
+                    const count = roomOccupancy[room.name] || 0
+                    const selected = selectedRoom === room.name
+
                     return (
                       <button
-                        key={room}
-                        onClick={() => setSelectedRoom(room)}
-                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[0.68rem] font-bold transition ${
-                          selectedRoom === room
-                            ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.15)]'
-                            : 'border-white/5 bg-zinc-900/50 text-gray-400 hover:border-white/10 hover:bg-zinc-800'
-                        }`}
+                        type="button"
+                        key={room.name}
+                        onClick={() => setSelectedRoom(room.name)}
+                        className={`flex min-h-13 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${selected ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100' : 'border-white/6 bg-zinc-900/55 text-gray-400 hover:border-white/12 hover:bg-zinc-800/80'}`}
                       >
-                        <div className="flex items-center gap-2">
-                          <span>{room}</span>
-                          {count > 0 && (
-                            <span className="flex items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[0.55rem] font-black text-emerald-400">
-                              {count}
-                            </span>
-                          )}
-                        </div>
-                        {selectedRoom === room && <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
+                        <span className="min-w-0">
+                          <span className="block truncate text-[0.68rem] font-black uppercase tracking-[0.1em]">{room.shortName}</span>
+                          <span className="block truncate text-[0.56rem] font-bold uppercase tracking-[0.08em] text-gray-500">{room.description}</span>
+                        </span>
+                        <span className={`inline-flex min-w-8 shrink-0 items-center justify-center rounded-full border px-2 py-1 text-[0.55rem] font-black ${count ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300' : 'border-white/8 bg-black/20 text-gray-600'}`}>{count}</span>
                       </button>
                     )
                   })}
                 </div>
-              </div>
-            )}
+              ) : null}
 
-            {/* Connect / Active controls */}
-            {!isConnected ? (
-              <button
-                disabled={loading}
-                onClick={() => startEngine(selectedRoom)}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/12 py-3 text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-200 transition hover:bg-cyan-500/20 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.2)] active:scale-97 disabled:opacity-50"
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 text-cyan-400 animate-spin" />
-                ) : (
-                  <Phone className="h-4 w-4 text-cyan-400 animate-bounce" />
-                )}
-                {loading ? 'Connecting...' : `Connect ${selectedRoom.split(' ')[0]}`}
-              </button>
-            ) : (
-              <div className="space-y-3">
-                {/* Channel info */}
-                <div className="flex items-center justify-between rounded-xl bg-black/40 px-2.5 py-1.5 border border-white/5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span className="text-[0.62rem] font-black uppercase tracking-[0.08em] text-gray-300">
-                      {selectedRoom}
-                    </span>
+              {connectionError ? (
+                <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-red-100" role="status">
+                  <div className="flex gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-[0.68rem] font-black uppercase tracking-[0.1em]">Voice unavailable</p>
+                      <p className="mt-1 text-[0.62rem] font-semibold leading-snug text-red-100/80">{connectionError}</p>
+                    </div>
                   </div>
-                  <span className="text-[0.52rem] font-bold text-gray-500">
-                    Live
-                  </span>
                 </div>
+              ) : null}
 
-                {/* Participants */}
-                <div className="max-h-[9rem] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                  {participants.map((user) => {
-                    const isSpeaking = dominantSpeakerId === user.id && !user.muted
+              {!isConnected ? (
+                <button type="button" disabled={loading} onClick={() => startEngine(selectedRoom)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/12 py-3 text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-200 transition hover:border-cyan-400/50 hover:bg-cyan-500/20 active:scale-97 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin text-cyan-400" aria-hidden="true" /> : connectionStatus === 'error' ? <RefreshCw className="h-4 w-4 text-cyan-400" aria-hidden="true" /> : <Phone className="h-4 w-4 text-cyan-400" aria-hidden="true" />}
+                  {loading ? connectionCopy(connectionStatus) : connectionStatus === 'error' ? 'Try again' : `Connect ${selectedRoomMeta.shortName}`}
+                </button>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-center justify-between rounded-xl border border-white/6 bg-black/40 px-3 py-2">
+                    <span className="truncate text-[0.62rem] font-black uppercase tracking-[0.08em] text-gray-200">{selectedRoomMeta.shortName}</span>
+                    <span className="inline-flex items-center gap-1 text-[0.52rem] font-bold uppercase tracking-[0.12em] text-emerald-300"><Wifi className="h-3 w-3" aria-hidden="true" />Live</span>
+                  </div>
 
-                    return (
-                      <div
-                        key={user.id}
-                        className={`flex items-center justify-between rounded-xl border p-1.5 transition ${
-                          isSpeaking
-                            ? 'border-emerald-500/40 bg-emerald-500/10'
-                            : 'border-white/5 bg-zinc-900/40 hover:bg-zinc-800'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className={`relative h-8 w-8 overflow-hidden rounded-full transition-all bg-zinc-800 ${
-                              isSpeaking
-                                ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-zinc-900 scale-102 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
-                                : 'ring-1 ring-white/10'
-                            }`}
-                          >
-                            <ProfileAvatar profile={user} size="custom" className="h-full w-full object-cover" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.06em] text-white">
-                              {user.display_name}
-                            </p>
-                            <p className="text-[0.5rem] font-bold text-gray-500 uppercase tracking-widest">
-                              {user.isMe ? 'You' : user.role || 'Operator'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 px-1">
-                          {isSpeaking && (
-                            <div className="flex items-end gap-0.5 h-3 px-1 mr-1">
-                              <span className="w-0.5 bg-emerald-400 animate-[bar1_0.6s_ease-in-out_infinite]" style={{ height: '30%' }}></span>
-                              <span className="w-0.5 bg-emerald-400 animate-[bar2_0.8s_ease-in-out_infinite]" style={{ height: '70%' }}></span>
-                              <span className="w-0.5 bg-emerald-400 animate-[bar3_0.5s_ease-in-out_infinite]" style={{ height: '40%' }}></span>
-                            </div>
-                          )}
-                          {user.muted ? (
-                            <MicOff className="h-3.5 w-3.5 text-red-500" />
-                          ) : (
-                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 opacity-60"></div>
-                          )}
-                        </div>
+                  <div className="max-h-[10.5rem] space-y-2 overflow-y-auto pr-1">
+                    {participants.length === 1 ? (
+                      <div className="rounded-xl border border-dashed border-white/10 bg-zinc-900/35 px-3 py-3 text-center">
+                        <ShieldCheck className="mx-auto h-4 w-4 text-emerald-300" aria-hidden="true" />
+                        <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.1em] text-gray-300">Only you in channel</p>
+                        <p className="mt-1 text-[0.56rem] font-bold uppercase tracking-[0.08em] text-gray-600">Waiting for squad</p>
                       </div>
-                    )
-                  })}
-                </div>
+                    ) : null}
 
-                {/* Control strip */}
-                <div className="flex gap-2 border-t border-white/5 pt-3 mt-2">
-                  <button
-                    onClick={toggleMute}
-                    className={`flex-1 flex flex-col items-center justify-center rounded-xl border py-2 gap-1 transition ${
-                      isMuted
-                        ? 'border-red-500/40 bg-red-500/10 text-red-200'
-                        : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'
-                    }`}
-                  >
-                    {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4 text-emerald-400" />}
-                    <span className="text-[0.5rem] font-black uppercase tracking-[0.08em]">
-                      {isMuted ? 'Muted' : 'Mic On'}
-                    </span>
-                  </button>
+                    {participants.map((participant) => {
+                      const isSpeaking = dominantSpeakerId === participant.id && !participant.muted
 
-                  <button
-                    onClick={toggleDeafen}
-                    className={`flex-1 flex flex-col items-center justify-center rounded-xl border py-2 gap-1 transition ${
-                      isDeafened
-                        ? 'border-red-500/40 bg-red-500/10 text-red-200'
-                        : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'
-                    }`}
-                  >
-                    {isDeafened ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-cyan-400" />}
-                    <span className="text-[0.5rem] font-black uppercase tracking-[0.08em]">
-                      {isDeafened ? 'Deafened' : 'Sound On'}
-                    </span>
-                  </button>
+                      return (
+                        <div key={participant.id} className={`flex min-h-12 items-center justify-between rounded-xl border p-1.5 transition ${isSpeaking ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-white/6 bg-zinc-900/45 hover:bg-zinc-800/75'}`}>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <div className={`relative h-8 w-8 shrink-0 rounded-full ${isSpeaking ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-zinc-900' : 'ring-1 ring-white/10'}`}>
+                              <ProfileAvatar profile={participant} size="sm" className="h-full w-full" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.06em] text-white">{participant.display_name}</p>
+                              <p className="truncate text-[0.5rem] font-bold uppercase tracking-widest text-gray-500">{participant.isMe ? 'You' : participant.role || 'Operator'}</p>
+                            </div>
+                          </div>
 
-                  <button
-                    onClick={disconnectVoice}
-                    className="flex-1 flex flex-col items-center justify-center rounded-xl border border-red-500/50 bg-red-500/12 text-red-200 hover:bg-red-500/22 transition active:scale-95 shadow-[0_0_15px_rgba(239,68,68,0.15)] hover:shadow-[0_0_20px_rgba(239,68,68,0.25)]"
-                    title="Disconnect"
-                  >
-                    <PhoneOff className="h-4 w-4 text-red-400" />
-                    <span className="text-[0.5rem] font-black uppercase tracking-[0.08em]">
+                          <div className="flex shrink-0 items-center gap-1.5 px-1">
+                            {isSpeaking ? (
+                              <div className="flex h-3 items-end gap-0.5 px-1 motion-reduce:hidden" aria-label="Speaking">
+                                <span className="w-0.5 bg-emerald-400 animate-[voiceBar1_0.6s_ease-in-out_infinite]" style={{ height: '30%' }} />
+                                <span className="w-0.5 bg-emerald-400 animate-[voiceBar2_0.8s_ease-in-out_infinite]" style={{ height: '70%' }} />
+                                <span className="w-0.5 bg-emerald-400 animate-[voiceBar3_0.5s_ease-in-out_infinite]" style={{ height: '40%' }} />
+                              </div>
+                            ) : null}
+                            {participant.muted ? <MicOff className="h-3.5 w-3.5 text-red-400" aria-label="Muted" /> : <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 opacity-70" aria-label="Mic on" />}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 border-t border-white/6 pt-3">
+                    <button type="button" aria-pressed={isMuted} aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'} onClick={toggleMute} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${isMuted ? 'border-red-500/40 bg-red-500/10 text-red-200' : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'}`}>
+                      {isMuted ? <MicOff className="h-4 w-4" aria-hidden="true" /> : <Mic className="h-4 w-4 text-emerald-400" aria-hidden="true" />}
+                      <span className="text-[0.5rem] font-black uppercase tracking-[0.08em]">{isMuted ? 'Muted' : 'Mic On'}</span>
+                    </button>
+
+                    <button type="button" aria-pressed={isDeafened} aria-label={isDeafened ? 'Turn sound on' : 'Deafen voice chat'} onClick={toggleDeafen} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${isDeafened ? 'border-red-500/40 bg-red-500/10 text-red-200' : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'}`}>
+                      {isDeafened ? <VolumeX className="h-4 w-4" aria-hidden="true" /> : <Volume2 className="h-4 w-4 text-cyan-400" aria-hidden="true" />}
+                      <span className="text-[0.5rem] font-black uppercase tracking-[0.08em]">{isDeafened ? 'Deafened' : 'Sound On'}</span>
+                    </button>
+
+                    <button type="button" onClick={disconnectVoice} className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-xl border border-red-500/50 bg-red-500/12 text-[0.56rem] font-black uppercase tracking-[0.14em] text-red-200 transition hover:bg-red-500/22 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/80">
+                      <PhoneOff className="h-4 w-4 text-red-400" aria-hidden="true" />
                       Disconnect
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* Footer */}
-          <div className="mt-3 flex items-center justify-center gap-1.5 text-[0.52rem] font-bold text-gray-600 uppercase tracking-[0.08em]">
-            <Sparkles className="h-3 w-3 text-red-500/50" />
-            <span>21RATS Native WebRTC Node</span>
-          </div>
-        </div>
-      )}
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-[0.52rem] font-bold uppercase tracking-[0.08em] text-gray-600">
+              <Sparkles className="h-3 w-3 text-red-500/50" aria-hidden="true" />
+              <span>21RATS WebRTC Node</span>
+            </div>
+          </section>
+        ) : null}
       </div>
 
       <style>{`
-        @keyframes bar1 {
+        @keyframes voiceBar1 {
           0%, 100% { height: 30%; }
           50% { height: 100%; }
         }
-        @keyframes bar2 {
+        @keyframes voiceBar2 {
           0%, 100% { height: 60%; }
           50% { height: 20%; }
         }
-        @keyframes bar3 {
+        @keyframes voiceBar3 {
           0%, 100% { height: 40%; }
           50% { height: 80%; }
         }
