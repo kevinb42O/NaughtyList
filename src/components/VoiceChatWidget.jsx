@@ -180,7 +180,9 @@ export default function VoiceChatWidget() {
     const { resetControls = true } = options
 
     if (roomRef.current) {
-      roomRef.current.leave()
+      roomRef.current.leave().catch((error) => {
+        console.warn('[VoiceChat] Failed to leave room cleanly', error)
+      })
       roomRef.current = null
     }
 
@@ -387,7 +389,13 @@ export default function VoiceChatWidget() {
           { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
           { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
         ],
-      }, `21rats-voice-${roomSlug(roomName)}`)
+      }, `21rats-voice-${roomSlug(roomName)}`, {
+        onJoinError: ({ error: joinError }) => {
+          console.warn('[VoiceChat] Join error', joinError)
+          setConnectionStatus('error')
+          setConnectionError(voiceErrorMessage(new Error(joinError || 'Could not join voice room.')))
+        },
+      })
       roomRef.current = room
 
       const profileAction = room.makeAction('profile')
@@ -444,13 +452,23 @@ export default function VoiceChatWidget() {
 
       room.onPeerJoin = (peerId) => {
         playSynthSound('join')
-        try {
-          room.addStream(stream, { target: peerId })
-        } catch (error) {
-          console.warn('[VoiceChat] Error adding stream to peer', error)
-        }
-        profileAction.send(profilePayload, { target: peerId })
-        muteAction.send(isMuted, { target: peerId })
+        Promise.allSettled(room.addStream(stream, { target: peerId }))
+          .then((results) => {
+            const rejected = results.find((result) => result.status === 'rejected')
+            if (rejected?.status === 'rejected') {
+              console.warn('[VoiceChat] Error adding stream to peer', rejected.reason)
+            }
+          })
+          .catch((error) => {
+            console.warn('[VoiceChat] Error adding stream to peer', error)
+          })
+
+        profileAction.send(profilePayload, { target: peerId }).catch((error) => {
+          console.warn('[VoiceChat] Error sending peer profile payload', error)
+        })
+        muteAction.send(isMuted, { target: peerId }).catch((error) => {
+          console.warn('[VoiceChat] Error sending peer mute payload', error)
+        })
       }
 
       room.onPeerLeave = (peerId) => {
@@ -484,11 +502,16 @@ export default function VoiceChatWidget() {
       }
 
       setConnectionStatus('connecting-peers')
-      try {
-        room.addStream(stream)
-      } catch (error) {
-        console.warn('[VoiceChat] Error adding local stream to room', error)
-      }
+      Promise.allSettled(room.addStream(stream))
+        .then((results) => {
+          const rejected = results.find((result) => result.status === 'rejected')
+          if (rejected?.status === 'rejected') {
+            console.warn('[VoiceChat] Error adding local stream to room', rejected.reason)
+          }
+        })
+        .catch((error) => {
+          console.warn('[VoiceChat] Error adding local stream to room', error)
+        })
 
       playSynthSound('join')
       setIsConnected(true)
