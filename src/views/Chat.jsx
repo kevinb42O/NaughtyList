@@ -16,6 +16,7 @@ import { useRealtimeTyping } from '../utils/chatTyping.js'
 import { findActiveMentionToken, hasEveryoneMention, insertMentionEveryoneToken, insertMentionToken, mentionHandle, mentionLabel, mentionedProfileIds } from '../utils/mentions.js'
 import { useMobileViewportPanelHeight } from '../utils/mobileViewport.js'
 import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
+import RichText from '../components/RichText.jsx'
 
 function isSameDay(firstValue, secondValue) {
   const first = new Date(firstValue)
@@ -678,9 +679,7 @@ function Chat() {
                         <MessageReplyPreview currentUserId={user?.id} message={chatMessage.replyToMessage} />
                       ) : null}
                       {!wasDeleted ? <MessageMedia mediaUrl={chatMessage.media_url} mediaType={chatMessage.media_type} /> : null}
-                      <p className={`whitespace-pre-wrap break-words ${wasDeleted ? 'italic text-gray-400' : ''}`}>
-                        {wasDeleted ? 'Message removed.' : chatMessage.body}
-                      </p>
+                      <RichText content={chatMessage.body} wasDeleted={wasDeleted} />
                       <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-gray-100/55' : 'text-gray-500'}`}>
                         {formatMessageTime(chatMessage.created_at)}
                       </span>

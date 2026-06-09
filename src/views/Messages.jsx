@@ -8,6 +8,7 @@ import MessageReactions from '../components/MessageReactions.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
+import RichText from '../components/RichText.jsx'
 import SupporterBadge from '../components/SupporterBadge.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { useChatAutoScroll } from '../utils/chatScroll.js'
@@ -87,7 +88,7 @@ const DirectMessageBubble = memo(function DirectMessageBubble({ deletingMediaId,
                 Deleting picture
               </div>
             ) : null}
-            <p className="whitespace-pre-wrap break-words">{directMessage.body}</p>
+            <RichText content={directMessage.body} />
             <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-gray-100/55' : 'text-gray-500'}`}>
               {formatMessageTime(directMessage.created_at)}
             </span>
