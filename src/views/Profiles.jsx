@@ -44,7 +44,7 @@ function Profiles() {
         <div className="mb-5 flex items-center justify-end">
           <Link
             to="/profile"
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-black uppercase tracking-[0.16em] text-gray-300 hover:border-indigo-500/40 hover:text-indigo-100"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-black uppercase tracking-[0.16em] text-gray-300 hover:border-white/10 hover:text-gray-100"
           >
             <Settings className="h-4 w-4" aria-hidden="true" />
             Edit My Profile
@@ -54,7 +54,7 @@ function Profiles() {
         <div className="mb-5 flex items-center justify-end">
           <Link
             to="/auth"
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-black uppercase tracking-[0.16em] text-gray-400 hover:border-indigo-500/40 hover:text-indigo-100"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-black uppercase tracking-[0.16em] text-gray-400 hover:border-white/10 hover:text-gray-100"
           >
             Login to set your profile
           </Link>
@@ -63,7 +63,7 @@ function Profiles() {
 
       <section className="panel mb-5 rounded-[1.8rem] p-4">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-indigo-200" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-200" aria-hidden="true" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}

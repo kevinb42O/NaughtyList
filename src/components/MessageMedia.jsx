@@ -41,7 +41,7 @@ function MediaLightbox({ media, onClose }) {
         ref={closeButtonRef}
         type="button"
         onClick={onClose}
-        className="absolute right-3 top-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-zinc-950/80 text-white shadow-lg shadow-black/40 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-indigo-300/70"
+        className="absolute right-3 top-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-zinc-950/80 text-white shadow-lg shadow-black/40 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/20"
         aria-label="Close image preview"
       >
         <X className="h-5 w-5" aria-hidden="true" />
@@ -101,7 +101,7 @@ function MessageMedia({ mediaUrl, mediaType, onDelete, deleting = false }) {
               onDelete()
             }}
             disabled={deleting}
-            className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-400/35 bg-indigo-950/85 text-indigo-100 shadow-lg shadow-black/30 transition hover:border-indigo-300 hover:bg-indigo-500/25 disabled:opacity-60"
+            className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-gray-100 shadow-lg shadow-black/30 transition hover:border-white/10 hover:bg-white/5 disabled:opacity-60"
             aria-label={deleteLabel}
             title={deleteLabel}
           >

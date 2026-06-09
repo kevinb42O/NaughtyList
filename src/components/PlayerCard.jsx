@@ -8,7 +8,7 @@ function PlayerCard({ player, compact = false, rank }) {
     <article className={`panel rounded-[1.5rem] p-5 ${threat.glow}`}>
       <div className="flex flex-wrap items-center gap-2">
         {rank ? (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-indigo-500/70 bg-indigo-500/15 text-sm font-black text-indigo-200">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-sm font-black text-gray-200">
             {rank}
           </span>
         ) : null}

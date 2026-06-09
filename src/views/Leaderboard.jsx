@@ -23,7 +23,7 @@ function Leaderboard() {
 
       <section className="panel mb-5 rounded-[1.8rem] p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md border border-indigo-500/70 bg-indigo-500/15 text-indigo-200">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md border border-white/10 bg-white/5 text-gray-200">
             <Trophy className="h-6 w-6" aria-hidden="true" />
           </div>
           <div>
@@ -52,7 +52,7 @@ function Leaderboard() {
             </p>
             <Link
               to="/?add=1"
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5"
             >
               Log an operator
             </Link>

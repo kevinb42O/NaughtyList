@@ -139,12 +139,12 @@ function AddPlayerModal({ open, onClose }) {
           aria-modal="true"
           aria-labelledby={titleId}
           tabIndex={-1}
-          className="panel relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.5rem] border-indigo-500/20 shadow-2xl shadow-black outline-none sm:h-auto sm:max-h-full sm:rounded-[2rem]"
+          className="panel relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.5rem] border-white/10 shadow-2xl shadow-black outline-none sm:h-auto sm:max-h-full sm:rounded-[2rem]"
         >
           <div className="z-10 shrink-0 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="intel-label mb-2 text-indigo-100">New Intel Record</p>
+                <p className="intel-label mb-2 text-gray-100">New Intel Record</p>
                 <h2 id={titleId} className="text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
                   Log Operator
                 </h2>
@@ -156,7 +156,7 @@ function AddPlayerModal({ open, onClose }) {
                 type="button"
                 onClick={resetAndClose}
                 disabled={saving}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition hover:border-indigo-500/40 hover:text-indigo-100 disabled:opacity-50"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition hover:border-white/10 hover:text-gray-100 disabled:opacity-50"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
@@ -179,7 +179,7 @@ function AddPlayerModal({ open, onClose }) {
               <Link
                 to="/auth"
                 onClick={onClose}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5"
               >
                 <LogIn className="h-4 w-4" aria-hidden="true" />
                 Login to add intel
@@ -300,7 +300,7 @@ function AddPlayerModal({ open, onClose }) {
                             key={tag}
                             className={`cursor-pointer rounded-lg border px-3 py-2 text-sm font-black transition ${
                               isSelected
-                                ? 'border-indigo-500/60 bg-indigo-500/12 text-indigo-100'
+                                ? 'border-white/10 bg-white/5 text-gray-100'
                                 : 'border-white/10 bg-black/25 text-gray-400 hover:border-white/20'
                             }`}
                           >
@@ -350,7 +350,7 @@ function AddPlayerModal({ open, onClose }) {
                     <p className="intel-label mb-3">Intel Preview</p>
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <div className="mb-3 flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-100">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-gray-100">
                           <ShieldX className="h-5 w-5" aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
@@ -362,7 +362,7 @@ function AddPlayerModal({ open, onClose }) {
                           </p>
                         </div>
                       </div>
-                      <p className="text-sm font-black uppercase tracking-[0.12em] text-indigo-100">
+                      <p className="text-sm font-black uppercase tracking-[0.12em] text-gray-100">
                         {selectedThreat?.label ?? 'Hostile'}
                       </p>
                       <p className="mt-3 line-clamp-4 text-sm leading-6 text-gray-400">
@@ -388,7 +388,7 @@ function AddPlayerModal({ open, onClose }) {
                 <button
                   type="submit"
                   disabled={saving || !form.name.trim()}
-                  className="inline-flex w-full min-h-12 items-center justify-center gap-2 rounded-full border border-indigo-500/60 bg-indigo-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 shadow-[0_0_28px_rgba(99, 102, 241,0.18)] transition hover:bg-indigo-500/22 disabled:opacity-50"
+                  className="inline-flex w-full min-h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 shadow-[0_0_28px_rgba(99, 102, 241,0.18)] transition hover:bg-white/5 disabled:opacity-50"
                 >
                   <Save className="h-5 w-5" aria-hidden="true" />
                   {saving ? 'Saving…' : 'Save Intel'}

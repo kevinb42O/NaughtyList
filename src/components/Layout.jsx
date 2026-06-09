@@ -173,17 +173,17 @@ function Layout() {
             </span>
             <span>{item.label}</span>
             {item.to === '/messages' && unreadDirectMessageCount ? (
-              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-indigo-400/50 bg-indigo-500/18 px-1 py-0.5 text-[0.5rem] leading-none text-indigo-100">
+              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-[0.5rem] leading-none text-gray-100">
                 {unreadDirectMessageCount > 9 ? '9+' : unreadDirectMessageCount}
               </span>
             ) : null}
             {item.to === '/chat' && unreadPublicChatCount ? (
-              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-indigo-400/50 bg-indigo-500/18 px-1 py-0.5 text-[0.5rem] leading-none text-indigo-100">
+              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-[0.5rem] leading-none text-gray-100">
                 {unreadPublicChatCount > 9 ? '9+' : unreadPublicChatCount}
               </span>
             ) : null}
             {isActive ? (
-              <span className="absolute bottom-1 h-0.5 w-5 rounded-full bg-indigo-300/80" aria-hidden="true" />
+              <span className="absolute bottom-1 h-0.5 w-5 rounded-full bg-white/5" aria-hidden="true" />
             ) : null}
           </>
         )}
@@ -201,7 +201,7 @@ function Layout() {
         <div className={isHome ? 'pointer-events-none absolute inset-x-0 top-0 z-20 px-4 sm:px-6 lg:px-8' : ''}>
           <header className={`${isHome ? 'pointer-events-auto mb-0 bg-black/38 shadow-2xl shadow-black/35' : 'mb-5 bg-black/30 shadow-lg shadow-black/20'} flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2 backdrop-blur-xl sm:px-4`}>
             <Link to="/" className="group flex min-w-0 items-center gap-3">
-              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5 shadow-[0_0_22px_rgba(99, 102, 241,0.18)] transition group-hover:border-indigo-300/40 group-hover:shadow-[0_0_28px_rgba(99, 102, 241,0.28)]">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5 shadow-[0_0_22px_rgba(99, 102, 241,0.18)] transition group-hover:border-white/10 group-hover:shadow-[0_0_28px_rgba(99, 102, 241,0.28)]">
                 <img
                   src="/ratslogo.png?v=20260511-ratslogo"
                   alt="21rats logo"
@@ -213,7 +213,7 @@ function Layout() {
                   aria-hidden="true"
                   className="pointer-events-none absolute -inset-x-2 -inset-y-1.5 bg-[radial-gradient(circle_at_18%_50%,rgba(99, 102, 241,0.22),transparent_58%),radial-gradient(circle_at_85%_50%,rgba(56,189,248,0.2),transparent_60%)] blur-md"
                 />
-                <p className="relative truncate text-[1rem] font-black uppercase tracking-[0.32em] text-transparent bg-gradient-to-r from-indigo-300 via-white to-cyan-200 bg-clip-text drop-shadow-[0_0_18px_rgba(99, 102, 241,0.35)] sm:text-[1.18rem]">
+                <p className="relative truncate text-[1rem] font-black uppercase tracking-[0.32em] text-transparent bg-gradient-to-r from-white/10 via-white to-cyan-200 bg-clip-text drop-shadow-[0_0_18px_rgba(99, 102, 241,0.35)] sm:text-[1.18rem]">
                   21RATS
                 </p>
               </div>
@@ -234,14 +234,14 @@ function Layout() {
                 to="/help"
                 title="Help and FAQ"
                 aria-label="Open Help and FAQ"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100 sm:w-auto sm:px-3"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition hover:border-white/10 hover:text-gray-100 sm:w-auto sm:px-3"
               >
                 <CircleHelp className="h-4.5 w-4.5" aria-hidden="true" />
                 <span className="hidden pl-2 text-[0.62rem] font-black uppercase tracking-[0.16em] sm:inline">Help</span>
               </Link>
 
               {isAuthenticated ? (
-                <Link to="/profile" className="hidden min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 hover:border-indigo-400/30 sm:flex">
+                <Link to="/profile" className="hidden min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 hover:border-white/10 sm:flex">
                   <ProfileAvatar profile={profile} size="sm" />
                   <div className="min-w-0 text-right">
                     <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.14em] text-gray-300">
@@ -262,7 +262,7 @@ function Layout() {
                     dropStatus === 'sent'
                       ? 'border-green-500/50 bg-green-500/12 text-green-200'
                       : dropStatus === 'error'
-                        ? 'border-indigo-500/50 bg-indigo-500/12 text-indigo-100'
+                        ? 'border-white/10 bg-white/5 text-gray-100'
                       : dropping
                         ? 'border-white/10 bg-white/5 text-gray-500 opacity-60'
                         : 'drop-in-ready border-yellow-400/40 bg-yellow-400/10 text-yellow-100 hover:bg-yellow-400/20',
@@ -284,7 +284,7 @@ function Layout() {
               ) : (
                 <Link
                   to="/auth"
-                  className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300 hover:border-indigo-500/40 hover:text-indigo-100"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300 hover:border-white/10 hover:text-gray-100"
                 >
                   <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
                   Login

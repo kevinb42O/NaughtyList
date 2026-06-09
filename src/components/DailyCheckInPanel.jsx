@@ -13,7 +13,7 @@ const statusMeta = {
   },
   ready: {
     label: 'Claim Ready',
-    tone: 'border-indigo-400/45 bg-indigo-500/12 text-indigo-100',
+    tone: 'border-white/10 bg-white/5 text-gray-100',
     Icon: CalendarCheck,
   },
   protected: {
@@ -28,7 +28,7 @@ const statusMeta = {
   },
 }
 
-function ProgressBar({ value, tone = 'bg-indigo-300/90', label }) {
+function ProgressBar({ value, tone = 'bg-white/5', label }) {
   return (
     <div className="space-y-2">
       {label ? <div className="flex justify-between gap-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">{label}</div> : null}
@@ -71,7 +71,7 @@ function DailyOpsSummary({ onOpen, className = '' }) {
           </div>
           <Link
             to="/auth"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-indigo-500/45 bg-indigo-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-indigo-100 hover:bg-indigo-500/20"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 hover:bg-white/5"
           >
             <Lock className="h-4 w-4" aria-hidden="true" />
             Login
@@ -90,7 +90,7 @@ function DailyOpsSummary({ onOpen, className = '' }) {
           className="group flex min-w-0 items-center gap-3 text-left"
           aria-label="Open Daily Ops"
         >
-          <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${claimedToday ? 'border-emerald-400/35 bg-emerald-400/10 text-emerald-100' : 'border-indigo-400/45 bg-indigo-500/12 text-indigo-100'}`}>
+          <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${claimedToday ? 'border-emerald-400/35 bg-emerald-400/10 text-emerald-100' : 'border-white/10 bg-white/5 text-gray-100'}`}>
             <StatusIcon className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="min-w-0">
@@ -107,7 +107,7 @@ function DailyOpsSummary({ onOpen, className = '' }) {
             <span>{Math.round(rewardProgress.progressPercent)}%</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-            <div className="h-full rounded-full bg-indigo-300/90" style={{ width: `${rewardProgress.progressPercent}%` }} />
+            <div className="h-full rounded-full bg-white/5" style={{ width: `${rewardProgress.progressPercent}%` }} />
           </div>
         </div>
 
@@ -120,7 +120,7 @@ function DailyOpsSummary({ onOpen, className = '' }) {
           <button
             type="button"
             onClick={onOpen}
-            className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] transition ${claimedToday ? 'border-white/10 bg-white/5 text-gray-300 hover:border-indigo-400/35 hover:text-indigo-100' : 'daily-ops-claim-ready border-indigo-500/50 bg-indigo-500/12 text-indigo-100 hover:bg-indigo-500/20'}`}
+            className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] transition ${claimedToday ? 'border-white/10 bg-white/5 text-gray-300 hover:border-white/10 hover:text-gray-100' : 'daily-ops-claim-ready border-white/10 bg-white/5 text-gray-100 hover:bg-white/5'}`}
           >
             <span>{claimedToday ? 'View' : 'Claim'}</span>
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -171,7 +171,7 @@ function DailyOpsModal({ open, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 hover:border-indigo-400/40 hover:text-indigo-100"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 hover:border-white/10 hover:text-gray-100"
             aria-label="Close Daily Ops"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -246,7 +246,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
           </div>
           <Link
             to="/auth"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.16em] text-indigo-100 transition hover:bg-indigo-500/20"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.16em] text-gray-100 transition hover:bg-white/5"
           >
             <Lock className="h-4 w-4" aria-hidden="true" />
             Login
@@ -259,7 +259,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
   return (
     <section className={`${embedded ? '' : 'panel rounded-[1.6rem] p-4 sm:p-5'} ${className}`}>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <div className={`rounded-[1.35rem] border border-indigo-400/25 bg-indigo-500/10 p-4 shadow-[0_0_34px_rgba(99, 102, 241,0.1)] ${claiming ? 'daily-ops-scanning' : ''} ${result?.claimed ? 'daily-ops-celebrate' : ''}`}>
+        <div className={`rounded-[1.35rem] border border-white/10 bg-white/5 p-4 shadow-[0_0_34px_rgba(99, 102, 241,0.1)] ${claiming ? 'daily-ops-scanning' : ''} ${result?.claimed ? 'daily-ops-celebrate' : ''}`}>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="intel-label mb-2">Daily Ops</p>
@@ -289,7 +289,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
               {weeklyCells.map((cell) => (
                 <span
                   key={cell.day}
-                  className={`flex aspect-square items-center justify-center rounded-lg border text-[0.62rem] font-black transition ${cell.complete ? 'border-indigo-300/55 bg-indigo-500/18 text-indigo-50' : cell.today ? 'border-yellow-300/55 bg-yellow-400/10 text-yellow-100' : 'border-white/10 bg-black/30 text-gray-600'}`}
+                  className={`flex aspect-square items-center justify-center rounded-lg border text-[0.62rem] font-black transition ${cell.complete ? 'border-white/10 bg-white/5 text-gray-50' : cell.today ? 'border-yellow-300/55 bg-yellow-400/10 text-yellow-100' : 'border-white/10 bg-black/30 text-gray-600'}`}
                 >
                   {cell.complete ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : cell.day}
                 </span>
@@ -302,7 +302,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
               type="button"
               onClick={handleClaim}
               disabled={claiming || claimedToday}
-              className={`inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border px-5 text-sm font-black uppercase tracking-[0.16em] transition active:scale-[0.98] disabled:scale-100 ${claimedToday ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100' : claiming ? 'border-indigo-400/55 bg-indigo-500/16 text-indigo-50 hover:bg-indigo-500/24' : 'daily-ops-claim-ready border-indigo-400/55 bg-indigo-500/16 text-indigo-50 hover:bg-indigo-500/24'} disabled:opacity-70`}
+              className={`inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border px-5 text-sm font-black uppercase tracking-[0.16em] transition active:scale-[0.98] disabled:scale-100 ${claimedToday ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100' : claiming ? 'border-white/10 bg-white/5 text-gray-50 hover:bg-white/5' : 'daily-ops-claim-ready border-white/10 bg-white/5 text-gray-50 hover:bg-white/5'} disabled:opacity-70`}
             >
               <CalendarCheck className="h-4 w-4" aria-hidden="true" />
               <span>{claiming ? 'Securing' : claimedToday ? 'Claimed' : 'Claim Daily'}</span>
@@ -337,7 +337,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
                 {rewardProgress.label}
               </span>
             </div>
-            <ProgressBar value={rewardProgress.progressPercent} tone="bg-indigo-300/90" />
+            <ProgressBar value={rewardProgress.progressPercent} tone="bg-white/5" />
           </div>
 
           <div className="rounded-[1.35rem] border border-white/10 bg-black/25 p-4">
@@ -356,7 +356,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
               <Link
                 key={mission.key}
                 to={mission.to}
-                className={`group rounded-[1.15rem] border p-3 transition ${mission.complete ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-white/10 bg-black/25 text-gray-300 hover:border-indigo-400/35 hover:text-indigo-100'}`}
+                className={`group rounded-[1.15rem] border p-3 transition ${mission.complete ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-white/10 bg-black/25 text-gray-300 hover:border-white/10 hover:text-gray-100'}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[0.62rem] font-black uppercase tracking-[0.16em]">{mission.label}</span>
@@ -378,7 +378,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
             return (
               <div
                 key={reward.key}
-                className={`rounded-[1.1rem] border p-3 ${unlocked ? reward.tone : active ? 'border-indigo-400/45 bg-indigo-500/10 text-indigo-100' : 'border-white/10 bg-black/20 text-gray-600'}`}
+                className={`rounded-[1.1rem] border p-3 ${unlocked ? reward.tone : active ? 'border-white/10 bg-white/5 text-gray-100' : 'border-white/10 bg-black/20 text-gray-600'}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className={`text-lg font-black ${unlocked || active ? 'text-white' : 'text-gray-500'}`}>{reward.days}D</p>

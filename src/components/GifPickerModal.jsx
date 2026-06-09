@@ -169,7 +169,7 @@ function GifPickerModal({ onClose, onSelect }) {
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-gray-200 transition hover:border-indigo-400/40 hover:text-indigo-100"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-gray-200 transition hover:border-white/10 hover:text-gray-100"
             aria-label="Close GIF picker"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -194,7 +194,7 @@ function GifPickerModal({ onClose, onSelect }) {
                   onTouchStart={handleGifTouchStart}
                   onTouchEnd={(event) => handleGifTouchEnd(event, gif)}
                   onClick={() => selectGif(gif)}
-                  className="group aspect-square overflow-hidden rounded-2xl border border-white/10 bg-black/35 transition hover:border-indigo-400/45"
+                  className="group aspect-square overflow-hidden rounded-2xl border border-white/10 bg-black/35 transition hover:border-white/10"
                   aria-label={`Select ${gif.title}`}
                 >
                   <img src={gif.previewUrl} alt={gif.title} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" />

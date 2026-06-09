@@ -379,7 +379,7 @@ function Profile() {
 
       <section className="panel mb-6 overflow-hidden rounded-[1.8rem]">
         <div
-          className="relative h-44 border-b border-white/10 bg-gradient-to-br from-indigo-500/20 via-black/60 to-cyan-400/20 sm:h-64"
+          className="relative h-44 border-b border-white/10 bg-gradient-to-br from-white/10 via-black/60 to-cyan-400/20 sm:h-64"
           style={profileHeroBannerStyle}
         >
           <input ref={bannerFileInputRef} type="file" accept={imageAcceptValue} onChange={handleBannerImageChange} className="hidden" />
@@ -403,7 +403,7 @@ function Profile() {
               <button
                 type="button"
                 onClick={handleUseDefaultBanner}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/90 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 shadow-lg shadow-black/40 transition hover:border-indigo-400/45 hover:bg-zinc-900 sm:min-h-11"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/90 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-100 shadow-lg shadow-black/40 transition hover:border-white/10 hover:bg-zinc-900 sm:min-h-11"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
                 Remove Cover
@@ -461,7 +461,7 @@ function Profile() {
                 <button
                   type="button"
                   onClick={handleUseIconAvatar}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-white/10 hover:text-gray-100"
                 >
                   <X className="h-4 w-4" aria-hidden="true" />
                   Use Icon
@@ -482,7 +482,7 @@ function Profile() {
           <button
             type="button"
             onClick={handleEditBioFromPreview}
-            className="mt-4 block w-full rounded-[1.4rem] border border-white/10 bg-black/25 p-4 text-left transition hover:border-indigo-400/35 hover:bg-black/40"
+            className="mt-4 block w-full rounded-[1.4rem] border border-white/10 bg-black/25 p-4 text-left transition hover:border-white/10 hover:bg-black/40"
             aria-label="Edit bio"
           >
             <div className="mb-2 flex items-center justify-between gap-3">
@@ -560,9 +560,9 @@ function Profile() {
                         aria-label={unlocked ? `Use ${option.label} avatar` : `${option.label} avatar locked: ${lockLabel}`}
                         className={`group flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border p-2 transition ${
                           selected
-                            ? 'border-indigo-400/60 bg-indigo-500/16 shadow-[0_0_22px_rgba(99, 102, 241,0.18)]'
+                            ? 'border-white/10 bg-white/5 shadow-[0_0_22px_rgba(99, 102, 241,0.18)]'
                             : unlocked
-                              ? 'border-white/10 bg-black/25 hover:border-indigo-400/35 hover:bg-white/[0.04]'
+                              ? 'border-white/10 bg-black/25 hover:border-white/10 hover:bg-white/[0.04]'
                               : 'border-white/10 bg-black/20 opacity-60'
                         }`}
                         aria-disabled={!unlocked}
@@ -575,7 +575,7 @@ function Profile() {
                             </span>
                           ) : null}
                         </div>
-                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-indigo-100' : unlocked ? 'text-gray-500 group-hover:text-gray-300' : 'text-gray-500'}`}>
+                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-gray-100' : unlocked ? 'text-gray-500 group-hover:text-gray-300' : 'text-gray-500'}`}>
                           {option.label}
                         </span>
                         {requiredStreak ? (
@@ -630,7 +630,7 @@ function Profile() {
                 </p>
                 <Link
                   to="/clans"
-                  className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
+                  className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5"
                 >
                   Open Clan HQ
                 </Link>
@@ -683,7 +683,7 @@ function Profile() {
                         <button
                           type="button"
                           onClick={() => removeGameAccount(index)}
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-200 hover:bg-white/5"
                           aria-label={`Remove ${account.id}`}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -717,7 +717,7 @@ function Profile() {
                           type="button"
                           onClick={() => updateGameAccount(index, 'shadowbanDate', new Date().toISOString().slice(0, 10))}
                           disabled={account.shadowbanStatus !== 'shadowbanned'}
-                          className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100 disabled:opacity-40"
+                          className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/10 hover:text-gray-100 disabled:opacity-40"
                         >
                           Today
                         </button>
@@ -749,7 +749,7 @@ function Profile() {
                 type="button"
                 onClick={addGameAccount}
                 disabled={!newId.trim()}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 hover:border-indigo-500/40 hover:text-indigo-100 disabled:opacity-40"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 hover:border-white/10 hover:text-gray-100 disabled:opacity-40"
                 aria-label="Add game account"
               >
                 <Plus className="h-5 w-5" aria-hidden="true" />
@@ -842,7 +842,7 @@ function Profile() {
                 </button>
                 <Link
                   to="/support"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/10 hover:text-gray-100"
                 >
                   Support Page
                 </Link>
@@ -894,7 +894,7 @@ function Profile() {
                 <button
                   type="submit"
                   disabled={changingPassword}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100 disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/10 hover:text-gray-100 disabled:opacity-60"
                 >
                   <KeyRound className="h-4 w-4" aria-hidden="true" />
                   {changingPassword ? 'Updating…' : 'Update Password'}
@@ -919,7 +919,7 @@ function Profile() {
               <button
                 type="button"
                 onClick={signOut}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-200 transition hover:bg-indigo-500/20"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 transition hover:bg-white/5"
               >
                 Logout
               </button>
@@ -943,7 +943,7 @@ function Profile() {
             type="submit"
             form="profile-form"
             disabled={saving}
-            className="inline-flex shrink-0 min-h-11 items-center justify-center gap-2 rounded-full bg-indigo-500 px-6 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-indigo-950/40 transition hover:bg-indigo-400 disabled:opacity-60 disabled:shadow-none"
+            className="inline-flex shrink-0 min-h-11 items-center justify-center gap-2 rounded-full bg-white/15 px-6 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-white/5 transition hover:bg-white/10 disabled:opacity-60 disabled:shadow-none"
           >
             <Save className="h-4 w-4" aria-hidden="true" />
             {saving ? 'Saving…' : 'Save Changes'}

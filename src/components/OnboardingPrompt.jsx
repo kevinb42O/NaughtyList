@@ -108,7 +108,7 @@ export default function OnboardingPrompt() {
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/8 px-4 py-2.5">
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-indigo-200">
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-gray-200">
           Complete your setup
         </p>
         <button
@@ -154,7 +154,7 @@ export default function OnboardingPrompt() {
                 type="button"
                 onClick={handleInstall}
                 disabled={installing}
-                className="ml-auto shrink-0 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-50"
+                className="ml-auto shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-100 transition hover:bg-white/5 disabled:opacity-50"
               >
                 {installing ? '…' : 'Install'}
               </button>
@@ -172,7 +172,7 @@ export default function OnboardingPrompt() {
               type="button"
               onClick={handleEnableNotif}
               disabled={enablingNotif}
-              className="ml-auto shrink-0 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-50"
+              className="ml-auto shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-100 transition hover:bg-white/5 disabled:opacity-50"
             >
               {enablingNotif ? '…' : 'Enable'}
             </button>

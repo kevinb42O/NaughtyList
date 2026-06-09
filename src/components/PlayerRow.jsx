@@ -57,7 +57,7 @@ function PlayerRow({
             <button
               type="button"
               onClick={() => onOpenKillLog(player)}
-              className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-200 transition hover:border-indigo-500/35 hover:bg-indigo-500/10 hover:text-indigo-100"
+              className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-200 transition hover:border-white/10 hover:bg-white/5 hover:text-gray-100"
             >
               <History className="h-3.5 w-3.5" aria-hidden="true" />
               History
@@ -79,7 +79,7 @@ function PlayerRow({
               type="button"
               onClick={() => onLogKill(player)}
               disabled={killDisabled}
-              className="inline-flex min-h-9 items-center gap-1 rounded-full border border-indigo-500/45 bg-indigo-500/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/18 disabled:border-white/10 disabled:bg-white/5 disabled:text-gray-500 disabled:hover:bg-white/5"
+              className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:border-white/10 disabled:bg-white/5 disabled:text-gray-500 disabled:hover:bg-white/5"
             >
               <Crosshair className="h-3.5 w-3.5" aria-hidden="true" />
               {killPending ? 'Logging...' : killButtonLabel}
@@ -108,7 +108,7 @@ function PlayerRow({
               {lastKillClanTag ? <span className="text-gray-400">[{lastKillClanTag}] </span> : null}
               {lastKillName}
             </span>
-            <span className="rounded-md border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1 text-indigo-100">
+            <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-gray-100">
               {player.lastKillUserTotal ?? 0} total
             </span>
           </div>
@@ -123,7 +123,7 @@ function PlayerRow({
         {cooldownActive ? (
           <div className="mt-3 rounded-[1rem] border border-white/10 bg-black/25 p-3">
             <div className="flex items-center justify-between gap-3 text-[0.68rem] font-black uppercase tracking-[0.18em]">
-              <span className="text-indigo-100">Kill cooldown</span>
+              <span className="text-gray-100">Kill cooldown</span>
               <span className="text-gray-300">{cooldownLabel}</span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full border border-white/10 bg-black/35">

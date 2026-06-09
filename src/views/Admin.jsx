@@ -176,7 +176,7 @@ function Admin() {
         </PageHeader>
         <Link
           to="/auth"
-          className="inline-flex min-h-11 items-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100"
+          className="inline-flex min-h-11 items-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100"
         >
           Login
         </Link>
@@ -211,7 +211,7 @@ function Admin() {
                 type="button"
                 onClick={handleClaimAdmin}
                 disabled={workingId === 'claim'}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
               >
                 <Crown className="h-4 w-4" aria-hidden="true" />
                 {workingId === 'claim' ? 'Claiming' : 'Claim Admin'}
@@ -247,7 +247,7 @@ function Admin() {
                 aria-pressed={activeToolset === option.value}
                 className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full border px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] transition ${
                   activeToolset === option.value
-                    ? 'border-indigo-500/55 bg-indigo-500/14 text-indigo-100'
+                    ? 'border-white/10 bg-white/5 text-gray-100'
                     : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200'
                 }`}
               >
@@ -277,7 +277,7 @@ function Admin() {
         meta={`${stats.total} profiles`}
       >
         <div className="mb-4 flex items-center gap-3">
-          <Crown className="h-5 w-5 text-indigo-200" aria-hidden="true" />
+          <Crown className="h-5 w-5 text-gray-200" aria-hidden="true" />
           <div>
             <p className="intel-label">Admin</p>
             <p className="text-sm font-bold text-gray-300">{profile?.display_name || profile?.id}</p>
@@ -306,7 +306,7 @@ function Admin() {
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-200" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-200" aria-hidden="true" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -381,7 +381,7 @@ function Admin() {
                       type="button"
                       onClick={() => handleDeletePlayer(player.id)}
                       disabled={workingId === `player-${player.id}`}
-                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                       {workingId === `player-${player.id}` ? 'Deleting' : 'Delete'}
@@ -421,7 +421,7 @@ function Admin() {
                 onClick={() => setRoleFilter(nextRole)}
                 className={`rounded-full border px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition ${
                   roleFilter === nextRole
-                    ? 'border-indigo-500/50 bg-indigo-500/12 text-indigo-100'
+                    ? 'border-white/10 bg-white/5 text-gray-100'
                     : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200'
                 }`}
               >
@@ -465,7 +465,7 @@ function Admin() {
               </div>
 
               {nextProfile.role === 'admin' ? (
-                <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-100">
+                <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-gray-100">
                   <Shield className="h-4 w-4" aria-hidden="true" />
                   Locked Admin
                 </div>
@@ -483,7 +483,7 @@ function Admin() {
                       type="button"
                       onClick={() => handleRoleChange(nextProfile.id, nextRole)}
                       disabled={workingId === nextProfile.id || nextProfile.role === nextRole}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100 disabled:opacity-40"
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/10 hover:text-gray-100 disabled:opacity-40"
                     >
                       {nextRole}
                     </button>
@@ -492,7 +492,7 @@ function Admin() {
                     type="button"
                     onClick={() => handleDeleteAccount(nextProfile.id)}
                     disabled={workingId === `account-${nextProfile.id}`}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
                   >
                     <UserX className="h-4 w-4" aria-hidden="true" />
                     {workingId === `account-${nextProfile.id}` ? 'Deleting' : 'Delete Account'}

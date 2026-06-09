@@ -118,14 +118,14 @@ function AdminDonationConsole() {
         <div className="flex flex-wrap gap-2">
           <Link
             to="/support"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 hover:border-indigo-500/40 hover:text-indigo-100"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 hover:border-white/10 hover:text-gray-100"
           >
             Support Page
           </Link>
           <button
             type="button"
             onClick={fetchDonationAdmin}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 hover:border-indigo-500/40 hover:text-indigo-100"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 hover:border-white/10 hover:text-gray-100"
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Refresh
@@ -260,7 +260,7 @@ function AdminDonationConsole() {
 
       <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-200" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-200" aria-hidden="true" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="field min-h-12 pl-11" placeholder="Search donations" />
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-center">

@@ -31,7 +31,7 @@ export const donationTiers = [
     label: 'Colonel',
     amountCents: 5000,
     short: 'Colonel',
-    tone: 'border-indigo-300/55 bg-indigo-400/12 text-indigo-100 shadow-[0_0_18px_rgba(129, 140, 248,0.16)]',
+    tone: 'border-white/10 bg-white/5 text-gray-100 shadow-[0_0_18px_rgba(129, 140, 248,0.16)]',
     frame: 'ruby',
     description: 'Colonel badge, command frame, and highest public support signal.',
   },
@@ -75,7 +75,7 @@ export function supporterFrameClass(profile) {
     emerald: 'ring-2 ring-emerald-300/25 shadow-[0_0_22px_rgba(52,211,153,0.16)]',
     cyan: 'ring-2 ring-cyan-300/25 shadow-[0_0_22px_rgba(34,211,238,0.16)]',
     gold: 'ring-2 ring-yellow-300/30 shadow-[0_0_24px_rgba(250,204,21,0.2)]',
-    ruby: 'ring-2 ring-indigo-300/30 shadow-[0_0_24px_rgba(129, 140, 248,0.2)]',
+    ruby: 'ring-2 ring-white/20 shadow-[0_0_24px_rgba(129, 140, 248,0.2)]',
   }
 
   return frames[frame] ?? frames.emerald

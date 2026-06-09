@@ -18,7 +18,7 @@ function roleBadgeTone(role) {
   }
 
   if (role === 'colonel') {
-    return 'border-indigo-300/45 bg-indigo-400/12 text-indigo-100'
+    return 'border-white/10 bg-white/5 text-gray-100'
   }
 
   if (role === 'veteran') {
@@ -316,7 +316,7 @@ function Clans() {
     <SectionCard>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-3">
-          <UsersRound className="h-5 w-5 text-indigo-200" aria-hidden="true" />
+          <UsersRound className="h-5 w-5 text-gray-200" aria-hidden="true" />
           <div>
             <p className="intel-label">Clan Directory</p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -330,7 +330,7 @@ function Clans() {
           </div>
         </div>
         <label htmlFor="clan-directory-search" className="relative block sm:min-w-64">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-200" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-200" aria-hidden="true" />
           <input
             id="clan-directory-search"
             type="search"
@@ -351,7 +351,7 @@ function Clans() {
             const isSelectedByAdmin = adminSelectedClan?.id === clan.id
 
             return (
-              <article key={clan.id} className={`rounded-2xl border bg-black/25 p-4 ${isSelectedByAdmin ? 'border-indigo-500/40' : 'border-white/10'}`}>
+              <article key={clan.id} className={`rounded-2xl border bg-black/25 p-4 ${isSelectedByAdmin ? 'border-white/10' : 'border-white/10'}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex min-w-0 items-start gap-3">
                     <ClanBadge clan={clan} size="md" className="mt-0.5" />
@@ -364,7 +364,7 @@ function Clans() {
                           {clan.memberCount} members
                         </span>
                         {clan.is_member ? (
-                          <span className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-indigo-100">
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-100">
                             Yours
                           </span>
                         ) : null}
@@ -403,7 +403,7 @@ function Clans() {
                             runAction(`request-join-${clan.id}`, 'Join request sent.', () => requestClanJoin(clan.id))
                           }
                           disabled={workingKey === `request-join-${clan.id}`}
-                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
                         >
                           Request Access
                         </button>
@@ -648,13 +648,13 @@ function Clans() {
                         onClick={() => setClanBadgeIcon(option.key)}
                         className={`group flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 transition ${
                           selected
-                            ? 'border-indigo-400/60 bg-indigo-500/16 shadow-[0_0_22px_rgba(99, 102, 241,0.18)]'
-                            : 'border-white/10 bg-black/25 hover:border-indigo-400/35 hover:bg-white/[0.04]'
+                            ? 'border-white/10 bg-white/5 shadow-[0_0_22px_rgba(99, 102, 241,0.18)]'
+                            : 'border-white/10 bg-black/25 hover:border-white/10 hover:bg-white/[0.04]'
                         }`}
                         aria-pressed={selected}
                       >
                         <ClanBadge iconKey={option.key} size="md" />
-                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-indigo-100' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                        <span className={`text-center text-[0.56rem] font-black uppercase tracking-[0.1em] ${selected ? 'text-gray-100' : 'text-gray-500 group-hover:text-gray-300'}`}>
                           {option.label}
                         </span>
                       </button>
@@ -665,7 +665,7 @@ function Clans() {
               <button
                 type="submit"
                 disabled={workingKey === 'save-clan'}
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
               >
                 {workingKey === 'save-clan' ? 'Saving' : 'Save Clan'}
               </button>
@@ -735,7 +735,7 @@ function Clans() {
                 type="button"
                 onClick={handleArchiveClan}
                 disabled={workingKey === 'archive-clan'}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
               >
                 {workingKey === 'archive-clan' ? 'Archiving' : 'Archive Clan'}
               </button>
@@ -767,7 +767,7 @@ function Clans() {
             </h2>
             <Link
               to="/auth"
-              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5"
             >
               <LogIn className="h-4 w-4" aria-hidden="true" />
               Login
@@ -838,7 +838,7 @@ function Clans() {
                 <button
                   type="submit"
                   disabled={workingKey === 'create-clan'}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
                 >
                   {workingKey === 'create-clan' ? 'Creating' : 'Create Clan'}
                 </button>
@@ -976,8 +976,8 @@ function Clans() {
 
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center rounded-2xl border border-white/10 bg-black/20 p-5">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-2xl border border-indigo-500/40 bg-indigo-500/10 p-2.5">
-                    <MessageSquare className="h-5 w-5 text-indigo-200" aria-hidden="true" />
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-2.5">
+                    <MessageSquare className="h-5 w-5 text-gray-200" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">Clan Chat</p>
@@ -991,7 +991,7 @@ function Clans() {
                 </div>
                 <Link
                   to="/chat?room=clan"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5"
                 >
                   <MessageSquare className="h-4 w-4" aria-hidden="true" />
                   Open Clan Chat
@@ -1001,7 +1001,7 @@ function Clans() {
 
             <SectionCard>
               <div className="mb-4 flex items-center gap-3">
-                <UsersRound className="h-5 w-5 text-indigo-200" aria-hidden="true" />
+                <UsersRound className="h-5 w-5 text-gray-200" aria-hidden="true" />
                 <div>
                   <p className="intel-label">Roster</p>
                   <p className="text-sm text-gray-500">Manage roles and remove members from the squad.</p>
@@ -1029,7 +1029,7 @@ function Clans() {
                             </p>
                             {member.role === 'owner' ? <Crown className="h-4 w-4 text-yellow-300" aria-hidden="true" /> : null}
                             {member.role === 'officer' ? <Shield className="h-4 w-4 text-orange-200" aria-hidden="true" /> : null}
-                            {member.role === 'colonel' ? <Shield className="h-4 w-4 text-indigo-200" aria-hidden="true" /> : null}
+                            {member.role === 'colonel' ? <Shield className="h-4 w-4 text-gray-200" aria-hidden="true" /> : null}
                             {member.role === 'veteran' ? <Star className="h-4 w-4 text-sky-200" aria-hidden="true" /> : null}
                             {member.role === 'sergeant' ? <Star className="h-4 w-4 text-teal-200" aria-hidden="true" /> : null}
                             <RolePill role={member.role} />
@@ -1079,7 +1079,7 @@ function Clans() {
                                 )
                               }}
                               disabled={workingKey === `remove-${member.user_id}`}
-                              className="inline-flex min-h-10 items-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                              className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
                             >
                               Remove
                             </button>
@@ -1187,7 +1187,7 @@ function Clans() {
                   <button
                     type="submit"
                     disabled={!inviteUserId || workingKey === `invite-${inviteUserId}`}
-                    className="inline-flex min-h-12 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20 disabled:opacity-60"
+                    className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
                   >
                     Send Invite
                   </button>

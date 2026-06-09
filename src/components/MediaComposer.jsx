@@ -20,7 +20,7 @@ function MediaPreview({ pendingMedia, onClear }) {
       <button
         type="button"
         onClick={onClear}
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-gray-300 transition hover:border-indigo-400/40 hover:text-indigo-100"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-gray-300 transition hover:border-white/10 hover:text-gray-100"
         aria-label="Remove attachment"
       >
         <X className="h-4 w-4" aria-hidden="true" />
@@ -102,7 +102,7 @@ function MediaComposer({
         <MediaPreview pendingMedia={pendingMedia} onClear={() => onPendingMediaChange(null)} />
         {uploading ? (
           <div className="mb-2 overflow-hidden rounded-full bg-white/10">
-            <div className="h-1 bg-indigo-300 transition-all" style={{ width: `${Math.max(8, uploadProgress)}%` }} />
+            <div className="h-1 bg-white/10 transition-all" style={{ width: `${Math.max(8, uploadProgress)}%` }} />
           </div>
         ) : null}
         {accessory}
@@ -159,7 +159,7 @@ function MediaComposer({
           <button
             type="submit"
             disabled={!canSend}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-950/25 transition hover:bg-indigo-400 disabled:bg-white/10 disabled:text-gray-600 disabled:shadow-none"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white shadow-lg shadow-white/5 transition hover:bg-white/10 disabled:bg-white/10 disabled:text-gray-600 disabled:shadow-none"
             aria-label="Send message"
           >
             <Send className="h-4 w-4" aria-hidden="true" />

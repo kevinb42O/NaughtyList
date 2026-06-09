@@ -13,7 +13,7 @@ const verdictOptions = [
   { value: 'verified', label: 'Verified', tone: 'border-green-400/40 bg-green-400/10 text-green-100' },
   { value: 'needs_evidence', label: 'Needs Evidence', tone: 'border-yellow-400/40 bg-yellow-400/10 text-yellow-100' },
   { value: 'duplicate', label: 'Duplicate', tone: 'border-orange-400/40 bg-orange-400/10 text-orange-100' },
-  { value: 'low_quality', label: 'Low Quality', tone: 'border-indigo-400/40 bg-indigo-400/10 text-indigo-100' },
+  { value: 'low_quality', label: 'Low Quality', tone: 'border-white/10 bg-white/5 text-gray-100' },
   { value: 'cleared', label: 'Cleared', tone: 'border-sky-400/40 bg-sky-400/10 text-sky-100' },
 ]
 
@@ -300,7 +300,7 @@ function Moderator({ embedded = false }) {
         </PageHeader>
         <Link
           to="/auth"
-          className="inline-flex min-h-11 items-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100"
+          className="inline-flex min-h-11 items-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100"
         >
           Login
         </Link>
@@ -348,7 +348,7 @@ function Moderator({ embedded = false }) {
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(5,minmax(0,120px))]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-200" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-200" aria-hidden="true" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -491,7 +491,7 @@ function PlayerQueue({ activeTab, players, workingId, onEdit, onVerdict, onQuara
                     Restore
                   </button>
                 ) : (
-                  <button type="button" onClick={() => onQuarantine(player)} disabled={workingId === `quarantine-${player.id}`} className="mod-button border-indigo-500/50 bg-indigo-500/12 text-indigo-100 hover:bg-indigo-500/20">
+                  <button type="button" onClick={() => onQuarantine(player)} disabled={workingId === `quarantine-${player.id}`} className="mod-button border-white/10 bg-white/5 text-gray-100 hover:bg-white/5">
                     <ArchiveX className="h-4 w-4" aria-hidden="true" />
                     Hide
                   </button>
@@ -550,7 +550,7 @@ function PublicChatRetentionControls({ isAdmin, workingId, onPrune }) {
               type="button"
               onClick={() => onPrune({ clearAll: true })}
               disabled={clearWorking}
-              className="mod-button border-indigo-500/50 bg-indigo-500/12 text-indigo-100 hover:bg-indigo-500/20"
+              className="mod-button border-white/10 bg-white/5 text-gray-100 hover:bg-white/5"
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               Clear All
@@ -587,7 +587,7 @@ function ChatQueue({ messages, workingId, currentUserId, onDelete, onMute }) {
                 {minutes}m
               </button>
             ))}
-            <button type="button" onClick={() => onDelete(message.id)} disabled={workingId === `message-${message.id}`} className="mod-button border-indigo-500/50 bg-indigo-500/12 text-indigo-100 hover:bg-indigo-500/20">
+            <button type="button" onClick={() => onDelete(message.id)} disabled={workingId === `message-${message.id}`} className="mod-button border-white/10 bg-white/5 text-gray-100 hover:bg-white/5">
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               Delete
             </button>
@@ -631,7 +631,7 @@ function KillQueue({ players, workingId, killAdjustmentDrafts, onDraftChange, on
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate text-lg font-black uppercase tracking-[0.04em] text-white">{player.name}</h2>
-                  <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-indigo-100">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-100">
                     {currentKillCount} {currentKillCount === 1 ? 'kill' : 'kills'}
                   </span>
                 </div>
@@ -649,7 +649,7 @@ function KillQueue({ players, workingId, killAdjustmentDrafts, onDraftChange, on
 
               <div className="w-full rounded-2xl border border-white/10 bg-black/30 p-3 lg:max-w-md">
                 <div className="mb-2 flex items-center gap-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
-                  <Crosshair className="h-4 w-4 text-indigo-100" aria-hidden="true" />
+                  <Crosshair className="h-4 w-4 text-gray-100" aria-hidden="true" />
                   Kill control
                 </div>
 
@@ -677,7 +677,7 @@ function KillQueue({ players, workingId, killAdjustmentDrafts, onDraftChange, on
                     type="button"
                     onClick={() => onClearAll(player)}
                     disabled={clearWorking || currentKillCount < 1}
-                    className="mod-button border-indigo-500/50 bg-indigo-500/12 text-indigo-100 hover:bg-indigo-500/20"
+                    className="mod-button border-white/10 bg-white/5 text-gray-100 hover:bg-white/5"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
                     Clear All

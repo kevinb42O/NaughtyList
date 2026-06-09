@@ -55,7 +55,7 @@ function Auth() {
             <button
               type="button"
               onClick={signOut}
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 transition hover:border-indigo-500/40 hover:text-indigo-100"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 transition hover:border-white/10 hover:text-gray-100"
             >
               Sign Out
             </button>
@@ -77,7 +77,7 @@ function Auth() {
             type="button"
             onClick={() => setMode('signin')}
             className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-xs font-black uppercase tracking-[0.18em] transition ${
-              mode === 'signin' ? 'bg-indigo-500/18 text-indigo-100' : 'text-gray-500 hover:text-gray-200'
+              mode === 'signin' ? 'bg-white/5 text-gray-100' : 'text-gray-500 hover:text-gray-200'
             }`}
           >
             <LogIn className="h-4 w-4" aria-hidden="true" />
@@ -87,7 +87,7 @@ function Auth() {
             type="button"
             onClick={() => setMode('signup')}
             className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-xs font-black uppercase tracking-[0.18em] transition ${
-              mode === 'signup' ? 'bg-indigo-500/18 text-indigo-100' : 'text-gray-500 hover:text-gray-200'
+              mode === 'signup' ? 'bg-white/5 text-gray-100' : 'text-gray-500 hover:text-gray-200'
             }`}
           >
             <UserPlus className="h-4 w-4" aria-hidden="true" />
@@ -137,7 +137,7 @@ function Auth() {
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex min-h-12 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/22 disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
         >
           {saving ? 'Working' : mode === 'signin' ? 'Login' : 'Create Account'}
         </button>
