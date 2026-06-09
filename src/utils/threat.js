@@ -1,11 +1,11 @@
 export const threatStyles = {
   hostile: {
     label: 'Kill on Sight',
-    badge: 'border-red-500/70 bg-red-500/15 text-red-200',
-    glow: 'shadow-[0_0_28px_rgba(239,68,68,0.28)] border-red-500/70',
-    dot: 'bg-red-500',
-    text: 'text-red-300',
-    ring: 'ring-red-500/35',
+    badge: 'border-indigo-500/70 bg-indigo-500/15 text-indigo-200',
+    glow: 'shadow-[0_0_28px_rgba(99, 102, 241,0.28)] border-indigo-500/70',
+    dot: 'bg-indigo-500',
+    text: 'text-indigo-300',
+    ring: 'ring-indigo-500/35',
   },
   caution: {
     label: 'Caution',

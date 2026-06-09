@@ -21,18 +21,18 @@ function SignalTitle({ eyebrow, title, lead, rest, mark = '21', divider = '//', 
     return (
       <h1 aria-label={titleLabel} className={`flex flex-col gap-3 text-white ${className}`.trim()}>
         {label ? (
-          <span className="text-[0.68rem] font-black uppercase tracking-[0.42em] text-red-200/80 sm:text-[0.76rem]">
+          <span className="text-[0.68rem] font-black uppercase tracking-[0.42em] text-indigo-200/80 sm:text-[0.76rem]">
             {label}
           </span>
         ) : null}
         <span className="inline-flex max-w-full flex-wrap items-center gap-2 text-5xl font-black uppercase leading-none tracking-[0.08em] sm:text-6xl">
-          {bracketed ? <span className="text-red-500/80">[</span> : null}
-          <span className="signal-title-gradient drop-shadow-[0_0_24px_rgba(239,68,68,0.22)]">{mark}</span>
-          <span className="text-red-400/75">{divider}</span>
-          <span className="signal-title-gradient signal-title-word drop-shadow-[0_0_28px_rgba(239,68,68,0.26)]">
+          {bracketed ? <span className="text-indigo-500/80">[</span> : null}
+          <span className="signal-title-gradient drop-shadow-[0_0_24px_rgba(99, 102, 241,0.22)]">{mark}</span>
+          <span className="text-indigo-400/75">{divider}</span>
+          <span className="signal-title-gradient signal-title-word drop-shadow-[0_0_28px_rgba(99, 102, 241,0.26)]">
             {title}
           </span>
-          {bracketed ? <span className="text-red-500/80">]</span> : null}
+          {bracketed ? <span className="text-indigo-500/80">]</span> : null}
         </span>
       </h1>
     )
@@ -41,22 +41,22 @@ function SignalTitle({ eyebrow, title, lead, rest, mark = '21', divider = '//', 
   return (
     <h1 aria-label={[label, title].filter(Boolean).join(' ')} className={`flex min-w-0 flex-col gap-3 text-white ${className}`.trim()}>
       {label ? (
-        <span className="text-[0.68rem] font-black uppercase tracking-[0.34em] text-red-200/75 sm:text-[0.72rem]">
+        <span className="text-[0.68rem] font-black uppercase tracking-[0.34em] text-indigo-200/75 sm:text-[0.72rem]">
           {label}
         </span>
       ) : null}
       <span className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-[2.05rem] font-black uppercase leading-none tracking-[0.06em] sm:text-4xl">
-        <span className="text-red-500/80">[</span>
-        <span className="signal-title-gradient drop-shadow-[0_0_18px_rgba(239,68,68,0.18)]">{titleLead}</span>
+        <span className="text-indigo-500/80">[</span>
+        <span className="signal-title-gradient drop-shadow-[0_0_18px_rgba(99, 102, 241,0.18)]">{titleLead}</span>
         {titleRest ? (
           <>
-            <span className="text-red-400/75">{divider}</span>
-            <span className="signal-title-gradient drop-shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+            <span className="text-indigo-400/75">{divider}</span>
+            <span className="signal-title-gradient drop-shadow-[0_0_20px_rgba(99, 102, 241,0.2)]">
               {titleRest}
             </span>
           </>
         ) : null}
-        <span className="text-red-500/80">]</span>
+        <span className="text-indigo-500/80">]</span>
       </span>
     </h1>
   )

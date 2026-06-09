@@ -28,34 +28,34 @@ import { avatarStreakRequirement } from '../utils/streaks.js'
 import { supporterFrameClass } from '../utils/supporters.js'
 
 export const avatarIconOptions = [
-  { key: 'skull', label: 'Skull', Icon: Skull, accent: 'text-red-100', glow: 'from-red-500/28 to-zinc-950' },
+  { key: 'skull', label: 'Skull', Icon: Skull, accent: 'text-indigo-100', glow: 'from-indigo-500/28 to-zinc-950' },
   { key: 'shield', label: 'Shield', Icon: Shield, accent: 'text-cyan-100', glow: 'from-cyan-500/24 to-zinc-950' },
-  { key: 'crosshair', label: 'Crosshair', Icon: Crosshair, accent: 'text-red-100', glow: 'from-red-500/24 to-zinc-950' },
+  { key: 'crosshair', label: 'Crosshair', Icon: Crosshair, accent: 'text-indigo-100', glow: 'from-indigo-500/24 to-zinc-950' },
   { key: 'radar', label: 'Radar', Icon: Radar, accent: 'text-emerald-100', glow: 'from-emerald-500/22 to-zinc-950' },
   { key: 'radio', label: 'Comms', Icon: Radio, accent: 'text-sky-100', glow: 'from-sky-500/22 to-zinc-950' },
   { key: 'swords', label: 'Swords', Icon: Swords, accent: 'text-orange-100', glow: 'from-orange-500/24 to-zinc-950' },
-  { key: 'target', label: 'Target', Icon: Target, accent: 'text-red-100', glow: 'from-red-500/24 to-zinc-950' },
+  { key: 'target', label: 'Target', Icon: Target, accent: 'text-indigo-100', glow: 'from-indigo-500/24 to-zinc-950' },
   { key: 'flame', label: 'Flame', Icon: Flame, accent: 'text-orange-100', glow: 'from-orange-500/26 to-zinc-950' },
   { key: 'zap', label: 'Shock', Icon: Zap, accent: 'text-yellow-100', glow: 'from-yellow-500/24 to-zinc-950' },
   { key: 'eye', label: 'Watcher', Icon: Eye, accent: 'text-violet-100', glow: 'from-violet-500/22 to-zinc-950' },
   { key: 'ghost', label: 'Ghost', Icon: Ghost, accent: 'text-gray-100', glow: 'from-white/[0.16] to-zinc-950' },
   { key: 'bomb', label: 'Breach', Icon: Bomb, accent: 'text-orange-100', glow: 'from-orange-500/22 to-zinc-950' },
   { key: 'bug', label: 'Rat Hunter', Icon: Bug, accent: 'text-lime-100', glow: 'from-lime-500/20 to-zinc-950' },
-  { key: 'siren', label: 'Alert', Icon: Siren, accent: 'text-red-100', glow: 'from-red-500/24 to-zinc-950' },
+  { key: 'siren', label: 'Alert', Icon: Siren, accent: 'text-indigo-100', glow: 'from-indigo-500/24 to-zinc-950' },
   { key: 'crown', label: 'Admin', Icon: Crown, accent: 'text-yellow-100', glow: 'from-yellow-500/22 to-zinc-950', accessRole: 'admin' },
   { key: 'shield-alert', label: 'Moderator', Icon: ShieldAlert, accent: 'text-orange-100', glow: 'from-orange-500/22 to-zinc-950', accessRole: 'moderator' },
   { key: 'lock', label: 'Locked', Icon: Lock, accent: 'text-zinc-100', glow: 'from-white/[0.12] to-zinc-950' },
   { key: 'fingerprint', label: 'Identity', Icon: Fingerprint, accent: 'text-cyan-100', glow: 'from-cyan-500/20 to-zinc-950' },
   { key: 'scan-face', label: 'Scanner', Icon: ScanFace, accent: 'text-emerald-100', glow: 'from-emerald-500/20 to-zinc-950' },
   { key: 'binoculars', label: 'Recon', Icon: Binoculars, accent: 'text-blue-100', glow: 'from-blue-500/20 to-zinc-950' },
-  { key: 'badge-alert', label: 'Marked', Icon: BadgeAlert, accent: 'text-red-100', glow: 'from-red-500/22 to-zinc-950' },
+  { key: 'badge-alert', label: 'Marked', Icon: BadgeAlert, accent: 'text-indigo-100', glow: 'from-indigo-500/22 to-zinc-950' },
 ]
 
 export const defaultAvatarIconKey = 'skull'
 export const defaultClanBadgeIconKey = 'shield'
 export const clanBadgeIconOptions = [
   ...avatarIconOptions.filter((option) => !option.accessRole),
-  { key: 'rat', label: 'Rat', Icon: Rat, accent: 'text-red-100', glow: 'from-red-500/24 to-zinc-950' },
+  { key: 'rat', label: 'Rat', Icon: Rat, accent: 'text-indigo-100', glow: 'from-indigo-500/24 to-zinc-950' },
 ]
 
 export function getAvatarIconOption(key) {

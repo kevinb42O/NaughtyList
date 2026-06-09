@@ -121,7 +121,7 @@ function mergeClanMessages(currentMessages, nextMessages) {
 }
 
 function ProfileInitial({ profile, mine, online }) {
-  return <ProfileAvatar className={mine ? 'ring-red-400/20' : ''} profile={profile} online={online} showOnline size="sm" />
+  return <ProfileAvatar className={mine ? 'ring-indigo-400/20' : ''} profile={profile} online={online} showOnline size="sm" />
 }
 
 function Chat() {
@@ -437,16 +437,16 @@ function Chat() {
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={handleMentionEveryoneSelect}
-            className="flex min-w-[11rem] items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/12 px-2.5 py-2 text-left transition hover:border-red-300/60 hover:bg-red-500/18"
+            className="flex min-w-[11rem] items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/12 px-2.5 py-2 text-left transition hover:border-indigo-300/60 hover:bg-indigo-500/18"
           >
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-300/30 bg-red-500/15 text-[0.62rem] font-black uppercase tracking-[0.12em] text-red-100">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-indigo-300/30 bg-indigo-500/15 text-[0.62rem] font-black uppercase tracking-[0.12em] text-indigo-100">
               All
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
                 All operators
               </span>
-              <span className="block truncate text-[0.62rem] font-bold text-red-200/80">@all</span>
+              <span className="block truncate text-[0.62rem] font-bold text-indigo-200/80">@all</span>
             </span>
           </button>
         ) : null}
@@ -456,14 +456,14 @@ function Chat() {
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => handleMentionSelect(nextProfile)}
-            className="flex min-w-[11rem] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 text-left transition hover:border-red-400/40 hover:bg-red-500/10"
+            className="flex min-w-[11rem] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 text-left transition hover:border-indigo-400/40 hover:bg-indigo-500/10"
           >
             <ProfileAvatar profile={nextProfile} size="sm" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
                 {mentionLabel(nextProfile)}
               </span>
-              <span className="block truncate text-[0.62rem] font-bold text-red-200/80">@{mentionHandle(nextProfile)}</span>
+              <span className="block truncate text-[0.62rem] font-bold text-indigo-200/80">@{mentionHandle(nextProfile)}</span>
             </span>
           </button>
         ))}
@@ -492,7 +492,7 @@ function Chat() {
         </PageHeader>
         <Link
           to="/auth"
-          className="inline-flex min-h-11 items-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100"
+          className="inline-flex min-h-11 items-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100"
         >
           Login to chat
         </Link>
@@ -515,7 +515,7 @@ function Chat() {
           className={[
             'rounded-full border px-4 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition',
             activeRoom === 'public'
-              ? 'border-red-500/60 bg-red-500/12 text-red-100'
+              ? 'border-indigo-500/60 bg-indigo-500/12 text-indigo-100'
               : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200',
           ].join(' ')}
         >
@@ -527,7 +527,7 @@ function Chat() {
           className={[
             'rounded-full border px-4 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition',
             activeRoom === 'clan'
-              ? 'border-red-500/60 bg-red-500/12 text-red-100'
+              ? 'border-indigo-500/60 bg-indigo-500/12 text-indigo-100'
               : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200',
           ].join(' ')}
         >
@@ -583,7 +583,7 @@ function Chat() {
           </p>
           <Link
             to="/clans"
-            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
           >
             <MessageSquare className="h-4 w-4" aria-hidden="true" />
             Open Clan HQ
@@ -660,7 +660,7 @@ function Chat() {
                     {!mine ? <ProfileInitial profile={chatMessage.profile} mine={mine} online={online} /> : null}
                     <div className={`max-w-[86%] sm:max-w-[72%] ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
                       <div className={`mb-1 flex max-w-full items-center gap-2 px-1 ${mine ? 'justify-end' : 'justify-start'}`}>
-                        <span className={`truncate text-[0.64rem] font-black uppercase tracking-[0.1em] ${mine ? 'text-red-200' : 'text-gray-300'}`}>
+                        <span className={`truncate text-[0.64rem] font-black uppercase tracking-[0.1em] ${mine ? 'text-indigo-200' : 'text-gray-300'}`}>
                           {mine ? 'You' : `${clanPrefix(chatMessage.profile)} ${displayProfileName(chatMessage.profile)}`}
                           {chatMessage.profile?.role === 'admin' ? (
                             <Crown className="ml-1.5 inline h-3.5 w-3.5 text-yellow-300" aria-hidden="true" />
@@ -671,7 +671,7 @@ function Chat() {
                       </div>
                       <div className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
                         mine
-                          ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
+                          ? 'rounded-br-md border-indigo-400/25 bg-gradient-to-br from-indigo-500/22 to-indigo-950/55 text-indigo-50'
                           : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
                       }`}>
                       {chatMessage.replyToMessage ? (
@@ -681,7 +681,7 @@ function Chat() {
                       <p className={`whitespace-pre-wrap break-words ${wasDeleted ? 'italic text-gray-400' : ''}`}>
                         {wasDeleted ? 'Message removed.' : chatMessage.body}
                       </p>
-                      <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
+                      <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-indigo-100/55' : 'text-gray-500'}`}>
                         {formatMessageTime(chatMessage.created_at)}
                       </span>
                       {!wasDeleted ? (
@@ -696,7 +696,7 @@ function Chat() {
                         <button
                           type="button"
                           onClick={() => setReplyToMessage({ roomKey: activeRoomKey, message: chatMessage })}
-                          className="absolute -top-3 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/40 transition hover:border-red-400/45 hover:bg-red-500/10 hover:text-gray-100"
+                          className="absolute -top-3 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/40 transition hover:border-indigo-400/45 hover:bg-indigo-500/10 hover:text-gray-100"
                           aria-label="Reply to message"
                           title="Reply"
                         >
@@ -716,7 +716,7 @@ function Chat() {
             </div>
           )}
           {typingLabel ? (
-            <div className="px-2 pb-1 pt-0 text-xs font-bold text-red-200/75">{typingLabel}</div>
+            <div className="px-2 pb-1 pt-0 text-xs font-bold text-indigo-200/75">{typingLabel}</div>
           ) : null}
         </div>
 

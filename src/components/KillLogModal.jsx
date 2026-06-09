@@ -111,12 +111,12 @@ function KillLogModal({ open, onClose, player }) {
           aria-modal="true"
           aria-labelledby={titleId}
           tabIndex={-1}
-          className="panel relative my-auto max-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[1.5rem] border-red-500/20 shadow-2xl shadow-black sm:max-h-[calc(100vh-4rem)] sm:rounded-[2rem]"
+          className="panel relative my-auto max-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-[1.5rem] border-indigo-500/20 shadow-2xl shadow-black sm:max-h-[calc(100vh-4rem)] sm:rounded-[2rem]"
         >
           <div className="sticky top-0 z-10 border-b border-white/10 bg-neutral-950/95 px-4 py-4 backdrop-blur sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="intel-label mb-2 text-red-100">Kill Log</p>
+                <p className="intel-label mb-2 text-indigo-100">Kill Log</p>
                 <h2 id={titleId} className="truncate text-2xl font-black uppercase tracking-[0.04em] text-white sm:text-3xl">
                   {player.clan ? <span className="text-gray-400">[{player.clan}] </span> : null}
                   {player.name}
@@ -125,7 +125,7 @@ function KillLogModal({ open, onClose, player }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition hover:border-red-500/40 hover:text-red-100"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition hover:border-indigo-500/40 hover:text-indigo-100"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
@@ -166,7 +166,7 @@ function KillLogModal({ open, onClose, player }) {
             <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
               <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                 <div className="flex items-center gap-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
-                  <Clock3 className="h-4 w-4 text-red-100" aria-hidden="true" />
+                  <Clock3 className="h-4 w-4 text-indigo-100" aria-hidden="true" />
                   Latest first
                 </div>
                 <span className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-500">
@@ -176,7 +176,7 @@ function KillLogModal({ open, onClose, player }) {
 
               {loading ? (
                 <div className="flex items-center justify-center gap-3 px-4 py-10 text-sm font-black uppercase tracking-[0.18em] text-gray-400">
-                  <Loader2 className="h-5 w-5 animate-spin text-red-100" aria-hidden="true" />
+                  <Loader2 className="h-5 w-5 animate-spin text-indigo-100" aria-hidden="true" />
                   Loading log
                 </div>
               ) : error ? (
@@ -201,7 +201,7 @@ function KillLogModal({ open, onClose, player }) {
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2 sm:justify-end">
-                          <span className="rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.16em] text-red-100">
+                          <span className="rounded-md border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.16em] text-indigo-100">
                             {entry.userKillTotal} total
                           </span>
                         </div>
@@ -220,7 +220,7 @@ function KillLogModal({ open, onClose, player }) {
             <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
               <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                 <div className="flex items-center gap-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-400">
-                  <Users className="h-4 w-4 text-red-100" aria-hidden="true" />
+                  <Users className="h-4 w-4 text-indigo-100" aria-hidden="true" />
                   Clan scoreboard
                 </div>
                 <span className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-500">
@@ -240,7 +240,7 @@ function KillLogModal({ open, onClose, player }) {
                       <span className="truncate text-sm font-black uppercase tracking-[0.12em] text-white">
                         {clanTotal.clanTag}
                       </span>
-                      <span className="rounded-md border border-red-500/25 bg-red-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.16em] text-red-100">
+                      <span className="rounded-md border border-indigo-500/25 bg-indigo-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.16em] text-indigo-100">
                         {clanTotal.killCount} kills
                       </span>
                     </li>

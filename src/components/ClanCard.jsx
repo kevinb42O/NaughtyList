@@ -4,7 +4,7 @@ import { formatEuropeanDate } from '../utils/dates.js'
 function ClanCard({ clan, compact = false }) {
   const isHostile = clan.hostileCount > clan.friendlyCount
   const toneClasses = isHostile
-    ? 'border-red-500/40 bg-red-500/10 text-red-100'
+    ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-100'
     : clan.friendlyCount === clan.memberCount
       ? 'border-green-400/40 bg-green-400/10 text-green-100'
       : 'border-orange-400/40 bg-orange-400/10 text-orange-100'
@@ -87,7 +87,7 @@ function ClanCard({ clan, compact = false }) {
       {!compact ? (
         <div className="mt-4 flex items-center gap-3 text-[0.68rem] font-black uppercase tracking-[0.2em] text-gray-500">
           {isHostile ? (
-            <AlertTriangle className="h-3.5 w-3.5 text-red-300" aria-hidden="true" />
+            <AlertTriangle className="h-3.5 w-3.5 text-indigo-300" aria-hidden="true" />
           ) : (
             <ShieldCheck className="h-3.5 w-3.5 text-green-300" aria-hidden="true" />
           )}

@@ -324,7 +324,7 @@ function Home() {
         <div className="flex flex-col gap-4 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-[1.95rem] font-black uppercase italic leading-none tracking-[0.18em] text-transparent bg-gradient-to-r from-white via-red-100 to-red-400 bg-clip-text sm:text-[2.3rem]">
+              <h2 className="text-[1.95rem] font-black uppercase italic leading-none tracking-[0.18em] text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-400 bg-clip-text sm:text-[2.3rem]">
                 MOST WANTED
               </h2>
             </div>
@@ -340,7 +340,7 @@ function Home() {
               <button
                 type="button"
                 onClick={openAddModal}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 New Intel
@@ -356,7 +356,7 @@ function Home() {
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-red-200"
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-indigo-200"
                 aria-hidden="true"
               />
               <input
@@ -377,7 +377,7 @@ function Home() {
                   onClick={() => setThreatFilter(value)}
                   className={`rounded-full border px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition ${
                     threatFilter === value
-                      ? 'border-red-500/50 bg-red-500/12 text-red-100'
+                      ? 'border-indigo-500/50 bg-indigo-500/12 text-indigo-100'
                       : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200'
                   }`}
                 >
@@ -453,7 +453,7 @@ function Home() {
               <button
                 type="button"
                 onClick={openAddModal}
-                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
               >
                 Add first intel
               </button>

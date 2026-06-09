@@ -280,7 +280,7 @@ function InstallCard({ item }) {
             <span className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-gray-500">
               {isIphone ? 'Safari' : 'Chrome'} / 21rats.be
             </span>
-            <Icon className="h-4 w-4 shrink-0 text-red-100" aria-hidden="true" />
+            <Icon className="h-4 w-4 shrink-0 text-indigo-100" aria-hidden="true" />
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[Home, Search, Bell].map((VisualIcon, visualIndex) => (
@@ -293,7 +293,7 @@ function InstallCard({ item }) {
         <div className="mt-4 grid gap-2">
           {item.steps.map((step, index) => (
             <div key={step} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/30 p-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-red-400/30 bg-red-500/12 text-[0.68rem] font-black text-red-100">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/12 text-[0.68rem] font-black text-indigo-100">
                 {index + 1}
               </span>
               <span className="text-xs font-bold leading-5 text-gray-300">{step}</span>
@@ -331,7 +331,7 @@ function NotificationFlow() {
           return (
             <article key={step.label} className="rounded-[1.4rem] border border-white/10 bg-black/25 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-red-100">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-indigo-100">
                   <Icon className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <span className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-600">0{index + 1}</span>
@@ -352,7 +352,7 @@ function QuickAction({ item }) {
   return (
     <article className="rounded-[1.5rem] border border-white/10 bg-black/25 p-4">
       <div className="flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-red-400/25 bg-red-500/10 text-red-100">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-400/25 bg-indigo-500/10 text-indigo-100">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
         <div className="min-w-0">
@@ -360,7 +360,7 @@ function QuickAction({ item }) {
           <p className="mt-2 text-sm leading-6 text-gray-400">{item.text}</p>
           <Link
             to={item.to}
-            className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
+            className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100"
           >
             {item.action}
             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
@@ -377,7 +377,7 @@ function FaqGroup({ group }) {
   return (
     <section className="panel rounded-[1.8rem] p-5">
       <div className="mb-4 flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-red-100">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-indigo-100">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
@@ -390,7 +390,7 @@ function FaqGroup({ group }) {
           <details key={item.question} className="group p-4 open:bg-white/[0.02]">
             <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-sm font-black uppercase tracking-[0.08em] text-gray-200 marker:hidden">
               <span>{item.question}</span>
-              <Plus className="mt-0.5 h-4 w-4 shrink-0 text-red-200 transition group-open:rotate-45" aria-hidden="true" />
+              <Plus className="mt-0.5 h-4 w-4 shrink-0 text-indigo-200 transition group-open:rotate-45" aria-hidden="true" />
             </summary>
             <p className="mt-3 text-sm leading-6 text-gray-400">{item.answer}</p>
           </details>
@@ -409,7 +409,7 @@ function Help() {
         </span>
         <Link
           to="/updates"
-          className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 text-[0.6rem] font-black uppercase tracking-[0.16em] text-gray-500 transition hover:border-red-400/35 hover:text-red-100"
+          className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 text-[0.6rem] font-black uppercase tracking-[0.16em] text-gray-500 transition hover:border-indigo-400/35 hover:text-indigo-100"
         >
           <History className="h-3.5 w-3.5" aria-hidden="true" />
           Update Log
@@ -424,7 +424,7 @@ function Help() {
             <a
               key={section.href}
               href={section.href}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100"
             >
               <Icon className="h-3.5 w-3.5" aria-hidden="true" />
               {section.label}
@@ -450,7 +450,7 @@ function Help() {
 
                   return (
                     <div key={item.label} className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border border-white/10 bg-white/[0.04] text-center">
-                      <Icon className="h-4 w-4 text-red-100" aria-hidden="true" />
+                      <Icon className="h-4 w-4 text-indigo-100" aria-hidden="true" />
                       <span className="text-[0.52rem] font-black uppercase tracking-[0.12em] text-gray-400">{item.label}</span>
                     </div>
                   )
@@ -470,7 +470,7 @@ function Help() {
                   <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Works on phone
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-red-400/35 bg-red-500/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100">
+                <span className="inline-flex items-center gap-2 rounded-full border border-indigo-400/35 bg-indigo-500/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.18em] text-indigo-100">
                   <Zap className="h-3.5 w-3.5" aria-hidden="true" />
                   Squad alerts
                 </span>
@@ -485,10 +485,10 @@ function Help() {
             <p className="mt-4 text-lg font-black uppercase tracking-[0.04em] text-white">Enable phone alerts</p>
             <p className="mt-2 text-sm leading-6 text-yellow-50/70">Profile has the real device setup button.</p>
           </Link>
-          <Link to="/clans" className="rounded-[1.5rem] border border-red-400/30 bg-red-500/10 p-5 transition hover:bg-red-500/15">
-            <UsersRound className="h-6 w-6 text-red-100" aria-hidden="true" />
+          <Link to="/clans" className="rounded-[1.5rem] border border-indigo-400/30 bg-indigo-500/10 p-5 transition hover:bg-indigo-500/15">
+            <UsersRound className="h-6 w-6 text-indigo-100" aria-hidden="true" />
             <p className="mt-4 text-lg font-black uppercase tracking-[0.04em] text-white">Create or join a clan</p>
-            <p className="mt-2 text-sm leading-6 text-red-50/70">Clan HQ handles invites, requests, roles, and rooms.</p>
+            <p className="mt-2 text-sm leading-6 text-indigo-50/70">Clan HQ handles invites, requests, roles, and rooms.</p>
           </Link>
         </div>
       </section>
@@ -503,7 +503,7 @@ function Help() {
 
       <section id="actions" className="scroll-mt-24 mb-5 panel rounded-[1.8rem] p-5">
         <div className="mb-5 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-red-100">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-indigo-100">
             <Smartphone className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>

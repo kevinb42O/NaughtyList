@@ -239,10 +239,10 @@ function AdminPushConsole() {
           <p className="text-3xl font-black text-white">{missingSetupCount}</p>
           <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-amber-100/70">Needs Setup</p>
         </div>
-        <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-4">
-          <Bell className="mb-3 h-5 w-5 text-red-100" aria-hidden="true" />
+        <div className="rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-4">
+          <Bell className="mb-3 h-5 w-5 text-indigo-100" aria-hidden="true" />
           <p className="text-3xl font-black text-white">{sentNotifications}</p>
-          <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-red-100/70">Sent</p>
+          <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-indigo-100/70">Sent</p>
         </div>
       </div>
 
@@ -377,7 +377,7 @@ function AdminPushConsole() {
           <button
             type="button"
             onClick={resetDraft}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-red-500/40 hover:text-red-100"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300 transition hover:border-indigo-500/40 hover:text-indigo-100"
           >
             <Trash2 className="h-4 w-4" aria-hidden="true" />
             Wis
@@ -498,7 +498,7 @@ function AdminPushConsole() {
             <button
               type="submit"
               disabled={!canSend}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-500/50 bg-red-500/15 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/25 disabled:opacity-50"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/15 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/25 disabled:opacity-50"
             >
               <Send className="h-4 w-4" aria-hidden="true" />
               {working ? 'Sending' : `Verstuur naar ${activeDevices}`}
@@ -522,7 +522,7 @@ function AdminPushConsole() {
             <p className="intel-label mb-3">Preview</p>
             <div className="rounded-2xl border border-white/10 bg-gray-950 p-4 shadow-2xl shadow-black/40">
               <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/15 text-red-100">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-100">
                   <Bell className="h-5 w-5" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">

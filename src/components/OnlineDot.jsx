@@ -5,12 +5,12 @@ function OnlineDot({ online, label = true }) {
         className={`h-2.5 w-2.5 rounded-full ${
           online
             ? 'bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.85)]'
-            : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.65)]'
+            : 'bg-indigo-500 shadow-[0_0_12px_rgba(99, 102, 241,0.65)]'
         }`}
         aria-hidden="true"
       />
       {label ? (
-        <span className={`text-[0.62rem] font-black uppercase tracking-[0.18em] ${online ? 'text-green-200' : 'text-red-200'}`}>
+        <span className={`text-[0.62rem] font-black uppercase tracking-[0.18em] ${online ? 'text-green-200' : 'text-indigo-200'}`}>
           {online ? 'Online' : 'Offline'}
         </span>
       ) : null}

@@ -57,7 +57,7 @@ function categoryMeta(categoryKey) {
   return categoryOptions.find((category) => category.key === categoryKey) ?? categoryOptions[0]
 }
 
-function StatTile({ icon: Icon, label, value, tone = 'text-red-100' }) {
+function StatTile({ icon: Icon, label, value, tone = 'text-indigo-100' }) {
   return (
     <div className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4">
       <Icon className={`h-5 w-5 ${tone}`} aria-hidden="true" />
@@ -75,10 +75,10 @@ function UpdateItem({ update }) {
 
   return (
     <li className="relative pl-7">
-      <span className="absolute left-0 top-3 flex h-4 w-4 items-center justify-center rounded-full border border-red-300/40 bg-red-500/20 shadow-[0_0_18px_rgba(239,68,68,0.22)]">
-        <GitCommitVertical className="h-2.5 w-2.5 text-red-100" aria-hidden="true" />
+      <span className="absolute left-0 top-3 flex h-4 w-4 items-center justify-center rounded-full border border-indigo-300/40 bg-indigo-500/20 shadow-[0_0_18px_rgba(99, 102, 241,0.22)]">
+        <GitCommitVertical className="h-2.5 w-2.5 text-indigo-100" aria-hidden="true" />
       </span>
-      <article className="rounded-[1.1rem] border border-white/10 bg-black/28 p-3 transition hover:border-red-400/25 hover:bg-white/[0.035]">
+      <article className="rounded-[1.1rem] border border-white/10 bg-black/28 p-3 transition hover:border-indigo-400/25 hover:bg-white/[0.035]">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -115,7 +115,7 @@ function UpdateDay({ day, defaultOpen, updates }) {
               {formatDate(day.date)}
             </span>
             {day.label === 'Today' ? (
-              <span className="rounded-full border border-red-400/35 bg-red-500/12 px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-red-100">
+              <span className="rounded-full border border-indigo-400/35 bg-indigo-500/12 px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-indigo-100">
                 Latest
               </span>
             ) : null}
@@ -123,13 +123,13 @@ function UpdateDay({ day, defaultOpen, updates }) {
           <h2 className="mt-3 text-2xl font-black uppercase leading-tight tracking-[0.04em] text-white">{day.title}</h2>
           <p className="mt-3 max-w-4xl text-sm leading-6 text-gray-400">{day.summary}</p>
         </div>
-        <span className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-red-400/25 bg-red-500/10 px-4 text-[0.62rem] font-black uppercase tracking-[0.16em] text-red-100 transition group-open:border-white/10 group-open:bg-white/[0.04] group-open:text-gray-400">
+        <span className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-indigo-400/25 bg-indigo-500/10 px-4 text-[0.62rem] font-black uppercase tracking-[0.16em] text-indigo-100 transition group-open:border-white/10 group-open:bg-white/[0.04] group-open:text-gray-400">
           {updates.length} shown
           <ChevronDown className="h-4 w-4 transition group-open:rotate-180" aria-hidden="true" />
         </span>
       </summary>
       <div className="border-t border-white/10 px-5 pb-5 pt-4">
-        <ol className="grid gap-3 border-l border-red-400/15 pl-1">
+        <ol className="grid gap-3 border-l border-indigo-400/15 pl-1">
           {updates.map((update) => <UpdateItem key={`${day.date}-${update[0]}-${update[1]}`} update={update} />)}
         </ol>
       </div>
@@ -173,7 +173,7 @@ function Updates() {
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.42fr)]">
           <div className="p-5 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="inline-flex min-h-8 items-center gap-2 rounded-full border border-red-400/35 bg-red-500/12 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-red-100">
+              <span className="inline-flex min-h-8 items-center gap-2 rounded-full border border-indigo-400/35 bg-indigo-500/12 px-3 text-[0.62rem] font-black uppercase tracking-[0.16em] text-indigo-100">
                 <Rocket className="h-3.5 w-3.5" aria-hidden="true" />
                 Latest Drop
               </span>
@@ -186,10 +186,10 @@ function Updates() {
             </h2>
             <p className="mt-4 max-w-4xl text-sm leading-6 text-gray-400">{latestDay.summary}</p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/profile" className="inline-flex min-h-10 items-center justify-center rounded-full border border-red-500/45 bg-red-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-red-100 transition hover:bg-red-500/20">
+              <Link to="/profile" className="inline-flex min-h-10 items-center justify-center rounded-full border border-indigo-500/45 bg-indigo-500/12 px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-indigo-100 transition hover:bg-indigo-500/20">
                 Open Profile
               </Link>
-              <Link to="/profiles" className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-red-400/40 hover:text-red-100">
+              <Link to="/profiles" className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300 transition hover:border-indigo-400/40 hover:text-indigo-100">
                 View Team
               </Link>
             </div>
@@ -202,7 +202,7 @@ function Updates() {
                 <div key={`${update[0]}-${update[1]}`} className="rounded-[1.1rem] border border-white/10 bg-black/30 p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-gray-500">{getUpdateCategory(update)}</span>
-                    <span className="font-mono text-[0.62rem] font-black uppercase tracking-[0.12em] text-red-100">{update[0]}</span>
+                    <span className="font-mono text-[0.62rem] font-black uppercase tracking-[0.12em] text-indigo-100">{update[0]}</span>
                   </div>
                   <p className="text-sm font-black uppercase tracking-[0.04em] text-white">{update[1]}</p>
                 </div>
@@ -243,7 +243,7 @@ function Updates() {
       <section className="panel mb-5 rounded-[1.6rem] p-4">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-red-200" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-indigo-200" aria-hidden="true" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -262,8 +262,8 @@ function Updates() {
                   onClick={() => setCategory(option.key)}
                   className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[0.62rem] font-black uppercase tracking-[0.16em] transition ${
                     selected
-                      ? 'border-red-400/55 bg-red-500/16 text-red-100 shadow-[0_0_22px_rgba(239,68,68,0.14)]'
-                      : 'border-white/10 bg-white/[0.04] text-gray-400 hover:border-red-400/35 hover:text-red-100'
+                      ? 'border-indigo-400/55 bg-indigo-500/16 text-indigo-100 shadow-[0_0_22px_rgba(99, 102, 241,0.14)]'
+                      : 'border-white/10 bg-white/[0.04] text-gray-400 hover:border-indigo-400/35 hover:text-indigo-100'
                   }`}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
@@ -294,7 +294,7 @@ function Updates() {
       <div className="mt-6 flex justify-center">
         <Link
           to="/help"
-          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-400 transition hover:border-red-400/40 hover:text-red-100"
+          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-400 transition hover:border-indigo-400/40 hover:text-indigo-100"
         >
           Back to help
         </Link>

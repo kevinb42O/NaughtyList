@@ -16,8 +16,8 @@ export const streakRewards = [
     shortLabel: 'Hunter',
     unlocks: ['target', 'swords'],
     unlockLabel: 'Target + Swords avatars',
-    tone: 'border-red-400/50 bg-red-500/12 text-red-100 shadow-red-500/15',
-    iconTone: 'text-red-100',
+    tone: 'border-indigo-400/50 bg-indigo-500/12 text-indigo-100 shadow-indigo-500/15',
+    iconTone: 'text-indigo-100',
   },
   {
     days: 14,

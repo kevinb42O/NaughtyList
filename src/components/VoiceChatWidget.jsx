@@ -728,7 +728,7 @@ export default function VoiceChatWidget() {
                                 <span className="w-0.5 bg-emerald-400 animate-[voiceBar3_0.5s_ease-in-out_infinite]" style={{ height: '40%' }} />
                               </div>
                             ) : null}
-                            {participant.muted ? <MicOff className="h-3.5 w-3.5 text-red-400" aria-label="Muted" /> : <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 opacity-70" aria-label="Mic on" />}
+                            {participant.muted ? <MicOff className="h-3.5 w-3.5 text-indigo-400" aria-label="Muted" /> : <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 opacity-70" aria-label="Mic on" />}
                           </div>
                         </div>
                       )
@@ -736,18 +736,18 @@ export default function VoiceChatWidget() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 border-t border-white/6 pt-3">
-                    <button type="button" aria-pressed={isMuted} aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'} onClick={toggleMute} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${isMuted ? 'border-red-500/40 bg-red-500/10 text-red-200' : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'}`}>
+                    <button type="button" aria-pressed={isMuted} aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'} onClick={toggleMute} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${isMuted ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-200' : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'}`}>
                       {isMuted ? <MicOff className="h-4 w-4" aria-hidden="true" /> : <Mic className="h-4 w-4 text-emerald-400" aria-hidden="true" />}
                       <span className="text-[0.5rem] font-black uppercase tracking-[0.08em]">{isMuted ? 'Muted' : 'Mic On'}</span>
                     </button>
 
-                    <button type="button" aria-pressed={isDeafened} aria-label={isDeafened ? 'Turn sound on' : 'Deafen voice chat'} onClick={toggleDeafen} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${isDeafened ? 'border-red-500/40 bg-red-500/10 text-red-200' : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'}`}>
+                    <button type="button" aria-pressed={isDeafened} aria-label={isDeafened ? 'Turn sound on' : 'Deafen voice chat'} onClick={toggleDeafen} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${isDeafened ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-200' : 'border-white/8 bg-zinc-900/90 text-gray-300 hover:bg-zinc-800'}`}>
                       {isDeafened ? <VolumeX className="h-4 w-4" aria-hidden="true" /> : <Volume2 className="h-4 w-4 text-cyan-400" aria-hidden="true" />}
                       <span className="text-[0.5rem] font-black uppercase tracking-[0.08em]">{isDeafened ? 'Deafened' : 'Sound On'}</span>
                     </button>
 
-                    <button type="button" onClick={disconnectVoice} className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-xl border border-red-500/50 bg-red-500/12 text-[0.56rem] font-black uppercase tracking-[0.14em] text-red-200 transition hover:bg-red-500/22 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/80">
-                      <PhoneOff className="h-4 w-4 text-red-400" aria-hidden="true" />
+                    <button type="button" onClick={disconnectVoice} className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-xl border border-indigo-500/50 bg-indigo-500/12 text-[0.56rem] font-black uppercase tracking-[0.14em] text-indigo-200 transition hover:bg-indigo-500/22 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80">
+                      <PhoneOff className="h-4 w-4 text-indigo-400" aria-hidden="true" />
                       Disconnect
                     </button>
                   </div>
@@ -756,7 +756,7 @@ export default function VoiceChatWidget() {
             </div>
 
             <div className="mt-3 flex items-center justify-center gap-1.5 text-[0.52rem] font-bold uppercase tracking-[0.08em] text-gray-600">
-              <Sparkles className="h-3 w-3 text-red-500/50" aria-hidden="true" />
+              <Sparkles className="h-3 w-3 text-indigo-500/50" aria-hidden="true" />
               <span>21RATS WebRTC Node</span>
             </div>
           </section>

@@ -127,7 +127,7 @@ function Support() {
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)]">
           <div>
             <div className="mb-5 flex flex-wrap items-center gap-3">
-              <HeartHandshake className="h-6 w-6 text-red-100" aria-hidden="true" />
+              <HeartHandshake className="h-6 w-6 text-indigo-100" aria-hidden="true" />
               <div>
                   <p className="intel-label">Bank App Support</p>
                   <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">Scan and send</h2>
@@ -142,7 +142,7 @@ function Support() {
                   onClick={() => setSelectedTier(tier.key)}
                   className={`min-h-36 rounded-[1.4rem] border p-4 text-left transition ${
                     selectedTier === tier.key
-                      ? 'border-red-400/55 bg-red-500/14 shadow-lg shadow-red-950/20'
+                      ? 'border-indigo-400/55 bg-indigo-500/14 shadow-lg shadow-indigo-950/20'
                       : 'border-white/10 bg-black/25 hover:border-white/20 hover:bg-white/[0.04]'
                   }`}
                 >
@@ -160,7 +160,7 @@ function Support() {
               onClick={() => setSelectedTier('custom')}
               className={`mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-[1.4rem] border px-4 text-left transition ${
                 selectedTier === 'custom'
-                  ? 'border-red-400/55 bg-red-500/14'
+                  ? 'border-indigo-400/55 bg-indigo-500/14'
                   : 'border-white/10 bg-black/25 hover:border-white/20 hover:bg-white/[0.04]'
               }`}
             >
@@ -206,7 +206,7 @@ function Support() {
                 href={kofiSupportUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-red-400/45 bg-red-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/22"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-indigo-400/45 bg-indigo-500/14 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/22"
               >
                 <Coffee className="h-4 w-4" aria-hidden="true" />
                 Pay with Ko-fi
@@ -219,7 +219,7 @@ function Support() {
               {!isAuthenticated ? (
                 <Link
                   to="/auth"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 hover:border-red-500/40 hover:text-red-100"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-300 hover:border-indigo-500/40 hover:text-indigo-100"
                 >
                   <Lock className="h-4 w-4" aria-hidden="true" />
                   Login for rewards
@@ -291,7 +291,7 @@ function Support() {
 
       <section className="panel rounded-[1.8rem] p-5 sm:p-6">
         <div className="mb-4 flex items-center gap-3">
-          <Coffee className="h-5 w-5 text-red-100" aria-hidden="true" />
+          <Coffee className="h-5 w-5 text-indigo-100" aria-hidden="true" />
           <div>
             <p className="intel-label">Ko-fi</p>
             <h2 className="text-xl font-black uppercase tracking-[0.04em] text-white">Fast card payment</h2>
@@ -309,7 +309,7 @@ function Support() {
             href={kofiSupportUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-red-400/45 bg-red-500/14 px-6 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/22"
+            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-indigo-400/45 bg-indigo-500/14 px-6 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/22"
           >
             <Coffee className="h-4 w-4" aria-hidden="true" />
             Open Ko-fi

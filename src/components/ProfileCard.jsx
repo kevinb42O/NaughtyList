@@ -46,7 +46,7 @@ function ProfileCard({ profile, onlineUserIds }) {
 
   return (
     <article
-      className="panel cursor-pointer rounded-[1.5rem] p-4 transition hover:border-red-500/30 hover:bg-black/35 focus-visible:border-red-500/40 focus-visible:outline-none"
+      className="panel cursor-pointer rounded-[1.5rem] p-4 transition hover:border-indigo-500/30 hover:bg-black/35 focus-visible:border-indigo-500/40 focus-visible:outline-none"
       style={cardStyle}
       onClick={openProfile}
       onKeyDown={handleKeyDown}
@@ -78,7 +78,7 @@ function ProfileCard({ profile, onlineUserIds }) {
         <Link
           to={`/messages?to=${profile.id}`}
           onClick={(event) => event.stopPropagation()}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-200 backdrop-blur-sm hover:border-red-500/40 hover:text-red-100"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-200 backdrop-blur-sm hover:border-indigo-500/40 hover:text-indigo-100"
         >
           <MessageSquare className="h-4 w-4" aria-hidden="true" />
           DM

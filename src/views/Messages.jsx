@@ -68,7 +68,7 @@ const DirectMessageBubble = memo(function DirectMessageBubble({ deletingMediaId,
           <div
             className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
               mine
-                ? 'rounded-br-md border-red-400/25 bg-gradient-to-br from-red-500/22 to-red-950/55 text-red-50'
+                ? 'rounded-br-md border-indigo-400/25 bg-gradient-to-br from-indigo-500/22 to-indigo-950/55 text-indigo-50'
                 : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
             }`}
           >
@@ -82,13 +82,13 @@ const DirectMessageBubble = memo(function DirectMessageBubble({ deletingMediaId,
               onDelete={canDeleteMedia ? () => onDeleteMedia(directMessage) : undefined}
             />
             {deletingMedia ? (
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-red-400/30 bg-black/25 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.14em] text-red-100">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-black/25 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.14em] text-indigo-100">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                 Deleting picture
               </div>
             ) : null}
             <p className="whitespace-pre-wrap break-words">{directMessage.body}</p>
-            <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-red-100/55' : 'text-gray-500'}`}>
+            <span className={`absolute bottom-1.5 right-3 text-[0.58rem] font-bold ${mine ? 'text-indigo-100/55' : 'text-gray-500'}`}>
               {formatMessageTime(directMessage.created_at)}
             </span>
             <MessageReactions
@@ -100,7 +100,7 @@ const DirectMessageBubble = memo(function DirectMessageBubble({ deletingMediaId,
             <button
               type="button"
               onClick={() => onReply(directMessage)}
-              className="absolute -top-3 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/40 transition hover:border-red-400/45 hover:bg-red-500/10 hover:text-gray-100"
+              className="absolute -top-3 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/40 transition hover:border-indigo-400/45 hover:bg-indigo-500/10 hover:text-gray-100"
               aria-label="Reply to message"
               title="Reply"
             >
@@ -395,7 +395,7 @@ function Messages() {
         </PageHeader>
         <Link
           to="/auth"
-          className="inline-flex min-h-11 items-center rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100"
+          className="inline-flex min-h-11 items-center rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100"
         >
           Login to message
         </Link>
@@ -445,7 +445,7 @@ function Messages() {
                     onClick={() => setSearchParams({ to: contact.id })}
                     className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
                       active
-                        ? 'border-red-400/45 bg-red-500/14 shadow-lg shadow-red-950/20'
+                        ? 'border-indigo-400/45 bg-indigo-500/14 shadow-lg shadow-indigo-950/20'
                         : 'border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.04]'
                     }`}
                   >
@@ -457,7 +457,7 @@ function Messages() {
                         </p>
                         <SupporterBadge profile={contact} compact />
                         {unreadCountsBySender[contact.id] ? (
-                          <span className="rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-red-100">
+                          <span className="rounded-full border border-indigo-500/40 bg-indigo-500/15 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-indigo-100">
                             {unreadCountsBySender[contact.id]}
                           </span>
                         ) : null}
@@ -494,7 +494,7 @@ function Messages() {
                   <button
                     type="button"
                     onClick={() => setSearchParams({})}
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-gray-200 transition hover:border-red-400/40 hover:text-red-100 lg:hidden"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-gray-200 transition hover:border-indigo-400/40 hover:text-indigo-100 lg:hidden"
                     aria-label="Back to direct message contacts"
                   >
                     <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -549,7 +549,7 @@ function Messages() {
                   </p>
                 )}
                 {typingLabel ? (
-                  <div className="px-2 pb-1 pt-0 text-xs font-bold text-red-200/75">{typingLabel}</div>
+                  <div className="px-2 pb-1 pt-0 text-xs font-bold text-indigo-200/75">{typingLabel}</div>
                 ) : null}
               </div>
 

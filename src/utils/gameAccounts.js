@@ -69,7 +69,7 @@ export function gameAccountStatusMeta(account) {
   if (account?.shadowbanStatus === 'shadowbanned') {
     return {
       label: account.shadowbanDate ? `Shadowbanned ${account.shadowbanDate}` : 'Shadowbanned',
-      className: 'border-red-500/40 bg-red-500/10 text-red-100',
+      className: 'border-indigo-500/40 bg-indigo-500/10 text-indigo-100',
     }
   }
 

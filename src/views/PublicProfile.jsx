@@ -44,7 +44,7 @@ function PublicProfile() {
         </PageHeader>
         <Link
           to="/profiles"
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 hover:border-red-500/40 hover:text-red-100"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 hover:border-indigo-500/40 hover:text-indigo-100"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to Team
@@ -93,7 +93,7 @@ function PublicProfile() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           to="/profiles"
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 hover:border-red-500/40 hover:text-red-100"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 hover:border-indigo-500/40 hover:text-indigo-100"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to Team
@@ -103,7 +103,7 @@ function PublicProfile() {
           {viewingOwnProfile ? (
             <Link
               to="/profile"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
             >
               <Settings className="h-4 w-4" aria-hidden="true" />
               Edit My Profile
@@ -111,7 +111,7 @@ function PublicProfile() {
           ) : isAuthenticated ? (
             <Link
               to={`/messages?to=${profile.id}`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-red-500/50 bg-red-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/20"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-indigo-500/50 bg-indigo-500/12 px-5 text-sm font-black uppercase tracking-[0.18em] text-indigo-100 transition hover:bg-indigo-500/20"
             >
               <MessageSquare className="h-4 w-4" aria-hidden="true" />
               Direct Message
@@ -122,7 +122,7 @@ function PublicProfile() {
 
       <section className="panel overflow-hidden rounded-[1.8rem]">
         <div
-          className="relative h-44 border-b border-white/10 bg-gradient-to-br from-red-500/20 via-black/60 to-cyan-400/20 sm:h-64"
+          className="relative h-44 border-b border-white/10 bg-gradient-to-br from-indigo-500/20 via-black/60 to-cyan-400/20 sm:h-64"
           style={profileHeroBannerStyle}
         />
 
@@ -158,7 +158,7 @@ function PublicProfile() {
                   <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-300">
                     Last seen {formatEuropeanDateTime(profile.last_seen)}
                   </span>
-                  <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-red-100">
+                  <span className="rounded-full border border-indigo-400/30 bg-indigo-500/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-indigo-100">
                     {loginStreak} day streak
                   </span>
                   <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.18em] text-cyan-100">
