@@ -15,6 +15,7 @@ import Moderator from './views/Moderator.jsx'
 import Profile from './views/Profile.jsx'
 import PublicProfile from './views/PublicProfile.jsx'
 import Profiles from './views/Profiles.jsx'
+import Shadowlist from './views/Shadowlist.jsx'
 import Support from './views/Support.jsx'
 import Updates from './views/Updates.jsx'
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="/support" element={<Support />} />
             <Route path="/help" element={<Help />} />
             <Route path="/updates" element={<Updates />} />
+            <Route path="/shadowlist" element={<Shadowlist />} />
             <Route path="/faq" element={<Navigate to="/help" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/moderator" element={<Moderator />} />

@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   Crown,
   CircleHelp,
+  Crosshair,
   HeartHandshake,
   House,
   LogIn,
@@ -24,6 +25,7 @@ const navItems = [
   { to: '/', label: 'Home', icon: House },
   { to: '/profiles', label: 'Team', icon: UsersRound },
   { to: '/clans', label: 'Clans', icon: Shield },
+  { to: '/shadowlist', label: 'Banlist', icon: Crosshair },
   { to: '/chat', label: 'Chat', icon: MessageSquare },
   { to: '/messages', label: 'DMs', icon: MessageCircle },
   { to: '/profile', label: 'Profile', icon: Settings },

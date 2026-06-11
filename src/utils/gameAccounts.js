@@ -12,6 +12,10 @@ function normalizeStatus(status) {
   return 'unknown'
 }
 
+/**
+ * Normalize an array of game accounts for storage.
+ * Supports the extended Shadowlist fields in addition to the base fields.
+ */
 export function normalizeGameAccounts(gameAccounts = []) {
   const seenIds = new Set()
 
@@ -36,10 +40,32 @@ export function normalizeGameAccounts(gameAccounts = []) {
           ? account.shadowbanDate.slice(0, 10)
           : ''
 
+      // Extended Shadowlist fields
+      const accountName = typeof account?.accountName === 'string' ? account.accountName.trim() : id
+      const userLevel = typeof account?.userLevel === 'number' ? account.userLevel : (parseInt(account?.userLevel, 10) || 1)
+      const email = typeof account?.email === 'string' ? account.email.trim() : ''
+      const password = typeof account?.password === 'string' ? account.password : ''
+      const insuredSlot2 = Boolean(account?.insuredSlot2)
+      const insuredSlot3 = Boolean(account?.insuredSlot3)
+      // shadowbanStartTime: unix timestamp in ms, used for the countdown timer
+      const shadowbanStartTime =
+        shadowbanStatus === 'shadowbanned' && typeof account?.shadowbanStartTime === 'number'
+          ? account.shadowbanStartTime
+          : null
+      const profilePicture = typeof account?.profilePicture === 'string' ? account.profilePicture : ''
+
       return {
         id,
+        accountName,
+        userLevel,
+        email,
+        password,
+        insuredSlot2,
+        insuredSlot3,
         shadowbanStatus,
         shadowbanDate,
+        shadowbanStartTime,
+        profilePicture,
       }
     })
     .filter(Boolean)
@@ -55,8 +81,16 @@ export function profileGameAccounts(profile) {
   return normalizeGameAccounts(
     (profile?.activision_ids ?? []).map((id) => ({
       id,
+      accountName: id,
+      userLevel: 1,
+      email: '',
+      password: '',
+      insuredSlot2: false,
+      insuredSlot3: false,
       shadowbanStatus: 'unknown',
       shadowbanDate: '',
+      shadowbanStartTime: null,
+      profilePicture: '',
     })),
   )
 }
