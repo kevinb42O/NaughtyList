@@ -114,7 +114,7 @@ function AccountCard({ account, onClick }) {
   const isMaxLevel = Number(account.userLevel) >= 1250
   const isShadowbanned = account.shadowbanStatus === 'shadowbanned'
   const isClear = account.shadowbanStatus === 'clear'
-  const avatarSrc = account.profilePicture || AVATAR_OPTIONS[0]
+  const avatarSrc = getAvatarForLevel(account.userLevel || 1)
 
   return (
     <button
