@@ -11,12 +11,14 @@ import {
   Shield,
   ShieldAlert,
   ShieldCheck,
+  Share2,
   Trash2,
   Unlock,
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import PageHeader from '../components/PageHeader.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { profileGameAccounts } from '../utils/gameAccounts.js'
@@ -461,6 +463,15 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
     })
   }
 
+  function handleShare() {
+    const token = `[shadowlist:${encodeURIComponent(account.id)}:${account.userLevel || 1}:${account.shadowbanStatus}]`
+    navigator.clipboard.writeText(token)
+    toast.success('Account copied!', {
+      description: 'Paste it in any chat to share.',
+      duration: 3000,
+    })
+  }
+
   const isShadowbanned = account.shadowbanStatus === 'shadowbanned'
   const avatarSrc = getAvatarForLevel(account.userLevel || 1)
 
@@ -525,6 +536,14 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
             </div>
 
             <div className="absolute top-4 right-4 flex gap-2">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-zinc-950/80 text-emerald-400 hover:bg-emerald-500 hover:text-white transition"
+                title="Share account"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
               <button
                 type="button"
                 onClick={onClose}
