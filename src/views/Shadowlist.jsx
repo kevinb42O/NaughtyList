@@ -399,6 +399,7 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
   const [editPasswordValue, setEditPasswordValue] = useState(account.password || '')
   const [showPassword, setShowPassword] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
+  const [emailCopySuccess, setEmailCopySuccess] = useState(false)
   const [isEditingDate, setIsEditingDate] = useState(false)
   const [editDateValue, setEditDateValue] = useState('')
   const nameInputRef = useRef(null)
@@ -422,6 +423,13 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
     navigator.clipboard.writeText(account.password || '')
     setCopySuccess(true)
     setTimeout(() => setCopySuccess(false), 2000)
+  }
+
+  function copyEmail() {
+    if (!account.email) return
+    navigator.clipboard.writeText(account.email)
+    setEmailCopySuccess(true)
+    setTimeout(() => setEmailCopySuccess(false), 2000)
   }
 
   function saveName() {
@@ -599,7 +607,12 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
               {account.email ? (
                 <div className="flex items-center justify-between gap-3">
                   <span className="shrink-0 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-500">Email</span>
-                  <span className="font-mono text-sm text-gray-300 truncate max-w-[200px]">{account.email}</span>
+                  <div className="flex min-w-0 items-center gap-2 justify-end">
+                    <span className="font-mono text-sm text-gray-300 break-all text-right">{account.email}</span>
+                    <button type="button" onClick={copyEmail} className={`transition shrink-0 ${emailCopySuccess ? 'text-green-400' : 'text-gray-500 hover:text-gray-200'}`}>
+                      {emailCopySuccess ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
               ) : null}
 
@@ -751,6 +764,15 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
                   <h3 className="text-xl font-black uppercase tracking-[0.1em] text-green-400" style={{ textShadow: '0 0 12px rgba(34,197,94,0.4)' }}>
                     Account Clear
                   </h3>
+                  {account.shadowbanStartTime ? (
+                    <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 text-center">
+                      Last banned: {new Date(account.shadowbanStartTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                  ) : account.shadowbanDate ? (
+                    <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 text-center">
+                      Last banned: {account.shadowbanDate}
+                    </p>
+                  ) : null}
                 </>
               )}
 
@@ -787,12 +809,40 @@ function Shadowlist() {
   const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'shadowbanned' | 'clear' | 'unknown'
   const [sortBy, setSortBy] = useState('status') // 'status' | 'level'
 
-  // Sync gameAccounts from profile when it loads/changes
+  // Sync gameAccounts from profile when it loads/changes, and auto-clear expired bans
   useEffect(() => {
     if (profile) {
-      setGameAccounts(profileGameAccounts(profile))
+      const accounts = profileGameAccounts(profile)
+      const now = Date.now()
+      let needsUpdate = false
+
+      const nextAccounts = accounts.map((acc) => {
+        if (acc.shadowbanStatus === 'shadowbanned' && acc.shadowbanStartTime) {
+          if (now - acc.shadowbanStartTime >= SHADOWBAN_DURATION) {
+            needsUpdate = true
+            return { ...acc, shadowbanStatus: 'clear' } // Keep the startTime/date to show history
+          }
+        }
+        return acc
+      })
+
+      if (needsUpdate) {
+        // Optimistically set the state so the UI reflects the cleared accounts immediately
+        setGameAccounts(nextAccounts)
+        // Fire-and-forget the update to DB
+        updateProfile({
+          displayName: profile.display_name ?? '',
+          bio: profile.bio ?? '',
+          avatarIcon: profile.avatar_icon ?? 'default',
+          avatarImageUrl: profile.avatar_image_url ?? '',
+          bannerImageUrl: profile.banner_image_url ?? '',
+          gameAccounts: nextAccounts,
+        }).catch(console.error)
+      } else {
+        setGameAccounts(accounts)
+      }
     }
-  }, [profile])
+  }, [profile, updateProfile])
 
   if (!isAuthenticated && !loading) {
     return <Navigate to="/auth" replace />
