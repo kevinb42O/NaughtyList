@@ -66,11 +66,19 @@ function MediaComposer({
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const recordingTimerRef = useRef(null)
+  const audioContextRef = useRef(null)
+  const analyserRef = useRef(null)
+  const animationFrameRef = useRef(null)
+  const waveformContainerRef = useRef(null)
   const canSend = !disabled && !sending && !uploading && !isRecording && Boolean(value.trim() || pendingMedia?.mediaUrl)
 
   useEffect(() => {
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {})
+      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
         mediaRecorderRef.current.stop()
@@ -158,6 +166,10 @@ function MediaComposer({
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop())
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close().catch(() => {})
+        }
         setIsRecording(false)
         setRecordingDuration(0)
 
@@ -188,6 +200,39 @@ function MediaComposer({
       recordingTimerRef.current = window.setInterval(() => {
         setRecordingDuration((prev) => prev + 1)
       }, 1000)
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext
+        audioContextRef.current = new AudioContextClass()
+        analyserRef.current = audioContextRef.current.createAnalyser()
+        analyserRef.current.fftSize = 64
+        const source = audioContextRef.current.createMediaStreamSource(stream)
+        source.connect(analyserRef.current)
+
+        const drawWaveform = () => {
+          if (!analyserRef.current || !waveformContainerRef.current) return
+          const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount)
+          analyserRef.current.getByteFrequencyData(dataArray)
+          
+          const bars = waveformContainerRef.current.children
+          for (let i = 0; i < bars.length && i < dataArray.length; i++) {
+            const value = dataArray[i]
+            const height = Math.max(15, (value / 255) * 100)
+            bars[i].style.height = `${height}%`
+            if (value > 120) {
+              bars[i].style.backgroundColor = 'rgba(52, 211, 153, 1)'
+              bars[i].style.boxShadow = '0 0 6px rgba(52, 211, 153, 0.5)'
+            } else {
+              bars[i].style.backgroundColor = 'rgba(52, 211, 153, 0.4)'
+              bars[i].style.boxShadow = 'none'
+            }
+          }
+          animationFrameRef.current = requestAnimationFrame(drawWaveform)
+        }
+        drawWaveform()
+      } catch (err) {
+        console.warn('Audio visualization not supported', err)
+      }
     } catch (error) {
       onError?.('Microphone access denied or unavailable.')
     }
@@ -227,7 +272,11 @@ function MediaComposer({
             <div className="flex flex-1 items-center gap-3 px-3">
               <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
               <span className="text-sm font-bold text-red-400">{formatDuration(recordingDuration)}</span>
-              <div className="flex-1" />
+              <div ref={waveformContainerRef} className="flex h-6 flex-1 items-center justify-center gap-[2px] px-2 sm:px-4">
+                {Array.from({ length: 28 }).map((_, i) => (
+                  <div key={i} className="flex-1 rounded-full bg-emerald-400/40 transition-all duration-75" style={{ height: '15%' }} />
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={handleRecordCancel}

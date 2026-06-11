@@ -19,7 +19,6 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import PageHeader from '../components/PageHeader.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { profileGameAccounts } from '../utils/gameAccounts.js'
 
@@ -952,10 +951,6 @@ function Shadowlist() {
         @keyframes shadowlistPulse { 0%, 100% { filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.3)); } 50% { filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.7)); } }
         @keyframes shadowlistGoldSpin { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
       `}</style>
-
-      <PageHeader eyebrow="Intel" title="Shadowlist">
-        Track every Activision account. Accounts are synced to your profile — each user sees only their own.
-      </PageHeader>
 
       {/* Stats row */}
       {gameAccounts.length > 0 && (

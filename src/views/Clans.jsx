@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
 import { clanBadgeIconOptions, defaultClanBadgeIconKey, getClanBadgeIconOption } from '../components/ProfileAvatar.jsx'
-import PageHeader from '../components/PageHeader.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { clanPrefix, displayProfileName } from '../utils/profiles.js'
 
@@ -749,10 +748,6 @@ function Clans() {
 
   return (
     <div>
-      <PageHeader eyebrow="Clan Network" title="Clan HQ">
-        Clan status, roster, and access.
-      </PageHeader>
-
       {utilitiesDrawer}
 
       {status ? <p className="mb-4 text-sm font-bold text-green-200">{status}</p> : null}

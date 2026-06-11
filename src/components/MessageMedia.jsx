@@ -1,6 +1,7 @@
 import { Maximize2, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import VoiceMessagePlayer from './VoiceMessagePlayer.jsx'
 
 function MediaLightbox({ media, onClose }) {
   const closeButtonRef = useRef(null)
@@ -71,7 +72,7 @@ function MessageMedia({ mediaUrl, mediaType, onDelete, deleting = false }) {
   if (isAudio) {
     return (
       <div className="relative mb-2 w-full">
-        <audio controls src={mediaUrl} className="w-full max-w-[240px] h-10 outline-none filter drop-shadow-md [&::-webkit-media-controls-panel]:bg-white/10 [&::-webkit-media-controls-play-button]:bg-white/80 [&::-webkit-media-controls-current-time-display]:text-white [&::-webkit-media-controls-time-remaining-display]:text-white" preload="metadata" />
+        <VoiceMessagePlayer mediaUrl={mediaUrl} />
         {onDelete ? (
           <button
             type="button"

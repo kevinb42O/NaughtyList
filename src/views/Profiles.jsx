@@ -1,7 +1,6 @@
 import { Search, Settings } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import PageHeader from '../components/PageHeader.jsx'
 import ProfileCard from '../components/ProfileCard.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { displayProfileName, isProfileOnline } from '../utils/profiles.js'
@@ -36,9 +35,6 @@ function Profiles() {
 
   return (
     <div>
-      <PageHeader eyebrow="Profiles" title="Squad Directory">
-        See who is online, open operator bios, copy Activision IDs, and find clan tags fast.
-      </PageHeader>
 
       {isAuthenticated ? (
         <div className="mb-5 flex items-center justify-end">

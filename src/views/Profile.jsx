@@ -2,12 +2,12 @@
 import { Camera, HeartHandshake, KeyRound, Lock, Plus, Save, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import ClanBadge from '../components/ClanBadge.jsx'
 import CollapsiblePanel from '../components/CollapsiblePanel.jsx'
 import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'
 import GifPickerModal from '../components/GifPickerModal.jsx'
 import OnlineDot from '../components/OnlineDot.jsx'
-import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar, { avatarIconOptions, canUseAvatarIcon, defaultAvatarIconKey, getAvatarIconLockLabel } from '../components/ProfileAvatar.jsx'
 import ProfileDisplayName from '../components/ProfileDisplayName.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
@@ -373,10 +373,6 @@ function Profile() {
 
   return (
     <div className="pb-20">
-      <PageHeader eyebrow="Settings" title="My Profile">
-        Update your display name, bio, review your clan status, track game accounts, and manage your password.
-      </PageHeader>
-
       <section className="panel mb-6 overflow-hidden rounded-[1.8rem]">
         <div
           className="relative h-44 border-b border-white/10 bg-gradient-to-br from-white/10 via-black/60 to-cyan-400/20 sm:h-64"

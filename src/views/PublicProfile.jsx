@@ -2,7 +2,6 @@ import { ArrowLeft, Check, Copy, MessageSquare, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import OnlineDot from '../components/OnlineDot.jsx'
-import PageHeader from '../components/PageHeader.jsx'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import ProfileDisplayName from '../components/ProfileDisplayName.jsx'
 import RoleBadge from '../components/RoleBadge.jsx'
@@ -29,9 +28,7 @@ function PublicProfile() {
   if (loading && !profile) {
     return (
       <div>
-        <PageHeader eyebrow="Operator Profile" title="Loading Profile">
-          Pulling operator details from the roster.
-        </PageHeader>
+        <p className="mb-4 text-center text-sm font-bold text-gray-500">Loading Profile...</p>
       </div>
     )
   }
@@ -39,9 +36,7 @@ function PublicProfile() {
   if (!profile) {
     return (
       <div>
-        <PageHeader eyebrow="Operator Profile" title="Profile Not Found">
-          That operator is not in the current roster.
-        </PageHeader>
+        <p className="mb-4 text-center text-sm font-bold text-red-400">Profile Not Found</p>
         <Link
           to="/profiles"
           className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 text-sm font-black uppercase tracking-[0.18em] text-gray-200 hover:border-white/10 hover:text-gray-100"
@@ -81,15 +76,6 @@ function PublicProfile() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        eyebrow="Operator Profile"
-        title={`${clanPrefix(profile)} ${displayProfileName(profile)}`}
-        titleLead="Operator"
-        titleRest={`${clanPrefix(profile)} ${displayProfileName(profile)}`}
-      >
-        Review operator details before you squad up, message them, or check which account they are running.
-      </PageHeader>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           to="/profiles"
