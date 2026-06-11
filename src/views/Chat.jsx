@@ -509,7 +509,7 @@ function Chat() {
         </PageHeader>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 hidden sm:flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => handleRoomChange('public')}
@@ -537,7 +537,7 @@ function Chat() {
       </div>
 
       {activeRoom === 'clan' && canUseClanRoom ? (
-        <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="mb-4 hidden sm:grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div>
             <p className="intel-label mb-2">Room Selection</p>
             <select
@@ -574,7 +574,7 @@ function Chat() {
       ) : null}
 
       {activeRoom === 'clan' && !canUseClanRoom ? (
-        <section className="panel mb-4 rounded-[1.8rem] p-5">
+        <section className="panel mb-4 hidden sm:block rounded-[1.8rem] p-5">
           <p className="intel-label mb-3">Clan Room Locked</p>
           <h2 className="text-2xl font-black uppercase tracking-[0.04em] text-white">
             Join or create a clan first
@@ -593,8 +593,44 @@ function Chat() {
       ) : null}
 
       <section ref={chatPanelRef} style={chatPanelStyle} className={`chat-stable-panel flex h-[calc(var(--visual-viewport-height)-17rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:h-[72vh] sm:min-h-[34rem] sm:rounded-[1.8rem] ${chatKeyboardActive ? 'chat-stable-panel--keyboard' : ''}`}>
-        <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
-          <div className="mr-auto min-w-0">
+        <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-white/10 bg-black/20 px-3 py-2 sm:px-4 sm:py-3 backdrop-blur">
+          {/* Mobile compact header */}
+          <div className="flex w-full items-center gap-2 sm:hidden">
+            <div className="flex shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40">
+              <button
+                onClick={() => handleRoomChange('public')}
+                className={`px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.1em] transition ${activeRoom === 'public' ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
+              >
+                Public
+              </button>
+              <button
+                onClick={() => handleRoomChange('clan')}
+                className={`px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.1em] transition ${activeRoom === 'clan' ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
+              >
+                Clan
+              </button>
+            </div>
+            
+            {activeRoom === 'clan' && canUseClanRoom && (
+              <select
+                value={resolvedSelectedClanId}
+                onChange={handleClanChange}
+                className="flex-1 rounded-full border border-white/10 bg-black/40 px-2 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.05em] text-white outline-none"
+              >
+                {availableClanRooms.map((clan) => (
+                  <option key={clan.id} value={clan.id}>
+                    [{clan.tag}] {clan.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {activeRoom === 'clan' && !canUseClanRoom && (
+               <span className="text-[0.65rem] font-black uppercase tracking-[0.1em] text-red-400">Locked</span>
+            )}
+          </div>
+
+          {/* Desktop header */}
+          <div className="mr-auto hidden min-w-0 sm:block">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">
               {activeRoom === 'clan' ? 'Clan Chat' : 'Public Chat'}
             </p>
@@ -610,12 +646,12 @@ function Chat() {
             )}
           </div>
           {activeRoom === 'clan' && selectedClan ? (
-            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300">
+            <span className="hidden rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300 sm:inline-block">
               [{selectedClan.tag}] {selectedClan.name}
             </span>
           ) : null}
           {activeRoom === 'clan' && selectedClan && selectedClan.id !== myClanId ? (
-            <span className="rounded-full border border-yellow-400/40 bg-yellow-400/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-yellow-100">
+            <span className="hidden rounded-full border border-yellow-400/40 bg-yellow-400/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-yellow-100 sm:inline-block">
               <Eye className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
               Admin View
             </span>

@@ -325,25 +325,14 @@ function MediaComposer({
             >
               <Square className="h-4 w-4 fill-white" aria-hidden="true" />
             </button>
-          ) : value.trim() || pendingMedia ? (
+          ) : (
             <button
               type="submit"
               disabled={!canSend}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white shadow-lg shadow-white/5 transition hover:bg-white/10 disabled:bg-white/10 disabled:text-gray-600 disabled:shadow-none"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white shadow-lg shadow-white/5 transition hover:bg-white/10 disabled:bg-white/5 disabled:text-gray-600 disabled:shadow-none"
               aria-label="Send message"
             >
               <Send className="h-4 w-4" aria-hidden="true" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleRecordStart}
-              disabled={disabled || sending || uploading}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-400 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
-              aria-label="Record voice message"
-              title="Record voice message"
-            >
-              <Mic className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
