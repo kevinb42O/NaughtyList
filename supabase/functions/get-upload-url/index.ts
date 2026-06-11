@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405)
+    return jsonResponse({ error: 'Method not allowed' })
   }
 
   try {
@@ -75,22 +75,23 @@ Deno.serve(async (req) => {
     ].find(([, value]) => !value)
 
     if (missingConfig) {
-      return jsonResponse({ error: `Missing server media config: ${missingConfig[0]}` }, 500)
+      return jsonResponse({ error: `Missing server media config: ${missingConfig[0]}` })
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const user = await getRequestUser(supabase, req)
     const body = await req.json()
-    const contentType = requireString(body.contentType).toLowerCase()
+    const rawContentType = requireString(body.contentType).toLowerCase()
+    const contentType = rawContentType.split(';')[0].trim()
     const fileSize = Number(body.fileSize ?? 0)
     const extension = allowedTypes.get(contentType)
 
     if (!extension) {
-      return jsonResponse({ error: 'Only supported images and audio files can be uploaded.' }, 400)
+      return jsonResponse({ error: 'Only supported images and audio files can be uploaded.' })
     }
 
     if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_FILE_SIZE) {
-      return jsonResponse({ error: 'Images must be 10 MB or smaller.' }, 400)
+      return jsonResponse({ error: 'Images must be 10 MB or smaller.' })
     }
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
@@ -102,7 +103,7 @@ Deno.serve(async (req) => {
 
     if (countError) throw countError
     if ((count ?? 0) >= MAX_UPLOADS_PER_HOUR) {
-      return jsonResponse({ error: 'Image upload limit reached. Try again in a bit.' }, 429)
+      return jsonResponse({ error: 'Image upload limit reached. Try again in a bit.' })
     }
 
     const dateKey = new Date().toISOString().slice(0, 10).replaceAll('-', '')
@@ -136,6 +137,6 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ uploadUrl, publicUrl, objectKey, expiresIn: SIGNED_URL_TTL_SECONDS })
   } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Unable to prepare image upload.' }, 400)
+    return jsonResponse({ error: error instanceof Error ? error.message : 'Unable to prepare image upload.' })
   }
 })

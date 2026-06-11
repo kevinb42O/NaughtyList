@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405)
+    return jsonResponse({ error: 'Method not allowed' })
   }
 
   try {
@@ -28,13 +28,13 @@ Deno.serve(async (req) => {
     const targetUrl = body.url
 
     if (!targetUrl || typeof targetUrl !== 'string') {
-      return jsonResponse({ error: 'Missing url parameter' }, 400)
+      return jsonResponse({ error: 'Missing url parameter' })
     }
 
     try {
       new URL(targetUrl)
     } catch {
-      return jsonResponse({ error: 'Invalid URL' }, 400)
+      return jsonResponse({ error: 'Invalid URL' })
     }
 
     const controller = new AbortController()
@@ -50,12 +50,12 @@ Deno.serve(async (req) => {
     }).finally(() => clearTimeout(timeoutId))
 
     if (!response.ok) {
-      return jsonResponse({ error: `Failed to fetch URL: ${response.statusText}` }, 400)
+      return jsonResponse({ error: `Failed to fetch URL: ${response.statusText}` })
     }
 
     const contentType = response.headers.get('content-type') || ''
     if (!contentType.includes('text/html')) {
-      return jsonResponse({ error: 'URL does not return HTML' }, 400)
+      return jsonResponse({ error: 'URL does not return HTML' })
     }
 
     const html = await response.text()
@@ -78,6 +78,6 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ title, description, image, url })
   } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Unknown error' }, 500)
+    return jsonResponse({ error: error instanceof Error ? error.message : 'Unknown error' })
   }
 })
