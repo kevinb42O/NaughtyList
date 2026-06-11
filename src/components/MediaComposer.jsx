@@ -1,4 +1,4 @@
-import { LoaderCircle, Mic, Plus, Send, Square, Sticker, Trash2, X } from 'lucide-react'
+import { LoaderCircle, Mic, Plus, Send, Square, Sticker, Trash2, X, Image as ImageIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { imageAcceptValue, uploadChatAudio, uploadChatImage } from '../utils/media.js'
@@ -60,6 +60,7 @@ function MediaComposer({
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const mediaRecorderRef = useRef(null)
@@ -238,32 +239,57 @@ function MediaComposer({
           ) : (
             <>
               <input ref={fileInputRef} type="file" accept={imageAcceptValue} onChange={handleFileChange} className="hidden" />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={disabled || sending || uploading}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/8 hover:text-gray-100 disabled:opacity-40"
-                aria-label="Attach image"
-                title="Attach image"
-              >
-                {uploading ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-5 w-5" aria-hidden="true" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => setGifPickerOpen(true)}
-                disabled={disabled || sending || uploading}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/8 hover:text-gray-100 disabled:opacity-40"
-                aria-label="Choose GIF"
-                title="Choose GIF"
-              >
-                <Sticker className="h-4 w-4" aria-hidden="true" />
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  disabled={disabled || sending || uploading}
+                  className="relative z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-400 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                  aria-label="Add attachment"
+                  title="Add attachment"
+                >
+                  {uploading ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className={`h-5 w-5 transition-transform duration-200 ${menuOpen ? 'rotate-45 text-white' : ''}`} aria-hidden="true" />}
+                </button>
+                
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-0" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                    <div className="absolute bottom-full left-0 z-10 mb-2 flex w-48 origin-bottom-left flex-col gap-1 rounded-2xl border border-white/10 bg-zinc-900/95 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <button
+                        type="button"
+                        onClick={() => { setMenuOpen(false); fileInputRef.current?.click(); }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-200 transition hover:bg-white/10"
+                      >
+                        <ImageIcon className="h-4.5 w-4.5 text-blue-400" />
+                        Photo / Video
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setMenuOpen(false); setGifPickerOpen(true); }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-200 transition hover:bg-white/10"
+                      >
+                        <Sticker className="h-4.5 w-4.5 text-pink-400" />
+                        GIF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setMenuOpen(false); handleRecordStart(); }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-200 transition hover:bg-white/10"
+                      >
+                        <Mic className="h-4.5 w-4.5 text-red-400" />
+                        Voice Message
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               <div className="chat-composer-input-shell flex min-w-0 flex-1 items-center rounded-full bg-white/[0.06] px-3">
                 <textarea
                   ref={textAreaRef}
                   value={value}
                   onChange={(event) => {
                     onChange(event.target.value)
+                    if (menuOpen) setMenuOpen(false)
                     if (event.target.value.trim()) {
                       onTyping?.()
                     }
