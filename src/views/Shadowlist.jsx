@@ -404,13 +404,6 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
   const nameInputRef = useRef(null)
   const passwordInputRef = useRef(null)
 
-  // Lock background scroll while modal is open
-  useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [])
-
   useEffect(() => {
     if (account.shadowbanStatus !== 'shadowbanned' || !account.shadowbanStartTime) return
     const id = setInterval(() => setTimeLeft(getRemainingTime(account.shadowbanStartTime)), 1000)
@@ -474,27 +467,25 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
   const avatarSrc = account.profilePicture || AVATAR_OPTIONS[0]
 
   return (
-    // Overlay — scrollable so tall content on small phones doesn't get cut.
-    // overscroll-contain stops the page behind from scrolling.
+    // Overlay: fixed full-screen backdrop, does NOT scroll.
+    // The modal CARD itself scrolls (overflow-y-auto + max-h).
+    // This is the only approach that works on iOS Safari + Android.
     <div
-      className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(8px)', animation: 'shadowlistFadeIn 0.2s ease' }}
       onClick={onClose}
     >
-      {/* Centering wrapper — items-start + my-auto lets the card self-center
-           when short, but allows full scroll when the content is taller than
-           the viewport. items-center was the culprit: it clips the bottom. */}
-      <div className="flex min-h-full items-start justify-center p-4 pointer-events-none">
-        <div
-          className="my-auto w-full max-w-lg rounded-[1.8rem] border border-white/10 overflow-hidden pointer-events-auto"
-          style={{
-            background: 'rgba(12, 15, 20, 0.97)',
-            backdropFilter: 'blur(24px)',
-            animation: 'shadowlistSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.9)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
+      <div
+        className="w-full max-w-lg rounded-[1.8rem] border border-white/10 overflow-y-auto overscroll-contain"
+        style={{
+          background: 'rgba(12, 15, 20, 0.97)',
+          backdropFilter: 'blur(24px)',
+          animation: 'shadowlistSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.9)',
+          maxHeight: '90dvh',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
           {/* Hero banner */}
           <div className="relative h-40 overflow-hidden shrink-0">
             <img src={avatarSrc} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" />
@@ -781,7 +772,6 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
             </div>
           </div>
         </div>
-      </div>
     </div>
   )
 }
