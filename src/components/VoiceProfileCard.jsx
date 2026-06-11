@@ -1,4 +1,4 @@
-import { MicOff } from 'lucide-react'
+import { MicOff, VolumeX } from 'lucide-react'
 import ProfileAvatar from './ProfileAvatar.jsx'
 import ProfileDisplayName from './ProfileDisplayName.jsx'
 import RoleBadge from './RoleBadge.jsx'
@@ -7,7 +7,7 @@ import SupporterBadge from './SupporterBadge.jsx'
 import { profileLevel } from '../utils/gamification.js'
 import { displayProfileName } from '../utils/profiles.js'
 
-export default function VoiceProfileCard({ profile, participant, isSpeaking }) {
+export default function VoiceProfileCard({ profile, participant, isSpeaking, isLocallyMuted, onToggleLocalMute }) {
   // Use the profile if available, fallback to participant payload
   const displayProfile = profile || participant
   const level = profileLevel(displayProfile)
@@ -37,8 +37,26 @@ export default function VoiceProfileCard({ profile, participant, isSpeaking }) {
       <div className="absolute top-4 right-4 flex items-center gap-2">
         {isMuted && (
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-red-400">
-            <MicOff className="h-4 w-4" />
+            <MicOff className="h-4 w-4" aria-label="Microphone muted" />
           </div>
+        )}
+        {!participant?.isMe && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleLocalMute()
+            }}
+            aria-pressed={isLocallyMuted}
+            aria-label={isLocallyMuted ? "Unmute user locally" : "Mute user locally"}
+            className={`flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+              isLocallyMuted 
+                ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
+                : 'bg-black/60 border-white/10 text-gray-400 hover:text-white hover:bg-black/80'
+            }`}
+          >
+            <VolumeX className="h-4 w-4" />
+          </button>
         )}
       </div>
 

@@ -11,8 +11,10 @@ export default function VoiceRoomModal({
   dominantSpeakerId,
   isMuted,
   isDeafened,
+  localMutes,
   toggleMute,
   toggleDeafen,
+  toggleLocalMute,
   disconnectVoice,
 }) {
   const { profiles } = useIntel()
@@ -94,6 +96,8 @@ export default function VoiceRoomModal({
               participant={participant}
               profile={profile}
               isSpeaking={dominantSpeakerId === participant.id && !participant.muted}
+              isLocallyMuted={localMutes?.has(participant.id)}
+              onToggleLocalMute={() => toggleLocalMute(participant.id)}
             />
           ))}
         </div>

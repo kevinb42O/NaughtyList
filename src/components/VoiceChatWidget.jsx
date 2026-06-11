@@ -151,6 +151,7 @@ export default function VoiceChatWidget() {
   const [isConnected, setIsConnected] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isDeafened, setIsDeafened] = useState(false)
+  const [localMutes, setLocalMutes] = useState(new Set())
   const [selectedRoom, setSelectedRoom] = useState(voiceRooms[0].name)
   const [connectionStatus, setConnectionStatus] = useState('idle')
   const [connectionError, setConnectionError] = useState('')
@@ -224,10 +225,12 @@ export default function VoiceChatWidget() {
 
   const isConnectedRef = useRef(isConnected)
   const selectedRoomRef = useRef(selectedRoom)
+  const localMutesRef = useRef(localMutes)
   useEffect(() => {
     isConnectedRef.current = isConnected
     selectedRoomRef.current = selectedRoom
-  }, [isConnected, selectedRoom])
+    localMutesRef.current = localMutes
+  }, [isConnected, selectedRoom, localMutes])
 
   useEffect(() => {
     if (!isAuthenticated || !profile?.id) {
@@ -450,7 +453,7 @@ export default function VoiceChatWidget() {
         }
 
         audio.srcObject = peerStream
-        audio.volume = isDeafened ? 0 : 1
+        audio.volume = isDeafened || localMutesRef.current.has(peerId) ? 0 : 1
         audio.play().catch((error) => {
           console.warn('[VoiceChat] Autoplay prevented for peer audio', error)
           retryPeerAudio(audio, peerId)
@@ -568,8 +571,8 @@ export default function VoiceChatWidget() {
     setIsDeafened(nextDeafened)
     playSynthSound(nextDeafened ? 'mute' : 'unmute')
 
-    audioElementsRef.current.forEach((audio) => {
-      audio.volume = nextDeafened ? 0 : 1
+    audioElementsRef.current.forEach((audio, peerId) => {
+      audio.volume = nextDeafened || localMutesRef.current.has(peerId) ? 0 : 1
     })
 
     if (nextDeafened && !isMuted) {
@@ -583,6 +586,24 @@ export default function VoiceChatWidget() {
       )))
     }
   }, [isDeafened, isMuted])
+
+  const toggleLocalMute = useCallback((peerId) => {
+    setLocalMutes((current) => {
+      const next = new Set(current)
+      if (next.has(peerId)) {
+        next.delete(peerId)
+      } else {
+        next.add(peerId)
+      }
+      
+      const audio = audioElementsRef.current.get(peerId)
+      if (audio) {
+        audio.volume = next.has(peerId) || isDeafened ? 0 : 1
+      }
+      
+      return next
+    })
+  }, [isDeafened])
 
   if (!isAuthenticated) return null
 
@@ -788,8 +809,10 @@ export default function VoiceChatWidget() {
         dominantSpeakerId={dominantSpeakerId}
         isMuted={isMuted}
         isDeafened={isDeafened}
+        localMutes={localMutes}
         toggleMute={toggleMute}
         toggleDeafen={toggleDeafen}
+        toggleLocalMute={toggleLocalMute}
         disconnectVoice={disconnectVoice}
       />
 
