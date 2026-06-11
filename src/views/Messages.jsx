@@ -415,19 +415,14 @@ function Messages() {
 
   return (
     <div>
-      <div className="hidden sm:block">
-        <PageHeader eyebrow="Direct Messages" title="Private Comms">
-          Clean one-on-one threads with fast reactions and quiet unread tracking.
-        </PageHeader>
-      </div>
 
       <section className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside className={`chat-stable-panel rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:block lg:max-h-[72vh] ${hasSelectedThread ? 'hidden' : 'block'}`}>
+        <aside className={`chat-stable-panel flex flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:block lg:max-h-[calc(100vh-7rem)] ${hasSelectedThread ? 'hidden' : 'block'}`}>
           <div className="border-b border-white/10 bg-black/20 px-4 py-3">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">People</p>
             <h2 className="text-base font-black uppercase tracking-[0.04em] text-white">Direct Lines</h2>
           </div>
-          <div className="max-h-[calc(72vh-4rem)] space-y-1 overflow-y-auto p-2">
+          <div className="max-h-[calc(100vh-11rem)] space-y-1 overflow-y-auto p-2">
             {contacts.length ? (
               contacts.map((contact) => {
                 const online = isProfileOnline(contact, onlineUserIds)
@@ -486,7 +481,7 @@ function Messages() {
         <div
           ref={threadPanelRef}
           style={threadPanelStyle}
-          className={`chat-stable-panel h-[calc(var(--visual-viewport-height)-9.5rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:flex lg:h-[72vh] lg:min-h-[34rem] ${hasSelectedThread ? 'flex' : 'hidden'} ${threadKeyboardActive ? 'chat-stable-panel--keyboard' : ''}`}
+          className={`chat-stable-panel h-[calc(var(--visual-viewport-height)-9.5rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:rounded-[1.8rem] lg:flex lg:h-[calc(100vh-7rem)] lg:min-h-[34rem] ${hasSelectedThread ? 'flex' : 'hidden'} ${threadKeyboardActive ? 'chat-stable-panel--keyboard' : ''}`}
         >
           {selectedProfile ? (
             <div key={selectedProfileId} className="flex h-full min-h-0 flex-col">

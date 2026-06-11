@@ -503,76 +503,6 @@ function Chat() {
 
   return (
     <div>
-      <div className="hidden sm:block">
-        <PageHeader eyebrow="Chat Network" title="Squad Comms">
-          Fast public calls, private clan traffic, clean reactions.
-        </PageHeader>
-      </div>
-
-      <div className="mb-4 hidden sm:flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => handleRoomChange('public')}
-          className={[
-            'rounded-full border px-4 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition',
-            activeRoom === 'public'
-              ? 'border-white/10 bg-white/5 text-gray-100'
-              : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200',
-          ].join(' ')}
-        >
-          Public Room
-        </button>
-        <button
-          type="button"
-          onClick={() => handleRoomChange('clan')}
-          className={[
-            'rounded-full border px-4 py-2 text-[0.68rem] font-black uppercase tracking-[0.18em] transition',
-            activeRoom === 'clan'
-              ? 'border-white/10 bg-white/5 text-gray-100'
-              : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-gray-200',
-          ].join(' ')}
-        >
-          Clan Room
-        </button>
-      </div>
-
-      {activeRoom === 'clan' && canUseClanRoom ? (
-        <div className="mb-4 hidden sm:grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div>
-            <p className="intel-label mb-2">Room Selection</p>
-            <select
-              value={resolvedSelectedClanId}
-              onChange={handleClanChange}
-              className="field min-h-12"
-            >
-              {availableClanRooms.map((clan) => (
-                <option key={clan.id} value={clan.id}>
-                  [{clan.tag}] {clan.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-gray-400">
-            {selectedClan ? (
-              <>
-                <div className="flex items-center gap-3">
-                  <ClanBadge clan={selectedClan} size="sm" />
-                  <p className="font-black uppercase tracking-[0.08em] text-white">
-                    [{selectedClan.tag}] {selectedClan.name}
-                  </p>
-                </div>
-                <p className="mt-1 leading-6">
-                  {selectedClan.id === myClanId
-                    ? `Your active clan room. Role: ${myClanRole}.`
-                    : 'Admin inspector view. Read-only unless you are also a member.'}
-                </p>
-              </>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
       {activeRoom === 'clan' && !canUseClanRoom ? (
         <section className="panel mb-4 hidden sm:block rounded-[1.8rem] p-5">
           <p className="intel-label mb-3">Clan Room Locked</p>
@@ -592,10 +522,10 @@ function Chat() {
         </section>
       ) : null}
 
-      <section ref={chatPanelRef} style={chatPanelStyle} className={`chat-stable-panel flex h-[calc(var(--visual-viewport-height)-17rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:h-[72vh] sm:min-h-[34rem] sm:rounded-[1.8rem] ${chatKeyboardActive ? 'chat-stable-panel--keyboard' : ''}`}>
+      <section ref={chatPanelRef} style={chatPanelStyle} className={`chat-stable-panel flex h-[calc(var(--visual-viewport-height)-17rem)] min-h-0 flex-col rounded-[1.35rem] p-0 sm:h-[calc(100vh-7rem)] sm:min-h-[34rem] sm:rounded-[1.8rem] ${chatKeyboardActive ? 'chat-stable-panel--keyboard' : ''}`}>
         <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-white/10 bg-black/20 px-3 py-2 sm:px-4 sm:py-3 backdrop-blur">
-          {/* Mobile compact header */}
-          <div className="flex w-full items-center gap-2 sm:hidden">
+          {/* Universal compact header */}
+          <div className="flex w-full items-center gap-2">
             <div className="flex shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40">
               <button
                 onClick={() => handleRoomChange('public')}
@@ -628,34 +558,6 @@ function Chat() {
                <span className="text-[0.65rem] font-black uppercase tracking-[0.1em] text-red-400">Locked</span>
             )}
           </div>
-
-          {/* Desktop header */}
-          <div className="mr-auto hidden min-w-0 sm:block">
-            <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-gray-500">
-              {activeRoom === 'clan' ? 'Clan Chat' : 'Public Chat'}
-            </p>
-            {activeRoom === 'clan' && selectedClan ? (
-              <div className="flex items-center gap-2">
-                <ClanBadge clan={selectedClan} size="sm" />
-                <h2 className="truncate text-base font-black uppercase tracking-[0.04em] text-white">
-                  [{selectedClan.tag}] {selectedClan.name}
-                </h2>
-              </div>
-            ) : (
-              <h2 className="truncate text-base font-black uppercase tracking-[0.04em] text-white">Live Room</h2>
-            )}
-          </div>
-          {activeRoom === 'clan' && selectedClan ? (
-            <span className="hidden rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-gray-300 sm:inline-block">
-              [{selectedClan.tag}] {selectedClan.name}
-            </span>
-          ) : null}
-          {activeRoom === 'clan' && selectedClan && selectedClan.id !== myClanId ? (
-            <span className="hidden rounded-full border border-yellow-400/40 bg-yellow-400/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-yellow-100 sm:inline-block">
-              <Eye className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
-              Admin View
-            </span>
-          ) : null}
           {activeRoom === 'clan' && selectedClan && selectedClan.id === myClanId && myClanRole === 'owner' ? (
             <span className="rounded-full border border-yellow-400/40 bg-yellow-400/10 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em] text-yellow-100">
               <Crown className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
