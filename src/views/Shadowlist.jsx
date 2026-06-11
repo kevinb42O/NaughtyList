@@ -466,8 +466,10 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
     onUpdate({
       ...account,
       shadowbanStatus: nowBanned ? 'shadowbanned' : 'clear',
-      shadowbanDate: nowBanned ? new Date().toISOString().slice(0, 10) : '',
-      shadowbanStartTime: nowBanned ? Date.now() : null,
+      ...(nowBanned ? {
+        shadowbanDate: new Date().toISOString().slice(0, 10),
+        shadowbanStartTime: Date.now()
+      } : {})
     })
   }
 
