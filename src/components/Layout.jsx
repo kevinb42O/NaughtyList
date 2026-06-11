@@ -49,6 +49,10 @@ function Layout() {
   const [modalOpen, setModalOpen] = useState(false)
   const [isInactive, setIsInactive] = useState(false)
   const bottomNavRef = useRef(null)
+  
+  const navHidden = keyboardActive || modalOpen || isInactive
+  const navHiddenRef = useRef(navHidden)
+  navHiddenRef.current = navHidden
 
   useEffect(() => {
     const root = document.documentElement
@@ -87,7 +91,11 @@ function Layout() {
       const keyboardVisible = phoneViewport && (textFieldFocused || bottomOffset > 120)
 
       if (bottomNavRef.current) {
-        root.style.setProperty('--mobile-bottom-nav-height', `${Math.round(bottomNavRef.current.offsetHeight)}px`)
+        if (navHiddenRef.current) {
+          root.style.setProperty('--mobile-bottom-nav-height', '0px')
+        } else {
+          root.style.setProperty('--mobile-bottom-nav-height', `${Math.round(bottomNavRef.current.offsetHeight)}px`)
+        }
       }
 
       root.style.setProperty('--visual-viewport-height', `${Math.round(viewportHeight)}px`)
@@ -132,6 +140,11 @@ function Layout() {
       window.removeEventListener('modal-close', handleModalClose)
     }
   }, [])
+
+  // Trigger recalculations when nav hide state changes
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'))
+  }, [navHidden])
 
   // Inactivity tracking for auto-hide
   useEffect(() => {
