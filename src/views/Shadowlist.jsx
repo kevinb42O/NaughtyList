@@ -460,6 +460,7 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
     })
   }
 
+  const isShadowbanned = account.shadowbanStatus === 'shadowbanned'
   const avatarSrc = getAvatarForLevel(account.userLevel || 1)
 
   useEffect(() => {
