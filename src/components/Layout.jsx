@@ -200,6 +200,7 @@ function Layout() {
     ? [...navItems.slice(0, -1), roleNavItem, navItems[navItems.length - 1]]
     : navItems
   const isHome = location.pathname === '/'
+  const isChat = location.pathname === '/chat'
 
   function navClass({ isActive }, item) {
     const isRoleItem = item.tone === 'admin' || item.tone === 'moderator'
@@ -256,8 +257,8 @@ function Layout() {
         aria-hidden="true"
         className="app-watermark pointer-events-none fixed inset-0 z-0"
       />
-      <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-24 pt-4 sm:px-6 lg:px-8">
-        <div className={isHome ? 'pointer-events-none absolute inset-x-0 top-0 z-20 px-4 sm:px-6 lg:px-8' : ''}>
+      <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 lg:px-8">
+        <div className={`${isHome ? 'pointer-events-none absolute inset-x-0 top-0 z-20 px-4 sm:px-6 lg:px-8' : ''} ${isChat ? 'hidden sm:block' : ''}`}>
           <header className={`${isHome ? 'pointer-events-auto mb-0 bg-black/38 shadow-2xl shadow-black/35' : 'mb-5 bg-black/30 shadow-lg shadow-black/20'} flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2 backdrop-blur-xl sm:px-4`}>
             <Link to="/" className="group flex min-w-0 items-center gap-3">
               <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-white/5 shadow-[0_0_22px_rgba(99, 102, 241,0.18)] transition group-hover:border-white/10 group-hover:shadow-[0_0_28px_rgba(99, 102, 241,0.28)]">
