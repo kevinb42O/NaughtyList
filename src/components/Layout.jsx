@@ -200,7 +200,7 @@ function Layout() {
     ? [...navItems.slice(0, -1), roleNavItem, navItems[navItems.length - 1]]
     : navItems
   const isHome = location.pathname === '/'
-  const isChat = location.pathname === '/chat'
+  const isChat = location.pathname === '/chat' || location.pathname.startsWith('/messages')
 
   function navClass({ isActive }, item) {
     const isRoleItem = item.tone === 'admin' || item.tone === 'moderator'

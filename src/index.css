@@ -253,7 +253,7 @@ button:disabled {
   }
 
   .chat-scroll-surface {
-    background: #07070a;
+    background: rgba(7, 7, 10, 0.4);
     overflow-anchor: none;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
