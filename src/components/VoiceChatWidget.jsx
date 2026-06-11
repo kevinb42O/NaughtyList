@@ -245,7 +245,9 @@ export default function VoiceChatWidget() {
         setRoomOccupancy(counts)
       })
       .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') await channel.track({ room: null })
+        if (status === 'SUBSCRIBED' && isConnected) {
+          await channel.track({ room: selectedRoom }).catch(() => {})
+        }
       })
 
     return () => {
@@ -256,11 +258,17 @@ export default function VoiceChatWidget() {
 
   useEffect(() => {
     const channel = presenceChannelRef.current
-    if (!channel || channel.state !== 'joined') return
+    if (!channel) return
 
-    channel.track({ room: isConnected ? selectedRoom : null }).catch((error) => {
-      console.warn('[VoiceChat] Failed to update room presence', error)
-    })
+    if (isConnected) {
+      channel.track({ room: selectedRoom }).catch((error) => {
+        console.warn('[VoiceChat] Failed to update room presence', error)
+      })
+    } else {
+      channel.untrack().catch((error) => {
+        console.warn('[VoiceChat] Failed to untrack room presence', error)
+      })
+    }
   }, [isConnected, selectedRoom])
 
   useEffect(() => {
