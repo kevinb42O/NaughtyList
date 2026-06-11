@@ -708,7 +708,7 @@ function Chat() {
                       </div>
                       <div className={`relative min-w-20 rounded-2xl border px-3.5 pb-5 pt-2.5 text-[0.94rem] leading-6 shadow-lg shadow-black/20 ${
                         mine
-                          ? 'rounded-br-md border-white/10 bg-gradient-to-br from-white/5 to-transparent text-gray-50'
+                          ? 'rounded-br-md border-emerald-500/20 bg-gradient-to-br from-emerald-500/15 to-emerald-900/20 text-emerald-50'
                           : 'rounded-bl-md border-white/[0.08] bg-zinc-950/75 text-gray-100'
                       }`}>
                       {chatMessage.replyToMessage ? (
