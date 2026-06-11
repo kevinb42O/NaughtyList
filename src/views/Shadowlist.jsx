@@ -24,7 +24,6 @@ import { profileGameAccounts } from '../utils/gameAccounts.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SHADOWBAN_DURATION = 5 * 24 * 60 * 60 * 1000 // 5 days in ms
-const AVATAR_OPTIONS = ['/avatars/skull.png', '/avatars/soldier.png', '/avatars/shield.png']
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getRemainingTime(startTime) {
@@ -378,7 +377,6 @@ function AddAccountModal({ onClose, onAdd }) {
 
 // ─── AccountDetailModal Component ─────────────────────────────────────────────
 function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
-  const [timeLeft, setTimeLeft] = useState(() => account.shadowbanStatus === 'shadowbanned' ? getRemainingTime(account.shadowbanStartTime) : 0)
   const [isEditingLevel, setIsEditingLevel] = useState(false)
   const [editLevelValue, setEditLevelValue] = useState(account.userLevel ?? 1)
   const [isEditingName, setIsEditingName] = useState(false)
@@ -393,12 +391,6 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const nameInputRef = useRef(null)
   const passwordInputRef = useRef(null)
-
-  useEffect(() => {
-    if (account.shadowbanStatus !== 'shadowbanned' || !account.shadowbanStartTime) return
-    const id = setInterval(() => setTimeLeft(getRemainingTime(account.shadowbanStartTime)), 1000)
-    return () => clearInterval(id)
-  }, [account.shadowbanStatus, account.shadowbanStartTime])
 
   // Focus inputs when entering edit mode
   useEffect(() => {
@@ -864,7 +856,7 @@ function Shadowlist() {
 
       if (needsUpdate) {
         // Optimistically set the state so the UI reflects the cleared accounts immediately
-        setGameAccounts(nextAccounts)
+        setTimeout(() => setGameAccounts(nextAccounts), 0)
         // Fire-and-forget the update to DB
         updateProfile({
           displayName: profile.display_name ?? '',
@@ -875,7 +867,7 @@ function Shadowlist() {
           gameAccounts: nextAccounts,
         }).catch(console.error)
       } else {
-        setGameAccounts(accounts)
+        setTimeout(() => setGameAccounts(accounts), 0)
       }
     }
   }, [profile, updateProfile])

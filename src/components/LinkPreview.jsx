@@ -23,7 +23,7 @@ export default function LinkPreview({ url }) {
         } else {
           setPreview(data)
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) setError(true)
       } finally {
         if (!cancelled) setLoading(false)

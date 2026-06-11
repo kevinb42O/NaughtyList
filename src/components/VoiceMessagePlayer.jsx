@@ -98,7 +98,7 @@ function VoiceMessagePlayer({ mediaUrl }) {
   const togglePlayback = (event) => {
     event.stopPropagation()
     const audio = audioRef.current
-    if (!audio || isLoading || error) return
+    if (!audio || isLoading) return
 
     if (isPlaying) {
       audio.pause()
@@ -130,12 +130,22 @@ function VoiceMessagePlayer({ mediaUrl }) {
 
   return (
     <div className="relative mb-2 flex w-full max-w-[260px] items-center gap-3 rounded-[1.2rem] border border-white/10 bg-black/40 p-2 shadow-inner shadow-black/20 backdrop-blur-md">
-      <audio ref={audioRef} src={mediaUrl} preload="metadata" className="hidden" />
+      <audio 
+        ref={audioRef} 
+        src={mediaUrl} 
+        preload="metadata" 
+        className="hidden" 
+        onLoadedMetadata={(e) => {
+          if (e.target.duration && e.target.duration !== Infinity) {
+            setDuration(e.target.duration)
+          }
+        }}
+      />
 
       <button
         type="button"
         onClick={togglePlayback}
-        disabled={isLoading || error}
+        disabled={isLoading}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.3)] transition hover:bg-emerald-400 hover:shadow-[0_0_16px_rgba(16,185,129,0.5)] disabled:opacity-50 disabled:shadow-none"
         aria-label={isPlaying ? 'Pause' : 'Play'}
       >

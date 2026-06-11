@@ -233,7 +233,7 @@ function MediaComposer({
       } catch (err) {
         console.warn('Audio visualization not supported', err)
       }
-    } catch (error) {
+    } catch {
       onError?.('Microphone access denied or unavailable.')
     }
   }

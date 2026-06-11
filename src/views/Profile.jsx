@@ -2,7 +2,7 @@
 import { Camera, HeartHandshake, KeyRound, Lock, Plus, Save, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { toast } from 'sonner'
+
 import ClanBadge from '../components/ClanBadge.jsx'
 import CollapsiblePanel from '../components/CollapsiblePanel.jsx'
 import DailyCheckInPanel from '../components/DailyCheckInPanel.jsx'

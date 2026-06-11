@@ -52,7 +52,10 @@ function Layout() {
   
   const navHidden = keyboardActive || modalOpen || isInactive
   const navHiddenRef = useRef(navHidden)
-  navHiddenRef.current = navHidden
+
+  useEffect(() => {
+    navHiddenRef.current = navHidden
+  }, [navHidden])
 
   useEffect(() => {
     const root = document.documentElement

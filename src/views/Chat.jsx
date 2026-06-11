@@ -1,4 +1,4 @@
-import { Crown, Eye, MessageSquare, Reply, Shield } from 'lucide-react'
+import { Crown, MessageSquare, Reply, Shield } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
