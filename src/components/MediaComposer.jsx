@@ -75,10 +75,7 @@ function MediaComposer({
     }
   }, [value])
 
-  async function handleFileChange(event) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
+  async function processFile(file) {
     if (!file) return
 
     setUploading(true)
@@ -93,6 +90,29 @@ function MediaComposer({
     } finally {
       setUploading(false)
       window.setTimeout(() => setUploadProgress(0), 400)
+    }
+  }
+
+  async function handleFileChange(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    processFile(file)
+  }
+
+  async function handlePaste(event) {
+    if (uploading) return
+    const items = event.clipboardData?.items
+    if (!items) return
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile()
+        if (file) {
+          event.preventDefault()
+          processFile(file)
+          break
+        }
+      }
     }
   }
 
@@ -154,6 +174,7 @@ function MediaComposer({
               disabled={disabled}
               autoComplete="off"
               rows={1}
+              onPaste={handlePaste}
             />
           </div>
           <button
