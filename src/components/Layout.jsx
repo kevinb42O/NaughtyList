@@ -161,14 +161,16 @@ function Layout() {
 
     window.addEventListener('mousemove', resetInactivity)
     window.addEventListener('touchstart', resetInactivity)
-    window.addEventListener('scroll', resetInactivity, true)
+    window.addEventListener('touchmove', resetInactivity)
+    window.addEventListener('wheel', resetInactivity)
     window.addEventListener('keydown', resetInactivity)
 
     return () => {
       clearTimeout(timeout)
       window.removeEventListener('mousemove', resetInactivity)
       window.removeEventListener('touchstart', resetInactivity)
-      window.removeEventListener('scroll', resetInactivity, true)
+      window.removeEventListener('touchmove', resetInactivity)
+      window.removeEventListener('wheel', resetInactivity)
       window.removeEventListener('keydown', resetInactivity)
     }
   }, [])
