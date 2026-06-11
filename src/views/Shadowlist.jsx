@@ -481,10 +481,12 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
       style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(8px)', animation: 'shadowlistFadeIn 0.2s ease' }}
       onClick={onClose}
     >
-      {/* Centering wrapper — pointer-events-none so clicks on the empty area hit the overlay */}
-      <div className="flex min-h-full items-end sm:items-center justify-center p-4 pointer-events-none">
+      {/* Centering wrapper — items-start + my-auto lets the card self-center
+           when short, but allows full scroll when the content is taller than
+           the viewport. items-center was the culprit: it clips the bottom. */}
+      <div className="flex min-h-full items-start justify-center p-4 pointer-events-none">
         <div
-          className="w-full max-w-lg rounded-[1.8rem] border border-white/10 overflow-hidden pointer-events-auto"
+          className="my-auto w-full max-w-lg rounded-[1.8rem] border border-white/10 overflow-hidden pointer-events-auto"
           style={{
             background: 'rgba(12, 15, 20, 0.97)',
             backdropFilter: 'blur(24px)',
