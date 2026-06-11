@@ -15,6 +15,8 @@ function ProfileCard({ profile, onlineUserIds }) {
   const navigate = useNavigate()
   const online = isProfileOnline(profile, onlineUserIds)
   const gameAccounts = profileGameAccounts(profile)
+  const previewAccounts = gameAccounts.slice(0, 5)
+  const overflowCount = gameAccounts.length - previewAccounts.length
   const bio = profile.bio?.trim()
   const level = profileLevel(profile)
   const xpTotal = profileXpTotal(profile)
@@ -90,21 +92,28 @@ function ProfileCard({ profile, onlineUserIds }) {
       </p>
 
       <div className="mt-4 space-y-2">
-        {gameAccounts.length ? (
-          gameAccounts.map((account) => {
-            const statusMeta = gameAccountStatusMeta(account)
+        {previewAccounts.length ? (
+          <>
+            {previewAccounts.map((account) => {
+              const statusMeta = gameAccountStatusMeta(account)
 
-            return (
-              <div key={account.id} className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-xs font-black text-cyan-100 backdrop-blur-sm">
-                  {account.id}
-                </span>
-                <span className={`rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.16em] ${statusMeta.className}`}>
-                  {statusMeta.label}
-                </span>
-              </div>
-            )
-          })
+              return (
+                <div key={account.id} className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-xs font-black text-cyan-100 backdrop-blur-sm">
+                    {account.id}
+                  </span>
+                  <span className={`rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.16em] ${statusMeta.className}`}>
+                    {statusMeta.label}
+                  </span>
+                </div>
+              )
+            })}
+            {overflowCount > 0 && (
+              <span className="inline-block rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-black uppercase tracking-[0.14em] text-gray-500">
+                +{overflowCount} more — click to view all
+              </span>
+            )}
+          </>
         ) : (
           <span className="rounded-full border border-dashed border-white/10 px-2.5 py-1 text-xs font-bold text-gray-500">
             No game accounts yet
