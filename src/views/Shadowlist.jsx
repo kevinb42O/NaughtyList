@@ -389,6 +389,7 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
   const [emailCopySuccess, setEmailCopySuccess] = useState(false)
   const [isEditingDate, setIsEditingDate] = useState(false)
   const [editDateValue, setEditDateValue] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const nameInputRef = useRef(null)
   const passwordInputRef = useRef(null)
 
@@ -492,15 +493,38 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
           <div className="relative h-40 overflow-hidden shrink-0">
             <img src={avatarSrc} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(10,12,16,0.3), rgba(10,12,16,0.9))' }} />
+            <div className="absolute top-4 left-4">
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2 rounded-full border border-red-500/50 bg-zinc-950/90 p-1 pl-3 shadow-lg shadow-black backdrop-blur-md">
+                  <span className="text-[0.68rem] font-black uppercase tracking-[0.1em] text-red-400 shrink-0">Sure?</span>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(account.id)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-zinc-950/80 text-gray-500 hover:text-red-400 hover:bg-zinc-900 transition"
+                  title="Delete account"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
             <div className="absolute top-4 right-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => onDelete(account.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-zinc-950/80 text-orange-400 hover:bg-zinc-900 transition"
-                title="Delete account"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
               <button
                 type="button"
                 onClick={onClose}
