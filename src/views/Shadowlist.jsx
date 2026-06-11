@@ -298,7 +298,7 @@ function AddAccountModal({ onClose, onAdd }) {
             <Crosshair className="h-5 w-5 text-orange-400" />
             <h2 className="text-lg font-black uppercase tracking-[0.1em] text-white">Add Account</h2>
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 hover:text-gray-100 transition">
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -528,7 +528,7 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-zinc-950/80 text-gray-400 hover:text-gray-100 transition"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-red-500/30 bg-zinc-950/80 text-red-400 hover:bg-red-500 hover:text-white transition"
               >
                 <X className="h-4 w-4" />
               </button>
