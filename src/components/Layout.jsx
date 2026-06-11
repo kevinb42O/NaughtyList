@@ -46,6 +46,8 @@ function Layout() {
   const [dropping, setDropping] = useState(false)
   const [dropStatus, setDropStatus] = useState('') // 'sent' | 'error' | ''
   const [keyboardActive, setKeyboardActive] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [isInactive, setIsInactive] = useState(false)
   const bottomNavRef = useRef(null)
 
   useEffect(() => {
@@ -115,6 +117,46 @@ function Layout() {
       root.style.removeProperty('--visual-viewport-bottom')
       root.style.removeProperty('--visual-viewport-height')
       root.style.removeProperty('--mobile-bottom-nav-height')
+    }
+  }, [])
+
+  // Modal event listener
+  useEffect(() => {
+    const handleModalOpen = () => setModalOpen(true)
+    const handleModalClose = () => setModalOpen(false)
+
+    window.addEventListener('modal-open', handleModalOpen)
+    window.addEventListener('modal-close', handleModalClose)
+    return () => {
+      window.removeEventListener('modal-open', handleModalOpen)
+      window.removeEventListener('modal-close', handleModalClose)
+    }
+  }, [])
+
+  // Inactivity tracking for auto-hide
+  useEffect(() => {
+    let timeout
+
+    const resetInactivity = () => {
+      setIsInactive(false)
+      clearTimeout(timeout)
+      // Hide after 4.5 seconds of inactivity
+      timeout = setTimeout(() => setIsInactive(true), 4500)
+    }
+
+    resetInactivity()
+
+    window.addEventListener('mousemove', resetInactivity)
+    window.addEventListener('touchstart', resetInactivity)
+    window.addEventListener('scroll', resetInactivity, true)
+    window.addEventListener('keydown', resetInactivity)
+
+    return () => {
+      clearTimeout(timeout)
+      window.removeEventListener('mousemove', resetInactivity)
+      window.removeEventListener('touchstart', resetInactivity)
+      window.removeEventListener('scroll', resetInactivity, true)
+      window.removeEventListener('keydown', resetInactivity)
     }
   }, [])
 
@@ -302,7 +344,7 @@ function Layout() {
       <OnboardingPrompt />
       <VoiceChatWidget />
 
-      <nav ref={bottomNavRef} className={`mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl ${keyboardActive ? 'mobile-bottom-nav--keyboard' : ''}`} aria-label="Primary navigation">
+      <nav ref={bottomNavRef} className={`mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950/94 px-2 pb-[calc(0.45rem+env(safe-area-inset-bottom))] pt-1.5 shadow-xl shadow-black backdrop-blur-xl ${(keyboardActive || modalOpen || isInactive) ? 'mobile-bottom-nav--hidden' : ''}`} aria-label="Primary navigation">
         <div className="mx-auto grid max-w-6xl gap-1 rounded-2xl border border-white/8 bg-black/35 p-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${bottomNavItems.length}, minmax(0, 1fr))` }}>
           {bottomNavItems.map((item) => <NavItem key={item.to} item={item} />)}
         </div>

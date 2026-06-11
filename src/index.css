@@ -95,12 +95,10 @@ body::before {
   transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
-@media (max-width: 640px) {
-  .mobile-bottom-nav--keyboard {
-    pointer-events: none;
-    opacity: 0;
-    transform: translate3d(0, 100%, 0);
-  }
+.mobile-bottom-nav--hidden {
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 100%, 0);
 }
 
 button,

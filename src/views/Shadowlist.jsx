@@ -16,7 +16,6 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Navigate } from 'react-router-dom'
 import PageHeader from '../components/PageHeader.jsx'
 import { useIntel } from '../context/useIntel.js'
@@ -273,7 +272,12 @@ function AddAccountModal({ onClose, onAdd }) {
     })
   }
 
-  return createPortal(
+  useEffect(() => {
+    window.dispatchEvent(new Event('modal-open'))
+    return () => window.dispatchEvent(new Event('modal-close'))
+  }, [])
+
+  return (
     <div
       className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', animation: 'shadowlistFadeIn 0.2s ease' }}
@@ -367,8 +371,7 @@ function AddAccountModal({ onClose, onAdd }) {
           </button>
         </form>
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }
 
@@ -459,7 +462,12 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
 
   const avatarSrc = getAvatarForLevel(account.userLevel || 1)
 
-  return createPortal(
+  useEffect(() => {
+    window.dispatchEvent(new Event('modal-open'))
+    return () => window.dispatchEvent(new Event('modal-close'))
+  }, [])
+
+  return (
     // Overlay: fixed full-screen backdrop, does NOT scroll.
     // The modal CARD itself scrolls (overflow-y-auto + max-h).
     // This is the only approach that works on iOS Safari + Android.
@@ -779,8 +787,7 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
             </div>
           </div>
         </div>
-    </div>,
-    document.body
+    </div>
   )
 }
 
