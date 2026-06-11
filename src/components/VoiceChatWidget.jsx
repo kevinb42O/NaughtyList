@@ -20,6 +20,7 @@ import {
 import { supabase } from '../lib/supabase.js'
 import { useIntel } from '../context/useIntel.js'
 import ProfileAvatar from './ProfileAvatar.jsx'
+import VoiceRoomModal from './VoiceRoomModal.jsx'
 
 const voiceRooms = [
   { name: 'Chat about anything', shortName: 'Open Comms', slug: 'chat-anything', description: 'Casual squad talk' },
@@ -146,6 +147,7 @@ async function sendVoiceJoinBroadcast(payload) {
 export default function VoiceChatWidget() {
   const { profile, isAuthenticated } = useIntel()
   const [isOpen, setIsOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isDeafened, setIsDeafened] = useState(false)
@@ -220,6 +222,13 @@ export default function VoiceChatWidget() {
     }
   }, [])
 
+  const isConnectedRef = useRef(isConnected)
+  const selectedRoomRef = useRef(selectedRoom)
+  useEffect(() => {
+    isConnectedRef.current = isConnected
+    selectedRoomRef.current = selectedRoom
+  }, [isConnected, selectedRoom])
+
   useEffect(() => {
     if (!isAuthenticated || !profile?.id) {
       return undefined
@@ -245,8 +254,8 @@ export default function VoiceChatWidget() {
         setRoomOccupancy(counts)
       })
       .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED' && isConnected) {
-          await channel.track({ room: selectedRoom }).catch(() => {})
+        if (status === 'SUBSCRIBED' && isConnectedRef.current) {
+          await channel.track({ room: selectedRoomRef.current }).catch(() => {})
         }
       })
 
@@ -699,10 +708,10 @@ export default function VoiceChatWidget() {
                 </button>
               ) : (
                 <div className="mt-3 space-y-3">
-                  <div className="flex items-center justify-between rounded-xl border border-white/6 bg-black/40 px-3 py-2">
+                  <button type="button" onClick={() => setIsModalOpen(true)} className="flex w-full items-center justify-between rounded-xl border border-white/6 bg-black/40 px-3 py-2 transition hover:bg-black/60 hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300" aria-label="Expand voice chat full view">
                     <span className="truncate text-[0.62rem] font-black uppercase tracking-[0.08em] text-gray-200">{selectedRoomMeta.shortName}</span>
                     <span className="inline-flex items-center gap-1 text-[0.52rem] font-bold uppercase tracking-[0.12em] text-emerald-300"><Wifi className="h-3 w-3" aria-hidden="true" />Live</span>
-                  </div>
+                  </button>
 
                   <div className="max-h-[10.5rem] space-y-2 overflow-y-auto pr-1">
                     {participants.length === 1 ? (
@@ -770,6 +779,19 @@ export default function VoiceChatWidget() {
           </section>
         ) : null}
       </div>
+
+      <VoiceRoomModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        roomName={selectedRoomMeta.shortName}
+        participants={participants}
+        dominantSpeakerId={dominantSpeakerId}
+        isMuted={isMuted}
+        isDeafened={isDeafened}
+        toggleMute={toggleMute}
+        toggleDeafen={toggleDeafen}
+        disconnectVoice={disconnectVoice}
+      />
 
       <style>{`
         @keyframes voiceBar1 {
