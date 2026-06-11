@@ -37,7 +37,7 @@ const messageBodyLimits = {
   direct: 1000,
   clan: 1000,
 }
-const allowedChatMediaTypes = new Set(['image', 'gif'])
+const allowedChatMediaTypes = new Set(['image', 'gif', 'audio'])
 const publicMessageSelect = 'id, user_id, body, media_url, media_type, reply_to_message_id, created_at'
 const publicMessageSelectLegacy = 'id, user_id, body, media_url, media_type, created_at'
 const directMessageSelect = 'id, sender_id, recipient_id, body, media_url, media_type, reply_to_message_id, read_at, created_at'
