@@ -21,6 +21,12 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
+function getAvatarForLevel(level) {
+  if (level >= 850) return '/avatars/skull.png'
+  if (level >= 250) return '/avatars/soldier.png'
+  return '/avatars/shield.png'
+}
+
 // ─── Seed data (ported 1-to-1 from shadowlist/src/seed.js) ────────────────────
 // KEY: activisionId = the actual Activision ID (unique key for dedup)
 //      isShadowbanned: true  → shadowbanStatus: 'shadowbanned'
@@ -37,7 +43,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-08',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/skull.png',
+    profilePicture: getAvatarForLevel(450),
   },
   {
     id: 'canBfriendly#6054722',
@@ -50,7 +56,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/soldier.png',
+    profilePicture: getAvatarForLevel(4),
   },
   {
     id: 'joske12345#8073724',
@@ -63,7 +69,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/shield.png',
+    profilePicture: getAvatarForLevel(460),
   },
   {
     id: 'FlameThief#5458858',
@@ -76,7 +82,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/skull.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'NeonLoa',
@@ -89,7 +95,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/soldier.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'Alpha-Q#8104748',
@@ -102,7 +108,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-11',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/shield.png',
+    profilePicture: getAvatarForLevel(500),
   },
   {
     id: 'Alpha-Q (yousef)',
@@ -115,7 +121,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/skull.png',
+    profilePicture: getAvatarForLevel(380),
   },
   {
     id: 'blackkawk',
@@ -128,7 +134,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-09',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/soldier.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'El Negro',
@@ -141,7 +147,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-09',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/shield.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'LootyPetooty',
@@ -154,7 +160,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-11',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/skull.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'ME#9805119',
@@ -167,7 +173,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-05',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/soldier.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'poiypoihsdgpoi',
@@ -180,7 +186,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/shield.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'IwantToBeHabibi',
@@ -193,7 +199,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-10',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/skull.png',
+    profilePicture: getAvatarForLevel(70),
   },
   {
     id: 'HolyMoly',
@@ -206,7 +212,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-11',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/soldier.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'youAreFkd#9396070',
@@ -219,7 +225,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-08',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/shield.png',
+    profilePicture: getAvatarForLevel(105),
   },
   {
     id: 'hatethisgame#9414410',
@@ -232,7 +238,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-07',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/skull.png',
+    profilePicture: getAvatarForLevel(1250),
   },
   {
     id: 'Oopsiepoopsi#9574496',
@@ -245,7 +251,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-07',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/soldier.png',
+    profilePicture: getAvatarForLevel(1),
   },
   {
     id: 'Alpha-Q-all#7255537',
@@ -258,7 +264,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-08',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/shield.png',
+    profilePicture: getAvatarForLevel(500),
   },
   {
     id: 'LightLowietje',
@@ -271,7 +277,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-06',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/skull.png',
+    profilePicture: getAvatarForLevel(1250),
   },
   {
     id: 'Joske420#1479701',
@@ -284,7 +290,7 @@ const SEED_ACCOUNTS = [
     shadowbanDate: '2026-06-08',
     insuredSlot2: false,
     insuredSlot3: false,
-    profilePicture: '/avatars/soldier.png',
+    profilePicture: getAvatarForLevel(1250),
   },
 ]
 

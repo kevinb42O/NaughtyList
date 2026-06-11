@@ -41,8 +41,10 @@ function formatCountdown(ms) {
   return `${days}D ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-function getRandomAvatar() {
-  return AVATAR_OPTIONS[Math.floor(Math.random() * AVATAR_OPTIONS.length)]
+function getAvatarForLevel(level) {
+  if (level >= 850) return '/avatars/skull.png'
+  if (level >= 250) return '/avatars/soldier.png'
+  return '/avatars/shield.png'
 }
 
 // ─── CountdownTimer Component ─────────────────────────────────────────────────
@@ -245,7 +247,6 @@ function AddAccountModal({ onClose, onAdd }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [userLevel, setUserLevel] = useState(1)
-  const [avatar, setAvatar] = useState(AVATAR_OPTIONS[0])
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -262,7 +263,7 @@ function AddAccountModal({ onClose, onAdd }) {
       email: email.trim(),
       password,
       userLevel: parseInt(userLevel, 10) || 1,
-      profilePicture: avatar,
+      profilePicture: getAvatarForLevel(parseInt(userLevel, 10) || 1),
       shadowbanStatus: 'unknown',
       shadowbanDate: '',
       shadowbanStartTime: null,
@@ -297,26 +298,7 @@ function AddAccountModal({ onClose, onAdd }) {
           </button>
         </div>
 
-        {/* Avatar picker */}
-        <div className="mb-5">
-          <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-500 mb-2">Avatar</p>
-          <div className="flex gap-2">
-            {AVATAR_OPTIONS.map((src) => (
-              <button
-                key={src}
-                type="button"
-                onClick={() => setAvatar(src)}
-                className="relative rounded-xl overflow-hidden transition-all"
-                style={{
-                  border: avatar === src ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.08)',
-                  boxShadow: avatar === src ? '0 0 12px rgba(249, 115, 22, 0.4)' : 'none',
-                }}
-              >
-                <img src={src} alt="" className="h-14 w-14 object-cover" />
-              </button>
-            ))}
-          </div>
-        </div>
+
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -473,8 +455,7 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
     })
   }
 
-  const isShadowbanned = account.shadowbanStatus === 'shadowbanned'
-  const avatarSrc = account.profilePicture || AVATAR_OPTIONS[0]
+  const avatarSrc = getAvatarForLevel(account.userLevel || 1)
 
   return (
     // Overlay: fixed full-screen backdrop, does NOT scroll.
@@ -572,13 +553,13 @@ function AccountDetailModal({ account, onClose, onUpdate, onDelete }) {
                       type="number"
                       value={editLevelValue}
                       onChange={(e) => setEditLevelValue(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingLevel(false); onUpdate({ ...account, userLevel: parseInt(editLevelValue, 10) || 1 }) } }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingLevel(false); const lvl = parseInt(editLevelValue, 10) || 1; onUpdate({ ...account, userLevel: lvl, profilePicture: getAvatarForLevel(lvl) }) } }}
                       className="field w-20 text-center py-1"
                       autoFocus
                     />
                     <button
                       type="button"
-                      onClick={() => { setIsEditingLevel(false); onUpdate({ ...account, userLevel: parseInt(editLevelValue, 10) || 1 }) }}
+                      onClick={() => { setIsEditingLevel(false); const lvl = parseInt(editLevelValue, 10) || 1; onUpdate({ ...account, userLevel: lvl, profilePicture: getAvatarForLevel(lvl) }) }}
                       className="flex h-9 w-9 items-center justify-center rounded-full border border-green-400/40 bg-green-400/10 text-green-300 hover:bg-green-400/20 transition"
                     >
                       <Check className="h-4 w-4" />
