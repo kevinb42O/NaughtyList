@@ -19,6 +19,12 @@ const allowedTypes = new Map([
   ['image/png', 'png'],
   ['image/webp', 'webp'],
   ['image/gif', 'gif'],
+  ['audio/webm', 'webm'],
+  ['audio/mp4', 'mp4'],
+  ['audio/mpeg', 'mp3'],
+  ['audio/ogg', 'ogg'],
+  ['audio/wav', 'wav'],
+  ['audio/aac', 'aac'],
 ])
 
 const corsHeaders = {
@@ -80,7 +86,7 @@ Deno.serve(async (req) => {
     const extension = allowedTypes.get(contentType)
 
     if (!extension) {
-      return jsonResponse({ error: 'Only JPEG, PNG, WebP, and GIF images can be uploaded.' }, 400)
+      return jsonResponse({ error: 'Only supported images and audio files can be uploaded.' }, 400)
     }
 
     if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_FILE_SIZE) {

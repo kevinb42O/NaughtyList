@@ -1,13 +1,25 @@
 export const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 export const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+export const allowedAudioTypes = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/aac']
+export const allowedAudioExtensions = ['.webm', '.mp4', '.mp3', '.ogg', '.wav', '.m4a', '.aac']
+
 export const imageAcceptValue = [...allowedImageTypes, ...allowedImageExtensions].join(',')
 export const maxImageUploadSize = 10 * 1024 * 1024
-const imageTypesByExtension = new Map([
+export const maxAudioUploadSize = 10 * 1024 * 1024
+
+const mediaTypesByExtension = new Map([
   ['jpg', 'image/jpeg'],
   ['jpeg', 'image/jpeg'],
   ['png', 'image/png'],
   ['webp', 'image/webp'],
   ['gif', 'image/gif'],
+  ['webm', 'audio/webm'],
+  ['mp4', 'audio/mp4'],
+  ['mp3', 'audio/mpeg'],
+  ['ogg', 'audio/ogg'],
+  ['wav', 'audio/wav'],
+  ['m4a', 'audio/mp4'],
+  ['aac', 'audio/aac'],
 ])
 
 export function formatFileSize(bytes) {
@@ -17,26 +29,45 @@ export function formatFileSize(bytes) {
 }
 
 export function validateImageFile(file) {
+  validateMediaFile(file, 'image')
+}
+
+export function validateMediaFile(file, restrictToType) {
   if (!file) {
-    throw new Error('Choose an image first.')
+    throw new Error('Choose a file first.')
   }
 
-  if (!getImageContentType(file)) {
+  const contentType = getMediaContentType(file)
+
+  if (!contentType) {
+    throw new Error('Unsupported file format.')
+  }
+
+  if (restrictToType === 'image' && !contentType.startsWith('image/')) {
     throw new Error('Use a JPEG, PNG, WebP, or GIF image.')
   }
 
-  if (file.size > maxImageUploadSize) {
-    throw new Error(`Images must be ${formatFileSize(maxImageUploadSize)} or smaller.`)
+  if (restrictToType === 'audio' && !contentType.startsWith('audio/')) {
+    throw new Error('Use a supported audio format.')
+  }
+
+  const maxSize = contentType.startsWith('audio/') ? maxAudioUploadSize : maxImageUploadSize
+  if (file.size > maxSize) {
+    throw new Error(`Files must be ${formatFileSize(maxSize)} or smaller.`)
   }
 }
 
 export function getImageContentType(file) {
-  if (allowedImageTypes.includes(file?.type)) {
+  return getMediaContentType(file)
+}
+
+export function getMediaContentType(file) {
+  if (allowedImageTypes.includes(file?.type) || allowedAudioTypes.includes(file?.type)) {
     return file.type
   }
 
   const extension = String(file?.name ?? '').split('.').pop()?.toLowerCase()
-  return imageTypesByExtension.get(extension) ?? ''
+  return mediaTypesByExtension.get(extension) ?? ''
 }
 
 function uploadWithProgress(uploadUrl, file, contentType, onProgress) {
@@ -96,9 +127,9 @@ async function createUploadUrl(supabase, file, contentType) {
   return data
 }
 
-async function uploadImage(supabase, file, onProgress) {
-  validateImageFile(file)
-  const contentType = getImageContentType(file)
+async function uploadMedia(supabase, file, restrictToType, onProgress) {
+  validateMediaFile(file, restrictToType)
+  const contentType = getMediaContentType(file)
   onProgress?.(1)
 
   let data
@@ -122,7 +153,7 @@ async function uploadImage(supabase, file, onProgress) {
 }
 
 export async function uploadChatImage(supabase, file, onProgress) {
-  const publicUrl = await uploadImage(supabase, file, onProgress)
+  const publicUrl = await uploadMedia(supabase, file, 'image', onProgress)
 
   return {
     mediaUrl: publicUrl,
@@ -130,16 +161,26 @@ export async function uploadChatImage(supabase, file, onProgress) {
   }
 }
 
+export async function uploadChatAudio(supabase, file, onProgress) {
+  const publicUrl = await uploadMedia(supabase, file, 'audio', onProgress)
+
+  return {
+    mediaUrl: publicUrl,
+    mediaType: 'audio',
+  }
+}
+
 export async function uploadProfileImage(supabase, file, onProgress) {
-  return uploadImage(supabase, file, onProgress)
+  return uploadMedia(supabase, file, 'image', onProgress)
 }
 
 export function messageHasMedia(message) {
-  return Boolean(message?.media_url && (message?.media_type === 'image' || message?.media_type === 'gif'))
+  return Boolean(message?.media_url && (message?.media_type === 'image' || message?.media_type === 'gif' || message?.media_type === 'audio'))
 }
 
 export function mediaPreviewLabel(message) {
   if (!messageHasMedia(message)) return message?.body ?? ''
+  if (message.media_type === 'audio') return 'Voice Message'
   const prefix = message.media_type === 'gif' ? 'GIF' : 'Image'
   return message.body ? `${prefix}: ${message.body}` : prefix
 }

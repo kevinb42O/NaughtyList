@@ -1,6 +1,7 @@
 import React from 'react'
 import { Copy, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
+import LinkPreview from './LinkPreview.jsx'
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g
 
@@ -130,6 +131,8 @@ export default function RichText({ content, wasDeleted }) {
              </div>
           </div>
         )
+      } else {
+        embeds.push(<LinkPreview key={`link-${index}`} url={url} />)
       }
 
       elements.push(

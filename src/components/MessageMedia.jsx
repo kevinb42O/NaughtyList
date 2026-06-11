@@ -61,11 +61,35 @@ function MediaLightbox({ media, onClose }) {
 function MessageMedia({ mediaUrl, mediaType, onDelete, deleting = false }) {
   const [open, setOpen] = useState(false)
   const isGif = mediaType === 'gif'
+  const isAudio = mediaType === 'audio'
 
   if (!mediaUrl) return null
 
   const media = { mediaUrl, mediaType }
-  const deleteLabel = isGif ? 'Delete GIF from message' : 'Delete picture from message'
+  const deleteLabel = isAudio ? 'Delete voice message' : isGif ? 'Delete GIF from message' : 'Delete picture from message'
+
+  if (isAudio) {
+    return (
+      <div className="relative mb-2 w-full">
+        <audio controls src={mediaUrl} className="w-full max-w-[240px] h-10 outline-none filter drop-shadow-md [&::-webkit-media-controls-panel]:bg-white/10 [&::-webkit-media-controls-play-button]:bg-white/80 [&::-webkit-media-controls-current-time-display]:text-white [&::-webkit-media-controls-time-remaining-display]:text-white" preload="metadata" />
+        {onDelete ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onDelete()
+            }}
+            disabled={deleting}
+            className="absolute -right-2 -top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-zinc-950 text-gray-400 shadow-lg shadow-black/30 transition hover:border-white/10 hover:text-white disabled:opacity-60"
+            aria-label={deleteLabel}
+            title={deleteLabel}
+          >
+            <Trash2 className="h-3 w-3" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <>
