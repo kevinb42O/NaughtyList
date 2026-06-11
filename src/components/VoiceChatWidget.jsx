@@ -424,7 +424,7 @@ export default function VoiceChatWidget() {
       muteActionRef.current = muteAction
 
       const profilePayload = {
-        id: profile?.id,
+        profileId: profile?.id,
         display_name: profile?.display_name || 'Operator',
         avatar_icon: profile?.avatar_icon || 'radio',
         avatar_image_url: profile?.avatar_image_url || '',
@@ -432,7 +432,7 @@ export default function VoiceChatWidget() {
         supporter_tier: profile?.supporter_tier,
         supporter_frame: profile?.supporter_frame,
       }
-      setParticipants([{ ...profilePayload, id: 'local', profileId: profile?.id, isMe: true, muted: false }])
+      setParticipants([{ ...profilePayload, id: 'local', isMe: true, muted: false }])
 
       const localSource = audioContextRef.current.createMediaStreamSource(stream)
       const localAnalyser = audioContextRef.current.createAnalyser()
@@ -538,6 +538,7 @@ export default function VoiceChatWidget() {
       setIsMuted(false)
       setIsDeafened(false)
       setConnectionStatus('connected')
+      setIsModalOpen(true)
       notifyVoiceJoin(roomName)
     } catch (error) {
       console.error('[VoiceChat] Voice engine error', error)

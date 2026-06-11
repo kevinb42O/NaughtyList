@@ -22,7 +22,7 @@ export default function VoiceRoomModal({
   // Map participants to full profiles if available
   const fullParticipants = useMemo(() => {
     return participants.map((participant) => {
-      const fullProfile = profiles.find((p) => p.id === participant.id)
+      const fullProfile = profiles.find((p) => p.id === participant.profileId)
       return {
         participant,
         profile: fullProfile || null,
