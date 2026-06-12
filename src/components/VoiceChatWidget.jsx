@@ -114,34 +114,14 @@ function clampDragPosition(position) {
 }
 
 async function sendVoiceJoinBroadcast(payload) {
-  await new Promise((resolve) => {
-    let settled = false
+  try {
     const channel = supabase.channel('online-users')
-    const finish = () => {
-      if (settled) return
-      settled = true
-      window.clearTimeout(timeoutId)
-      supabase.removeChannel(channel)
-      resolve()
+    if (channel.state === 'joined') {
+      await channel.send({ type: 'broadcast', event: 'voice_chat_joined', payload })
     }
-    const timeoutId = window.setTimeout(finish, 2500)
-
-    channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        try {
-          await channel.send({ type: 'broadcast', event: 'voice_chat_joined', payload })
-        } catch (error) {
-          console.warn('[VoiceChat] Failed to broadcast join event', error)
-        } finally {
-          finish()
-        }
-      }
-
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        finish()
-      }
-    })
-  })
+  } catch (error) {
+    console.warn('[VoiceChat] Failed to broadcast join event', error)
+  }
 }
 
 export default function VoiceChatWidget() {
@@ -174,6 +154,7 @@ export default function VoiceChatWidget() {
   const presenceChannelRef = useRef(null)
   const startPosRef = useRef({ x: 0, y: 0 })
   const startPointerRef = useRef({ x: 0, y: 0 })
+  const lastJoinSoundRef = useRef(0)
 
   const selectedRoomMeta = voiceRoomByName.get(selectedRoom) ?? voiceRooms[0]
   const totalOccupancy = useMemo(() => Object.values(roomOccupancy).reduce((sum, count) => sum + count, 0), [roomOccupancy])
@@ -226,11 +207,15 @@ export default function VoiceChatWidget() {
   const isConnectedRef = useRef(isConnected)
   const selectedRoomRef = useRef(selectedRoom)
   const localMutesRef = useRef(localMutes)
+  const isMutedRef = useRef(isMuted)
+  const isDeafenedRef = useRef(isDeafened)
   useEffect(() => {
     isConnectedRef.current = isConnected
     selectedRoomRef.current = selectedRoom
     localMutesRef.current = localMutes
-  }, [isConnected, selectedRoom, localMutes])
+    isMutedRef.current = isMuted
+    isDeafenedRef.current = isDeafened
+  }, [isConnected, selectedRoom, localMutes, isMuted, isDeafened])
 
   useEffect(() => {
     if (!isAuthenticated || !profile?.id) {
@@ -448,12 +433,13 @@ export default function VoiceChatWidget() {
           audio.id = `peer-audio-${peerId}`
           audio.style.display = 'none'
           audio.setAttribute('playsinline', 'true')
+          audio.autoplay = true
           document.body.appendChild(audio)
           audioElementsRef.current.set(peerId, audio)
         }
 
         audio.srcObject = peerStream
-        audio.volume = isDeafened || localMutesRef.current.has(peerId) ? 0 : 1
+        audio.volume = isDeafenedRef.current || localMutesRef.current.has(peerId) ? 0 : 1
         audio.play().catch((error) => {
           console.warn('[VoiceChat] Autoplay prevented for peer audio', error)
           retryPeerAudio(audio, peerId)
@@ -471,7 +457,11 @@ export default function VoiceChatWidget() {
       }
 
       room.onPeerJoin = (peerId) => {
-        playSynthSound('join')
+        const now = Date.now()
+        if (now - lastJoinSoundRef.current > 500) {
+          playSynthSound('join')
+          lastJoinSoundRef.current = now
+        }
         Promise.allSettled(room.addStream(stream, { target: peerId }))
           .then((results) => {
             const rejected = results.find((result) => result.status === 'rejected')
@@ -486,7 +476,7 @@ export default function VoiceChatWidget() {
         profileAction.send(profilePayload, { target: peerId }).catch((error) => {
           console.warn('[VoiceChat] Error sending peer profile payload', error)
         })
-        muteAction.send(isMuted, { target: peerId }).catch((error) => {
+        muteAction.send(isMutedRef.current, { target: peerId }).catch((error) => {
           console.warn('[VoiceChat] Error sending peer mute payload', error)
         })
       }
