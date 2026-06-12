@@ -236,12 +236,12 @@ function Layout() {
             </span>
             <span>{item.label}</span>
             {item.to === '/messages' && unreadDirectMessageCount ? (
-              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-[0.5rem] leading-none text-gray-100">
+              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-red-500/20 bg-red-600 px-1 py-0.5 text-[0.5rem] font-bold leading-none text-white shadow-sm shadow-red-600/30">
                 {unreadDirectMessageCount > 9 ? '9+' : unreadDirectMessageCount}
               </span>
             ) : null}
             {item.to === '/chat' && unreadPublicChatCount ? (
-              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-[0.5rem] leading-none text-gray-100">
+              <span className="absolute right-1 top-1 min-w-4 rounded-full border border-red-500/20 bg-red-600 px-1 py-0.5 text-[0.5rem] font-bold leading-none text-white shadow-sm shadow-red-600/30">
                 {unreadPublicChatCount > 9 ? '9+' : unreadPublicChatCount}
               </span>
             ) : null}

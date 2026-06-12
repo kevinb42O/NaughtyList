@@ -453,7 +453,7 @@ function Messages() {
                         </p>
                         <SupporterBadge profile={contact} compact />
                         {unreadCountsBySender[contact.id] ? (
-                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-100">
+                          <span className="rounded-full border border-red-500/20 bg-red-600 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-white shadow-sm shadow-red-600/30">
                             {unreadCountsBySender[contact.id]}
                           </span>
                         ) : null}
