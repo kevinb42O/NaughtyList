@@ -9,10 +9,16 @@ function ProfileDisplayName({ profile, fallbackName = 'Unknown Operator' }) {
   const displayName = profile?.display_name || fallbackName
   const displayProfile = { ...(profile ?? {}), display_name: displayName }
 
+  let glowClass = roleNameClass[profile?.role]
+  
+  if (!glowClass && (profile?.supporter_tier === 'founder' || profile?.supporter_tier === 'colonel')) {
+    glowClass = roleNameClass.admin
+  }
+
   return (
     <>
       <span className="profile-clan-tag">{clanPrefix(profile)} </span>
-      <span className={roleNameClass[profile?.role] ?? undefined}>{displayProfileName(displayProfile)}</span>
+      <span className={glowClass}>{displayProfileName(displayProfile)}</span>
     </>
   )
 }
