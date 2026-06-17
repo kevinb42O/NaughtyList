@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { Check, Crown, Eye, LogIn, MessageSquare, Search, Settings, Shield, Star, UsersRound, X } from 'lucide-react'
+import { Check, Crown, Eye, Flame, LogIn, MessageSquare, Search, Settings, Shield, Star, UsersRound, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ClanBadge from '../components/ClanBadge.jsx'
 import { clanBadgeIconOptions, defaultClanBadgeIconKey, getClanBadgeIconOption } from '../components/ProfileAvatar.jsx'
 import { useIntel } from '../context/useIntel.js'
 import { clanPrefix, displayProfileName } from '../utils/profiles.js'
+import { currentStreakReward, profileLoginStreak } from '../utils/streaks.js'
 
 function roleBadgeTone(role) {
   if (role === 'owner') {
@@ -502,15 +503,25 @@ function Clans() {
             <div className="space-y-2">
               {adminClanState.members.length ? adminClanState.members.map((member) => (
                 <article key={member.user_id} className="rounded-2xl border border-white/10 bg-black/25 p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black uppercase tracking-[0.06em] text-white">
-                      {displayProfileName(member.profile)}
-                    </p>
-                    <RolePill role={member.role} />
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-black uppercase tracking-[0.06em] text-white">
+                          {displayProfileName(member.profile)}
+                        </p>
+                        <RolePill role={member.role} />
+                      </div>
+                      <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-gray-600">
+                        Joined {new Date(member.joined_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-end lg:justify-end">
+                      <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.18em] ${currentStreakReward(profileLoginStreak(member.profile))?.tone ?? 'border-white/10 bg-white/5 text-gray-400'}`}>
+                        <Flame className="h-3 w-3" aria-hidden="true" />
+                        {profileLoginStreak(member.profile)} Day Streak
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-gray-600">
-                    Joined {new Date(member.joined_at).toLocaleDateString()}
-                  </p>
                 </article>
               )) : (
                 <p className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-3 text-sm font-bold text-gray-500">
@@ -1034,51 +1045,57 @@ function Clans() {
                           </p>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                          {canToggleRole ? (
-                            <select
-                              value={member.role}
-                              onChange={(e) => {
-                                if (e.target.value !== member.role) {
+                        <div className="flex flex-col items-end gap-3 lg:items-end lg:justify-between">
+                          <div className="flex flex-wrap gap-2">
+                            {canToggleRole ? (
+                              <select
+                                value={member.role}
+                                onChange={(e) => {
+                                  if (e.target.value !== member.role) {
+                                    runAction(
+                                      `role-${member.user_id}`,
+                                      'Clan role updated.',
+                                      () => updateClanMemberRole(myClan.id, member.user_id, e.target.value),
+                                    )
+                                  }
+                                }}
+                                disabled={!!workingKey}
+                                className="field min-h-10 text-[0.68rem] font-black uppercase tracking-[0.18em]"
+                              >
+                                <option value="recruit">Recruit</option>
+                                <option value="member">Member</option>
+                                <option value="sergeant">Sergeant</option>
+                                <option value="veteran">Veteran</option>
+                                <option value="colonel">Colonel</option>
+                                <option value="officer">Officer</option>
+                              </select>
+                            ) : null}
+
+                            {canRemove ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!window.confirm(`Remove ${displayProfileName(member.profile)} from ${myClan.name}?`)) {
+                                    return
+                                  }
+
                                   runAction(
-                                    `role-${member.user_id}`,
-                                    'Clan role updated.',
-                                    () => updateClanMemberRole(myClan.id, member.user_id, e.target.value),
+                                    `remove-${member.user_id}`,
+                                    'Member removed.',
+                                    () => removeClanMember(myClan.id, member.user_id),
                                   )
-                                }
-                              }}
-                              disabled={!!workingKey}
-                              className="field min-h-10 text-[0.68rem] font-black uppercase tracking-[0.18em]"
-                            >
-                              <option value="recruit">Recruit</option>
-                              <option value="member">Member</option>
-                              <option value="sergeant">Sergeant</option>
-                              <option value="veteran">Veteran</option>
-                              <option value="colonel">Colonel</option>
-                              <option value="officer">Officer</option>
-                            </select>
-                          ) : null}
-
-                          {canRemove ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!window.confirm(`Remove ${displayProfileName(member.profile)} from ${myClan.name}?`)) {
-                                  return
-                                }
-
-                                runAction(
-                                  `remove-${member.user_id}`,
-                                  'Member removed.',
-                                  () => removeClanMember(myClan.id, member.user_id),
-                                )
-                              }}
-                              disabled={workingKey === `remove-${member.user_id}`}
-                              className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
-                            >
-                              Remove
-                            </button>
-                          ) : null}
+                                }}
+                                disabled={workingKey === `remove-${member.user_id}`}
+                                className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/5 px-4 text-[0.68rem] font-black uppercase tracking-[0.18em] text-gray-100 transition hover:bg-white/5 disabled:opacity-60"
+                              >
+                                Remove
+                              </button>
+                            ) : null}
+                          </div>
+                          <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.18em] ${currentStreakReward(profileLoginStreak(member.profile))?.tone ?? 'border-white/10 bg-white/5 text-gray-400'}`}>
+                            <Flame className="h-3 w-3" aria-hidden="true" />
+                            {profileLoginStreak(member.profile)} Day Streak
+                          </div>
                         </div>
                       </div>
                     </article>
