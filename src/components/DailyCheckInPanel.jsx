@@ -53,6 +53,7 @@ function StatTile({ icon: Icon, label, value, tone = 'text-white' }) {
 
 function DailyOpsSummary({ onOpen, className = '' }) {
   const { isAuthenticated, profile, lastXpAward } = useIntel()
+  const [now, setNow] = useState(() => new Date())
   const loginStreak = profileLoginStreak(profile)
   const claimedToday = isCheckInClaimedToday(profile)
   const riskState = checkInRiskState(profile)
@@ -60,6 +61,28 @@ function DailyOpsSummary({ onOpen, className = '' }) {
   const StatusIcon = resolvedStatus.Icon
   const rewardProgress = streakRewardProgress(loginStreak)
   const level = levelProgress(profile)
+
+  useEffect(() => {
+    if (!claimedToday) {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNow(new Date())
+    }, 1000)
+
+    return () => window.clearInterval(intervalId)
+  }, [claimedToday])
+
+  const resetLabel = useMemo(() => {
+    const nextReset = new Date(now)
+    nextReset.setUTCHours(24, 0, 0, 0)
+    const remainingMs = Math.max(0, nextReset.getTime() - now.getTime())
+    const hours = Math.floor(remainingMs / 3600000)
+    const minutes = Math.floor((remainingMs % 3600000) / 60000)
+    const seconds = Math.floor((remainingMs % 60000) / 1000)
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  }, [now])
 
   if (!isAuthenticated) {
     return (
@@ -115,6 +138,12 @@ function DailyOpsSummary({ onOpen, className = '' }) {
           {lastXpAward?.xp_earned ? (
             <span className="hidden rounded-full border border-yellow-300/35 bg-yellow-400/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.14em] text-yellow-100 sm:inline-flex">
               +{lastXpAward.xp_earned} XP
+            </span>
+          ) : null}
+          {claimedToday ? (
+            <span className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-400 sm:inline-flex" aria-label="Next claim in">
+              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="w-16 text-center tabular-nums">{resetLabel}</span>
             </span>
           ) : null}
           <button

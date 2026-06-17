@@ -11,7 +11,7 @@ import { useIntel } from '../context/useIntel.js'
 import { formatEuropeanDateTime } from '../utils/dates.js'
 import { levelProgress, profileLevel, profileXpTotal } from '../utils/gamification.js'
 import { gameAccountStatusMeta, profileGameAccounts } from '../utils/gameAccounts.js'
-import { clanPrefix, displayProfileName, isProfileOnline } from '../utils/profiles.js'
+import { isProfileOnline } from '../utils/profiles.js'
 import { profileLoginStreak, profileLongestLoginStreak } from '../utils/streaks.js'
 
 function PublicProfile() {

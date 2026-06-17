@@ -60,7 +60,7 @@ export default function LinkPreview({ url }) {
   let hostname = url
   try {
     hostname = new URL(preview.url || url).hostname.replace(/^www\./, '')
-  } catch (e) {}
+  } catch {}
 
   return (
     <a href={preview.url || url} target="_blank" rel="noopener noreferrer" className="mt-2 group flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-lg transition hover:border-white/20 hover:bg-black/50">

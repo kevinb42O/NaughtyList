@@ -1,3 +1,4 @@
+/* global process */
 /**
  * seedShadowlist.js — corrected
  *
@@ -315,7 +316,7 @@ async function run() {
 
   console.log(`✅ Found admin user: ${adminUser.id}`)
 
-  const { data: currentProfile, error: profileError } = await supabase
+  const { error: profileError } = await supabase
     .from('profiles')
     .select('id, game_accounts, activision_ids')
     .eq('id', adminUser.id)

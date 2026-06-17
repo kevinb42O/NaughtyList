@@ -1,7 +1,7 @@
 import { Crown, MessageSquare, Reply, Shield } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import ClanBadge from '../components/ClanBadge.jsx'
+
 import MediaComposer from '../components/MediaComposer.jsx'
 import MessageMedia from '../components/MessageMedia.jsx'
 import MessageReplyPreview from '../components/MessageReplyPreview.jsx'
