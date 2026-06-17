@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useIntel } from '../context/useIntel.js'
 import { checkInRiskState, dailyResetLabel, isCheckInClaimedToday, levelProgress, profileMissionStates, profileStreakFreezes, weeklyCircuitCells } from '../utils/gamification.js'
-import { formatDaysUntilReward, profileLoginStreak, profileLongestLoginStreak, streakRewardProgress, streakRewards } from '../utils/streaks.js'
+import { formatDaysUntilReward, profileLoginStreak, profileLongestLoginStreak, streakFreezeProgress, streakRewardProgress, streakRewards } from '../utils/streaks.js'
 
 const statusMeta = {
   claimed: {
@@ -235,6 +235,7 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
   const loginStreak = profileLoginStreak(profile)
   const longestStreak = profileLongestLoginStreak(profile)
   const freezes = profileStreakFreezes(profile)
+  const freezeProgress = streakFreezeProgress(loginStreak)
   const rewardProgress = streakRewardProgress(loginStreak)
   const level = levelProgress(profile)
   const weeklyCells = weeklyCircuitCells(loginStreak, claimedToday)
@@ -363,6 +364,24 @@ function DailyCheckInPanel({ compact = false, embedded = false, className = '' }
         </div>
 
         <div className="grid gap-4">
+          <div className="rounded-[1.35rem] border border-white/10 bg-black/25 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">Streak Freeze</p>
+                <p className="mt-1 text-lg font-black uppercase tracking-[0.04em] text-cyan-100">
+                  {freezes === 3 ? 'Charges Maxed' : 'Backup Charge'}
+                </p>
+              </div>
+              <span className={`rounded-full border px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] ${freezes === 3 ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100' : 'border-white/10 bg-white/5 text-gray-300'}`}>
+                {freezes === 3 ? 'Full' : freezeProgress.label}
+              </span>
+            </div>
+            {freezes < 3 ? <ProgressBar value={freezeProgress.progressPercent} tone="bg-cyan-300/60" /> : null}
+            <p className="mt-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gray-500">
+              Freezes protect your streak if you miss a day. Earned every 10 check-ins.
+            </p>
+          </div>
+
           <div className="rounded-[1.35rem] border border-white/10 bg-black/25 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>

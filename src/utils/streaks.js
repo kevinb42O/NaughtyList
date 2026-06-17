@@ -139,3 +139,22 @@ export function streakRewardProgress(streakCount) {
     label: formatDaysUntilReward(streakCount, nextReward),
   }
 }
+
+export function daysUntilNextFreeze(streakCount) {
+  const remainder = streakCount % 10
+  return 10 - remainder
+}
+
+export function streakFreezeProgress(streakCount) {
+  const remainingDays = daysUntilNextFreeze(streakCount)
+  const earned = Math.floor(streakCount / 10)
+  const progressPercent = ((10 - remainingDays) / 10) * 100
+
+  return {
+    remainingDays,
+    progressPercent,
+    earned,
+    label: remainingDays === 1 ? '1 day until next freeze' : `${remainingDays} days until next freeze`,
+  }
+}
+
