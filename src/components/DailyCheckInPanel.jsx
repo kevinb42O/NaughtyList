@@ -74,14 +74,19 @@ function DailyOpsSummary({ onOpen, className = '' }) {
     return () => window.clearInterval(intervalId)
   }, [claimedToday])
 
-  const resetLabel = useMemo(() => {
+  const resetData = useMemo(() => {
     const nextReset = new Date(now)
     nextReset.setUTCHours(24, 0, 0, 0)
     const remainingMs = Math.max(0, nextReset.getTime() - now.getTime())
     const hours = Math.floor(remainingMs / 3600000)
     const minutes = Math.floor((remainingMs % 3600000) / 60000)
     const seconds = Math.floor((remainingMs % 60000) / 1000)
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    
+    const label = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    const totalDayMs = 24 * 60 * 60 * 1000
+    const progressPercent = ((totalDayMs - remainingMs) / totalDayMs) * 100
+
+    return { label, progressPercent }
   }, [now])
 
   if (!isAuthenticated) {
@@ -141,10 +146,14 @@ function DailyOpsSummary({ onOpen, className = '' }) {
             </span>
           ) : null}
           {claimedToday ? (
-            <span className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-400 sm:inline-flex" aria-label="Next claim in">
-              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="w-16 text-center tabular-nums">{resetLabel}</span>
-            </span>
+            <div className="hidden w-[4.5rem] flex-col justify-center sm:flex">
+              <div className="mb-1.5 flex items-center justify-between text-[0.52rem] font-black uppercase tracking-[0.14em] text-gray-500">
+                <span className="tabular-nums">{resetData.label}</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-gray-400/80" style={{ width: `${resetData.progressPercent}%` }} />
+              </div>
+            </div>
           ) : null}
           <button
             type="button"
