@@ -1,4 +1,4 @@
-import { MessageSquare } from 'lucide-react'
+import { Flame, MessageSquare } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatEuropeanDateTime } from '../utils/dates.js'
 import { profileLevel, profileXpTotal } from '../utils/gamification.js'
@@ -10,6 +10,7 @@ import RoleBadge from './RoleBadge.jsx'
 import StreakBadge from './StreakBadge.jsx'
 import SupporterBadge from './SupporterBadge.jsx'
 import { displayProfileName, isProfileOnline } from '../utils/profiles.js'
+import { currentStreakReward, profileLoginStreak } from '../utils/streaks.js'
 
 function ProfileCard({ profile, onlineUserIds }) {
   const navigate = useNavigate()
@@ -121,9 +122,15 @@ function ProfileCard({ profile, onlineUserIds }) {
         )}
       </div>
 
-      <p className={`mt-4 text-xs font-bold uppercase tracking-[0.16em] ${bannerImageUrl ? 'text-gray-300' : 'text-gray-600'}`}>
-        {xpTotal} XP · Last seen {formatEuropeanDateTime(profile.last_seen)}
-      </p>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <p className={`text-xs font-bold uppercase tracking-[0.16em] ${bannerImageUrl ? 'text-gray-300' : 'text-gray-600'}`}>
+          {xpTotal} XP · Last seen {formatEuropeanDateTime(profile.last_seen)}
+        </p>
+        <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.18em] ${currentStreakReward(profileLoginStreak(profile))?.tone ?? 'border-white/10 bg-white/5 text-gray-400'}`}>
+          <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+          {profileLoginStreak(profile)}
+        </div>
+      </div>
     </article>
   )
 }
